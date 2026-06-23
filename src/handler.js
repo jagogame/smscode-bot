@@ -7,61 +7,28 @@ const GOOGLE_BR_PRODUCT_ID = 6220;
 // Polling aktif per order
 const activePolls = {};
 
-const POLL_INTERVAL_MS = 1_000;
-const POLL_TIMEOUT_MS  = 20 * 60_000;
+const POLL_INTERVAL_MS = 100;
 
 function startPolling(sock, jid, orderId) {
     if (activePolls[orderId]) return;
 
     const seenOtp = new Set();
-    const startTime = Date.now();
 
     sock.sendMessage(jid, {
-        text: `🔄 Menunggu OTP untuk order \`${orderId}\`...\nBot akan notif otomatis kalau OTP masuk (maks 10 menit).\nKetik *stop ${orderId}* untuk berhenti.`
+        text: `🔄 Menunggu OTP untuk order \`${orderId}\`...\nKetik *stop ${orderId}* untuk berhenti.`
     });
 
     const interval = setInterval(async () => {
         try {
-            if (Date.now() - startTime > POLL_TIMEOUT_MS) {
-                stopPolling(orderId);
-                return;
-            }
-
             const order = await sms.getOrder(orderId);
 
-            // OTP masuk saat order sudah expired — notif khusus
-            if (['EXPIRED', 'CANCELLED'].includes(order.status)) {
-                if (order.otp_code && !seenOtp.has(order.otp_code)) {
-                    seenOtp.add(order.otp_code);
-                    sock.sendMessage(jid, {
-                        text:
-                            `⚠️ *OTP Masuk Tapi Waktu Habis!*\n\n` +
-                            `🆔 Order: \`${orderId}\`\n` +
-                            `📞 Nomor: \`+${order.phone_number}\`\n` +
-                            `🔑 *OTP: \`${order.otp_code}\`*\n\n` +
-                            `❌ Order sudah *${order.status}* — OTP ini tidak bisa dipakai.`
-                    });
-                }
-                stopPolling(orderId);
-                return;
+            if (order.otp_code && !seenOtp.has(order.otp_code)) {
+                seenOtp.add(order.otp_code);
+                sock.sendMessage(jid, { text: order.otp_code });
             }
 
             if (order.status === 'COMPLETED') {
                 stopPolling(orderId);
-                return;
-            }
-
-            if (order.otp_code && !seenOtp.has(order.otp_code)) {
-                seenOtp.add(order.otp_code);
-                const count = seenOtp.size;
-                sock.sendMessage(jid, {
-                    text:
-                        `📨 *OTP${count > 1 ? ` Terbaru (#${count})` : ''} Masuk!*\n\n` +
-                        `🆔 Order: \`${orderId}\`\n` +
-                        `📞 Nomor: \`+${order.phone_number}\`\n` +
-                        `🔑 *OTP: \`${order.otp_code}\`*\n\n` +
-                        `Ketik *selesai ${orderId}* setelah pakai.`
-                });
             }
         } catch (e) {}
     }, POLL_INTERVAL_MS);
