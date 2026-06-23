@@ -215,7 +215,7 @@
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>ID Order</th><th>Nomor</th><th>Status</th><th>Expired</th><th>OTP</th><th>Aksi</th></tr></thead>
+            <thead><tr><th>ID Order</th><th>Status</th><th>OTP</th><th>Pesan SMS</th><th>Expired</th><th>Aksi</th></tr></thead>
             <tbody id="orders-table"><tr><td colspan="6" class="empty">Loading...</td></tr></tbody>
           </table>
         </div>
@@ -414,14 +414,21 @@ async function loadActiveOrders() {
     tbody.innerHTML = '<tr><td colspan="6" class="empty">Tidak ada order aktif</td></tr>';
     return;
   }
+  const statusBadgeOrder = s => {
+    if (s === 'ACTIVE') return 'badge-green';
+    if (s === 'OTP_RECEIVED') return 'badge-blue';
+    if (s === 'EXPIRED' || s === 'CANCELLED') return 'badge-red';
+    return 'badge-yellow';
+  };
   tbody.innerHTML = orders.map(o => `
     <tr>
       <td><code style="color:#a78bfa">${o.id}</code></td>
-      <td>+${o.phone_number}</td>
-      <td><span class="badge badge-green">${o.status}</span></td>
+      <td><span class="badge ${statusBadgeOrder(o.status)}">${o.status}</span></td>
+      <td>${o.otp_code ? `<span class="badge badge-blue" style="font-size:14px;letter-spacing:2px">🔑 ${o.otp_code}</span>` : '<span style="color:#64748b;font-size:12px">Menunggu...</span>'}</td>
+      <td style="color:#94a3b8;font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.otp_message || '-'}</td>
       <td style="color:#64748b;font-size:12px">${new Date(o.expires_at).toLocaleString('id-ID')}</td>
-      <td>${o.otp_code ? `<span class="badge badge-blue">🔑 ${o.otp_code}</span>` : '<span style="color:#64748b">Menunggu...</span>'}</td>
-      <td style="display:flex;gap:6px">
+      <td style="display:flex;gap:5px;flex-wrap:wrap">
+        <button class="btn btn-sm" style="background:#4f46e5;color:white" onclick="resendOTP('${o.id}')">🔄 Resend</button>
         <button class="btn btn-warning btn-sm" onclick="cancelOrder('${o.id}')">Batal</button>
         <button class="btn btn-success btn-sm" onclick="finishOrder('${o.id}')">Selesai</button>
       </td>
@@ -472,6 +479,13 @@ async function pollOTP(orderId) {
         </div>`;
     }
   }, 1000);
+}
+
+async function resendOTP(id) {
+  const res = await api('POST', '/api/orders/resend', { id });
+  if (res.error) { alert('Gagal resend: ' + res.error); return; }
+  alert('✅ Permintaan resend OTP berhasil dikirim!');
+  setTimeout(loadActiveOrders, 3000);
 }
 
 async function cancelOrder(id) {

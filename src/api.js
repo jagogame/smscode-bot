@@ -95,6 +95,16 @@ router.post('/api/orders/finish', requireAuth, async (req, res) => {
     }
 });
 
+// Resend SMS
+router.post('/api/orders/resend', requireAuth, async (req, res) => {
+    try {
+        const result = await sms.resendSMS(req.body.id);
+        res.json(result || { ok: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // Submit laporan
 router.post('/api/laporan', requireAuth, async (req, res) => {
     try {
