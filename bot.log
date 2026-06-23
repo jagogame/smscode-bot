@@ -1,3 +1,5 @@
 ◇ injected env (2) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
 ◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
 ✅ Bot WhatsApp terhubung!
+❌ Koneksi terputus (428). Reconnecting...
+✅ Bot WhatsApp terhubung!

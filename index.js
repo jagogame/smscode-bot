@@ -10,6 +10,7 @@ const QRCode = require('qrcode');
 const express = require('express');
 const pino = require('pino');
 const { handleMessage } = require('./src/handler');
+const apiRouter = require('./src/api');
 require('dotenv').config();
 
 // Web server untuk tampilkan QR di Railway
@@ -17,22 +18,25 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 let currentQR = null;
 
-app.get('/', async (req, res) => {
+app.use(express.json());
+app.use('/', apiRouter);
+
+app.get('/qr', async (req, res) => {
     if (!currentQR) {
         return res.send(`
-            <html><body style="font-family:sans-serif;text-align:center;padding:50px">
+            <html><body style="font-family:sans-serif;text-align:center;padding:50px;background:#0f172a;color:#e2e8f0">
             <h2>✅ Bot WhatsApp sudah terhubung!</h2>
-            <p>Tidak perlu scan QR lagi.</p>
+            <p style="color:#94a3b8">Kembali ke <a href="/" style="color:#6366f1">Dashboard</a></p>
             </body></html>
         `);
     }
     const qrImage = await QRCode.toDataURL(currentQR);
     res.send(`
-        <html><body style="font-family:sans-serif;text-align:center;padding:50px">
+        <html><body style="font-family:sans-serif;text-align:center;padding:50px;background:#0f172a;color:#e2e8f0">
         <h2>📱 Scan QR Code dengan WhatsApp</h2>
-        <p>Buka WhatsApp → Linked Devices → Link a Device</p>
-        <img src="${qrImage}" style="width:300px;height:300px"/>
-        <p><small>Refresh halaman jika QR expired</small></p>
+        <p style="color:#94a3b8">Buka WhatsApp → Linked Devices → Link a Device</p>
+        <img src="${qrImage}" style="width:300px;height:300px;border-radius:12px;margin:20px"/>
+        <p><small style="color:#64748b">Refresh halaman jika QR expired</small></p>
         </body></html>
     `);
 });
