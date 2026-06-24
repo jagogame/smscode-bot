@@ -13,32 +13,36 @@ function startPolling(sock, jid, orderId) {
     if (activePolls[orderId]) return;
 
     const seenOtp = new Set();
+    let stopped = false;
 
     sock.sendMessage(jid, {
         text: `🔄 Menunggu OTP untuk order \`${orderId}\`...\nKetik *stop ${orderId}* untuk berhenti.`
     });
 
-    const interval = setInterval(async () => {
+    async function poll() {
+        if (stopped) return;
         try {
             const order = await sms.getOrder(orderId);
-
             if (order.otp_code && !seenOtp.has(order.otp_code)) {
                 seenOtp.add(order.otp_code);
                 sock.sendMessage(jid, { text: order.otp_code });
             }
-
             if (order.status === 'COMPLETED') {
-                stopPolling(orderId);
+                stopped = true;
+                delete activePolls[orderId];
+                return;
             }
         } catch (e) {}
-    }, POLL_INTERVAL_MS);
+        if (!stopped) setTimeout(poll, POLL_INTERVAL_MS);
+    }
 
-    activePolls[orderId] = { jid, interval };
+    activePolls[orderId] = { jid, stop: () => { stopped = true; } };
+    poll();
 }
 
 function stopPolling(orderId) {
     if (!activePolls[orderId]) return false;
-    clearInterval(activePolls[orderId].interval);
+    activePolls[orderId].stop();
     delete activePolls[orderId];
     return true;
 }
