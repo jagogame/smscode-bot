@@ -3,337 +3,771 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SMSCode Bot Dashboard</title>
+<title>OTP Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+:root {
+  --bg: #080b14;
+  --bg2: #0d1117;
+  --surface: rgba(255,255,255,0.04);
+  --surface2: rgba(255,255,255,0.07);
+  --border: rgba(255,255,255,0.08);
+  --border2: rgba(255,255,255,0.14);
+  --text: #e8eaf0;
+  --text2: #8b92a8;
+  --text3: #4e5668;
+  --accent: #7c6ef5;
+  --accent2: #9d8ff7;
+  --green: #22d3a0;
+  --red: #f25c7c;
+  --yellow: #f5c842;
+  --blue: #4fa8f7;
+  --glow: rgba(124,110,245,0.25);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
 
-  /* LOGIN */
-  #login-page {
-    display: flex; align-items: center; justify-content: center; min-height: 100vh;
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-  }
-  .login-box {
-    background: #1e293b; border-radius: 16px; padding: 40px; width: 380px;
-    border: 1px solid #334155; box-shadow: 0 25px 50px rgba(0,0,0,0.5);
-  }
-  .login-box h1 { font-size: 24px; margin-bottom: 8px; color: #f1f5f9; }
-  .login-box p { color: #94a3b8; margin-bottom: 28px; font-size: 14px; }
-  .form-group { margin-bottom: 16px; }
-  .form-group label { display: block; font-size: 13px; color: #94a3b8; margin-bottom: 6px; }
-  .form-group input, .form-group select {
-    width: 100%; padding: 10px 14px; background: #0f172a; border: 1px solid #334155;
-    border-radius: 8px; color: #e2e8f0; font-size: 14px; outline: none;
-  }
-  .form-group input:focus, .form-group select:focus { border-color: #6366f1; }
-  .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
-  .btn-primary { background: #6366f1; color: white; }
-  .btn-primary:hover { background: #4f46e5; }
-  .btn-danger { background: #ef4444; color: white; padding: 8px 16px; width: auto; font-size: 13px; border-radius: 6px; }
-  .btn-success { background: #22c55e; color: white; padding: 8px 16px; width: auto; font-size: 13px; border-radius: 6px; }
-  .btn-warning { background: #f59e0b; color: white; padding: 8px 16px; width: auto; font-size: 13px; border-radius: 6px; }
-  .btn-sm { padding: 6px 12px; font-size: 12px; }
-  .error-msg { color: #ef4444; font-size: 13px; margin-top: 10px; text-align: center; }
+/* BG NOISE */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 0;
+}
 
-  /* DASHBOARD */
-  #dashboard { display: none; }
-  .sidebar {
-    position: fixed; left: 0; top: 0; bottom: 0; width: 240px;
-    background: #1e293b; border-right: 1px solid #334155; padding: 24px 0;
-    display: flex; flex-direction: column;
-  }
-  .sidebar-logo { padding: 0 20px 24px; border-bottom: 1px solid #334155; }
-  .sidebar-logo h2 { font-size: 18px; color: #f1f5f9; }
-  .sidebar-logo span { font-size: 12px; color: #6366f1; }
-  .sidebar-nav { flex: 1; padding: 16px 0; }
-  .nav-item {
-    display: flex; align-items: center; gap: 10px; padding: 10px 20px;
-    cursor: pointer; color: #94a3b8; font-size: 14px; transition: all 0.15s; border-left: 3px solid transparent;
-  }
-  .nav-item:hover { background: #0f172a; color: #e2e8f0; }
-  .nav-item.active { background: #0f172a; color: #6366f1; border-left-color: #6366f1; }
-  .nav-icon { font-size: 18px; }
-  .sidebar-footer { padding: 16px 20px; border-top: 1px solid #334155; }
-  .user-info { font-size: 13px; color: #94a3b8; margin-bottom: 10px; }
-  .user-info strong { color: #e2e8f0; display: block; }
+/* TOAST */
+#toast {
+  position: fixed; top: 24px; right: 24px; z-index: 9999;
+  display: flex; flex-direction: column; gap: 10px;
+  pointer-events: none;
+}
+.toast-item {
+  background: rgba(20,24,36,0.95);
+  border: 1px solid var(--border2);
+  backdrop-filter: blur(20px);
+  border-radius: 12px;
+  padding: 14px 18px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  display: flex; align-items: center; gap: 10px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  animation: slideIn 0.3s ease, fadeOut 0.4s ease 2.6s forwards;
+  min-width: 260px;
+}
+@keyframes slideIn { from { transform: translateX(40px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes fadeOut { to { opacity: 0; transform: translateY(-8px); } }
+.toast-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 
-  .main { margin-left: 240px; padding: 28px; }
-  .page { display: none; }
-  .page.active { display: block; }
-  .page-title { font-size: 22px; font-weight: 700; color: #f1f5f9; margin-bottom: 20px; }
+/* LOGIN */
+#login-page {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh; position: relative;
+}
+.login-glow {
+  position: absolute;
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(124,110,245,0.15) 0%, transparent 70%);
+  top: 50%; left: 50%; transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.login-box {
+  position: relative; z-index: 1;
+  background: rgba(13,17,23,0.8);
+  backdrop-filter: blur(30px);
+  border: 1px solid var(--border2);
+  border-radius: 24px;
+  padding: 44px 40px;
+  width: 400px;
+  box-shadow: 0 0 0 1px rgba(124,110,245,0.1), 0 40px 80px rgba(0,0,0,0.6);
+}
+.login-logo {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 32px;
+}
+.login-logo-icon {
+  width: 46px; height: 46px;
+  background: linear-gradient(135deg, #7c6ef5, #4fa8f7);
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  box-shadow: 0 4px 20px rgba(124,110,245,0.4);
+}
+.login-logo h1 { font-size: 20px; font-weight: 700; color: var(--text); }
+.login-logo p { font-size: 12px; color: var(--text2); margin-top: 2px; }
+.field { margin-bottom: 16px; }
+.field label { display: block; font-size: 12px; font-weight: 500; color: var(--text2); margin-bottom: 8px; letter-spacing: 0.3px; text-transform: uppercase; }
+.field input {
+  width: 100%; padding: 12px 16px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border2);
+  border-radius: 12px;
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.field input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(124,110,245,0.15);
+}
+.btn-login {
+  width: 100%; padding: 13px;
+  background: linear-gradient(135deg, #7c6ef5, #5b8df5);
+  border: none; border-radius: 12px;
+  color: white; font-size: 14px; font-weight: 600;
+  cursor: pointer; margin-top: 8px;
+  transition: opacity 0.2s, transform 0.15s;
+  font-family: inherit;
+  box-shadow: 0 4px 20px rgba(124,110,245,0.35);
+}
+.btn-login:hover { opacity: 0.9; transform: translateY(-1px); }
+.btn-login:active { transform: translateY(0); }
+.login-err { color: var(--red); font-size: 12px; margin-top: 10px; text-align: center; }
 
-  /* CARDS */
-  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
-  .card {
-    background: #1e293b; border-radius: 12px; padding: 20px;
-    border: 1px solid #334155;
-  }
-  .card-label { font-size: 13px; color: #64748b; margin-bottom: 8px; }
-  .card-value { font-size: 28px; font-weight: 700; color: #f1f5f9; }
-  .card-sub { font-size: 12px; color: #94a3b8; margin-top: 4px; }
-  .card.green .card-value { color: #22c55e; }
-  .card.purple .card-value { color: #a78bfa; }
-  .card.yellow .card-value { color: #fbbf24; }
+/* DASHBOARD */
+#dashboard { display: none; position: relative; z-index: 1; }
 
-  /* STATUS DOT */
-  .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #22c55e; margin-right: 6px; animation: pulse 2s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+/* SIDEBAR */
+.sidebar {
+  position: fixed; left: 0; top: 0; bottom: 0; width: 220px;
+  background: rgba(10,13,20,0.95);
+  backdrop-filter: blur(20px);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  padding: 0;
+  z-index: 100;
+}
+.sidebar-head {
+  padding: 24px 20px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.brand {
+  display: flex; align-items: center; gap: 10px;
+}
+.brand-icon {
+  width: 36px; height: 36px;
+  background: linear-gradient(135deg, #7c6ef5, #4fa8f7);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+  box-shadow: 0 2px 12px rgba(124,110,245,0.3);
+}
+.brand-text { font-size: 15px; font-weight: 700; color: var(--text); }
+.brand-sub { font-size: 11px; color: var(--text3); margin-top: 1px; }
 
-  /* TABLE */
-  .table-wrap { background: #1e293b; border-radius: 12px; border: 1px solid #334155; overflow: hidden; }
-  table { width: 100%; border-collapse: collapse; }
-  th { background: #0f172a; padding: 12px 16px; text-align: left; font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
-  td { padding: 12px 16px; font-size: 13px; border-top: 1px solid #1e293b; }
-  tr:hover td { background: #0f172a; }
-  .badge { padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
-  .badge-green { background: #14532d; color: #4ade80; }
-  .badge-red { background: #7f1d1d; color: #f87171; }
-  .badge-yellow { background: #713f12; color: #fbbf24; }
-  .badge-blue { background: #1e3a5f; color: #60a5fa; }
+.sidebar-nav { flex: 1; padding: 12px 10px; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  color: var(--text2);
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.15s;
+  margin-bottom: 2px;
+  user-select: none;
+}
+.nav-item:hover { background: var(--surface2); color: var(--text); }
+.nav-item.active { background: rgba(124,110,245,0.15); color: var(--accent2); }
+.nav-item.active .nav-ico { color: var(--accent2); }
+.nav-ico { font-size: 16px; width: 20px; text-align: center; }
 
-  /* FORM */
-  .form-card { background: #1e293b; border-radius: 12px; padding: 24px; border: 1px solid #334155; margin-bottom: 20px; }
-  .form-card h3 { font-size: 16px; color: #f1f5f9; margin-bottom: 16px; }
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  .form-group-dash label { font-size: 13px; color: #94a3b8; margin-bottom: 5px; display: block; }
-  .form-group-dash input, .form-group-dash select {
-    width: 100%; padding: 9px 12px; background: #0f172a; border: 1px solid #334155;
-    border-radius: 7px; color: #e2e8f0; font-size: 13px; outline: none;
-  }
-  .form-group-dash input:focus, .form-group-dash select:focus { border-color: #6366f1; }
+.sidebar-foot {
+  padding: 16px 14px;
+  border-top: 1px solid var(--border);
+}
+.user-card {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 10px;
+  background: var(--surface);
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+.user-avatar {
+  width: 32px; height: 32px;
+  background: linear-gradient(135deg, var(--accent), var(--blue));
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: white;
+  flex-shrink: 0;
+}
+.user-name { font-size: 13px; font-weight: 600; color: var(--text); }
+.user-role { font-size: 11px; color: var(--text2); }
+.btn-logout {
+  width: 100%; padding: 9px;
+  background: rgba(242,92,124,0.1);
+  border: 1px solid rgba(242,92,124,0.2);
+  border-radius: 9px;
+  color: var(--red);
+  font-size: 12px; font-weight: 500;
+  cursor: pointer; font-family: inherit;
+  transition: background 0.15s;
+}
+.btn-logout:hover { background: rgba(242,92,124,0.18); }
 
-  /* OTP BOX */
-  .otp-box {
-    background: #0f172a; border: 2px solid #6366f1; border-radius: 12px;
-    padding: 20px; text-align: center; margin-top: 16px;
-  }
-  .otp-code { font-size: 40px; font-weight: 800; color: #a78bfa; letter-spacing: 8px; }
-  .otp-label { font-size: 13px; color: #64748b; margin-bottom: 6px; }
+/* MAIN */
+.main { margin-left: 220px; padding: 32px; min-height: 100vh; }
+.page { display: none; }
+.page.active { display: block; }
 
-  /* TABS */
-  .tabs { display: flex; gap: 4px; margin-bottom: 16px; background: #1e293b; padding: 4px; border-radius: 8px; width: fit-content; }
-  .tab { padding: 7px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; color: #94a3b8; transition: all 0.15s; }
-  .tab.active { background: #6366f1; color: white; }
+.page-head {
+  margin-bottom: 28px;
+}
+.page-head h2 { font-size: 22px; font-weight: 700; color: var(--text); }
+.page-head p { font-size: 13px; color: var(--text2); margin-top: 4px; }
 
-  .section-header { display: flex; align-items: center; justify-content: between; gap: 12px; margin-bottom: 14px; }
-  .section-header h3 { font-size: 15px; color: #f1f5f9; flex: 1; }
-  .refresh-btn { background: #334155; border: none; color: #94a3b8; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
-  .refresh-btn:hover { color: #e2e8f0; }
+/* STAT CARDS */
+.stat-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 24px; }
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  position: relative; overflow: hidden;
+  transition: border-color 0.2s;
+}
+.stat-card:hover { border-color: var(--border2); }
+.stat-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border2), transparent);
+}
+.stat-icon {
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; margin-bottom: 14px;
+}
+.stat-icon.green { background: rgba(34,211,160,0.12); }
+.stat-icon.purple { background: rgba(124,110,245,0.12); }
+.stat-icon.yellow { background: rgba(245,200,66,0.12); }
+.stat-icon.blue { background: rgba(79,168,247,0.12); }
+.stat-val { font-size: 26px; font-weight: 800; color: var(--text); line-height: 1; margin-bottom: 5px; }
+.stat-label { font-size: 12px; color: var(--text2); font-weight: 400; }
+.stat-card.green .stat-val { color: var(--green); }
+.stat-card.purple .stat-val { color: var(--accent2); }
+.stat-card.yellow .stat-val { color: var(--yellow); }
 
-  .empty { color: #64748b; font-size: 13px; text-align: center; padding: 30px; }
-  .success-msg { color: #22c55e; font-size: 13px; margin-top: 10px; }
+/* ONLINE BADGE */
+.online-badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 13px; font-weight: 600; color: var(--green);
+}
+.pulse-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0 0 rgba(34,211,160,0.4);
+  animation: pulseAnim 2s infinite;
+}
+@keyframes pulseAnim {
+  0% { box-shadow: 0 0 0 0 rgba(34,211,160,0.5); }
+  70% { box-shadow: 0 0 0 7px rgba(34,211,160,0); }
+  100% { box-shadow: 0 0 0 0 rgba(34,211,160,0); }
+}
 
-  @media (max-width: 768px) {
-    .sidebar { width: 60px; }
-    .sidebar-logo, .nav-item span, .sidebar-footer { display: none; }
-    .main { margin-left: 60px; padding: 16px; }
-    .form-grid { grid-template-columns: 1fr; }
-  }
+/* PANEL */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.panel-head {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.panel-head h3 { font-size: 14px; font-weight: 600; color: var(--text); }
+.panel-head p { font-size: 12px; color: var(--text2); }
+
+/* TABLE */
+table { width: 100%; border-collapse: collapse; }
+th {
+  padding: 11px 16px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  background: rgba(0,0,0,0.2);
+  border-bottom: 1px solid var(--border);
+}
+td {
+  padding: 13px 16px;
+  font-size: 13px;
+  color: var(--text2);
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  vertical-align: middle;
+}
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(255,255,255,0.02); }
+.empty-row { text-align: center; padding: 40px; color: var(--text3); font-size: 13px; }
+
+/* BADGES */
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.3px;
+}
+.badge-green { background: rgba(34,211,160,0.1); color: var(--green); border: 1px solid rgba(34,211,160,0.2); }
+.badge-red { background: rgba(242,92,124,0.1); color: var(--red); border: 1px solid rgba(242,92,124,0.2); }
+.badge-yellow { background: rgba(245,200,66,0.1); color: var(--yellow); border: 1px solid rgba(245,200,66,0.2); }
+.badge-blue { background: rgba(79,168,247,0.1); color: var(--blue); border: 1px solid rgba(79,168,247,0.2); }
+.badge-purple { background: rgba(124,110,245,0.12); color: var(--accent2); border: 1px solid rgba(124,110,245,0.25); }
+
+/* OTP DISPLAY */
+.otp-val {
+  font-size: 16px; font-weight: 700;
+  color: var(--accent2);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 3px;
+  background: rgba(124,110,245,0.1);
+  border: 1px solid rgba(124,110,245,0.2);
+  padding: 3px 12px;
+  border-radius: 8px;
+}
+.waiting-otp { font-size: 12px; color: var(--text3); }
+
+/* BUTTONS */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 12px; font-weight: 500;
+  cursor: pointer; border: none;
+  font-family: inherit;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn:hover { opacity: 0.85; transform: translateY(-1px); }
+.btn:active { transform: translateY(0); }
+.btn-primary { background: linear-gradient(135deg, #7c6ef5, #5b8df5); color: white; box-shadow: 0 2px 10px rgba(124,110,245,0.25); }
+.btn-danger { background: rgba(242,92,124,0.12); color: var(--red); border: 1px solid rgba(242,92,124,0.2); }
+.btn-warning { background: rgba(245,200,66,0.1); color: var(--yellow); border: 1px solid rgba(245,200,66,0.2); }
+.btn-success { background: rgba(34,211,160,0.1); color: var(--green); border: 1px solid rgba(34,211,160,0.2); }
+.btn-ghost { background: var(--surface2); color: var(--text2); border: 1px solid var(--border); }
+.btn-ghost:hover { color: var(--text); }
+.btn-lg { padding: 12px 28px; font-size: 14px; font-weight: 600; border-radius: 12px; }
+
+/* REFRESH BTN */
+.icon-btn {
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text2);
+  transition: all 0.15s;
+}
+.icon-btn:hover { color: var(--text); border-color: var(--border2); }
+
+/* BELI PAGE */
+.buy-hero {
+  background: linear-gradient(135deg, rgba(124,110,245,0.1), rgba(79,168,247,0.08));
+  border: 1px solid rgba(124,110,245,0.2);
+  border-radius: 20px;
+  padding: 32px;
+  margin-bottom: 20px;
+  position: relative; overflow: hidden;
+}
+.buy-hero::after {
+  content: '🇧🇷';
+  position: absolute; right: 24px; top: 50%; transform: translateY(-50%);
+  font-size: 80px; opacity: 0.12;
+}
+.buy-hero h3 { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+.buy-hero p { font-size: 13px; color: var(--text2); margin-bottom: 24px; max-width: 420px; }
+.buy-tag {
+  display: inline-block; padding: 5px 12px;
+  background: rgba(124,110,245,0.12); border: 1px solid rgba(124,110,245,0.2);
+  border-radius: 20px; font-size: 12px; font-weight: 600; color: var(--accent2);
+  margin-right: 8px; margin-bottom: 16px;
+}
+.order-result {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px; padding: 24px;
+  margin-top: 20px;
+}
+.order-result h4 { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 16px; }
+.order-info { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.order-info-item { }
+.order-info-item .oi-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+.order-info-item .oi-val { font-size: 14px; font-weight: 600; color: var(--text); }
+.otp-big-box {
+  margin-top: 20px;
+  background: rgba(124,110,245,0.06);
+  border: 1px solid rgba(124,110,245,0.2);
+  border-radius: 14px;
+  padding: 24px;
+  text-align: center;
+  position: relative;
+}
+.otp-big-box::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(circle at 50% 0%, rgba(124,110,245,0.08), transparent 60%);
+  border-radius: inherit;
+}
+.otp-big-label { font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+.otp-big-code {
+  font-size: 48px; font-weight: 800;
+  color: var(--accent2);
+  letter-spacing: 10px;
+  text-shadow: 0 0 30px rgba(124,110,245,0.5);
+  font-variant-numeric: tabular-nums;
+  position: relative;
+}
+.otp-waiting {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  color: var(--text2); font-size: 13px;
+}
+.spin { animation: spin 1.2s linear infinite; display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* FORM */
+.form-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 20px;
+}
+.form-panel h3 { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 20px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.fld { }
+.fld label { display: block; font-size: 11px; font-weight: 600; color: var(--text2); margin-bottom: 7px; text-transform: uppercase; letter-spacing: 0.4px; }
+.fld input, .fld select {
+  width: 100%; padding: 10px 14px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  appearance: none;
+}
+.fld input:focus, .fld select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(124,110,245,0.12);
+}
+.fld select option { background: #0d1117; }
+.form-actions { margin-top: 20px; display: flex; align-items: center; gap: 14px; }
+.form-msg { font-size: 12px; }
+
+/* TABS */
+.tab-bar {
+  display: flex; gap: 3px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 3px;
+  width: fit-content;
+  margin-bottom: 18px;
+}
+.tab {
+  padding: 7px 18px; border-radius: 8px;
+  cursor: pointer; font-size: 12px; font-weight: 500;
+  color: var(--text2); transition: all 0.15s;
+  user-select: none;
+}
+.tab.active { background: var(--accent); color: white; box-shadow: 0 2px 8px rgba(124,110,245,0.3); }
+.rekap-toolbar {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 18px; flex-wrap: wrap;
+}
+.rekap-toolbar select {
+  padding: 8px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 9px;
+  color: var(--text);
+  font-size: 12px;
+  font-family: inherit;
+  outline: none;
+}
+
+/* CODE */
+code {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 12px;
+  background: rgba(124,110,245,0.1);
+  color: var(--accent2);
+  padding: 2px 8px;
+  border-radius: 5px;
+}
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 99px; }
+
+@media (max-width: 900px) {
+  .stat-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 700px) {
+  .sidebar { width: 56px; }
+  .brand-text, .brand-sub, .nav-item span, .user-card .user-name, .user-card .user-role, .sidebar-foot .btn-logout { display: none; }
+  .user-card { justify-content: center; padding: 8px; }
+  .main { margin-left: 56px; padding: 16px; }
+  .stat-grid { grid-template-columns: 1fr 1fr; }
+  .form-grid { grid-template-columns: 1fr; }
+  .order-info { grid-template-columns: 1fr; }
+}
 </style>
 </head>
 <body>
 
+<div id="toast"></div>
+
 <!-- LOGIN -->
 <div id="login-page">
+  <div class="login-glow"></div>
   <div class="login-box">
-    <h1>🤖 SMSCode Bot</h1>
-    <p>Login untuk mengakses dashboard</p>
-    <div class="form-group">
+    <div class="login-logo">
+      <div class="login-logo-icon">⚡</div>
+      <div>
+        <h1>OTP Dashboard</h1>
+        <p>Masuk ke panel kontrol</p>
+      </div>
+    </div>
+    <div class="field">
       <label>Username</label>
       <input type="text" id="username" placeholder="Masukkan username" autocomplete="off">
     </div>
-    <div class="form-group">
+    <div class="field">
       <label>Password</label>
-      <input type="password" id="password" placeholder="Masukkan password">
+      <input type="password" id="password" placeholder="••••••••">
     </div>
-    <button class="btn btn-primary" onclick="doLogin()">Login</button>
-    <div class="error-msg" id="login-error"></div>
+    <button class="btn-login" onclick="doLogin()">Masuk →</button>
+    <div class="login-err" id="login-error"></div>
   </div>
 </div>
 
 <!-- DASHBOARD -->
 <div id="dashboard">
   <div class="sidebar">
-    <div class="sidebar-logo">
-      <h2>🤖 SMSCode</h2>
-      <span>Bot Dashboard</span>
+    <div class="sidebar-head">
+      <div class="brand">
+        <div class="brand-icon">⚡</div>
+        <div>
+          <div class="brand-text">OTPBot</div>
+          <div class="brand-sub">Dashboard</div>
+        </div>
+      </div>
     </div>
     <nav class="sidebar-nav">
-      <div class="nav-item active" onclick="showPage('home')">
-        <span class="nav-icon">🏠</span><span>Home</span>
+      <div class="nav-item active" onclick="showPage('home',this)">
+        <span class="nav-ico">◈</span><span>Overview</span>
       </div>
-      <div class="nav-item" onclick="showPage('beli')">
-        <span class="nav-icon">🛒</span><span>Beli Nomor</span>
+      <div class="nav-item" onclick="showPage('beli',this)">
+        <span class="nav-ico">＋</span><span>Beli Nomor</span>
       </div>
-      <div class="nav-item" onclick="showPage('laporan')">
-        <span class="nav-icon">📝</span><span>Laporan</span>
+      <div class="nav-item" onclick="showPage('laporan',this)">
+        <span class="nav-ico">≡</span><span>Laporan</span>
       </div>
-      <div class="nav-item" onclick="showPage('rekap')">
-        <span class="nav-icon">📊</span><span>Rekap</span>
+      <div class="nav-item" onclick="showPage('rekap',this)">
+        <span class="nav-ico">◎</span><span>Rekap</span>
       </div>
     </nav>
-    <div class="sidebar-footer">
-      <div class="user-info">
-        <strong id="sidebar-name">-</strong>
-        <span id="sidebar-role">-</span>
+    <div class="sidebar-foot">
+      <div class="user-card">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div>
+          <div class="user-name" id="sidebar-name">-</div>
+          <div class="user-role" id="sidebar-role">-</div>
+        </div>
       </div>
-      <button class="btn btn-danger btn-sm" onclick="doLogout()">Logout</button>
+      <button class="btn-logout" onclick="doLogout()">↩ Keluar</button>
     </div>
   </div>
 
   <div class="main">
+
     <!-- HOME -->
     <div class="page active" id="page-home">
-      <div class="page-title">🏠 Dashboard</div>
-      <div class="cards">
-        <div class="card green">
-          <div class="card-label">💰 Saldo smscode.gg</div>
-          <div class="card-value" id="saldo-value">-</div>
-          <div class="card-sub">IDR</div>
+      <div class="page-head">
+        <h2>Overview</h2>
+        <p>Pantau saldo, order aktif, dan transaksi hari ini</p>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card green">
+          <div class="stat-icon green">💰</div>
+          <div class="stat-val" id="saldo-value">—</div>
+          <div class="stat-label">Saldo smscode.gg</div>
         </div>
-        <div class="card purple">
-          <div class="card-label">📋 Order Aktif</div>
-          <div class="card-value" id="order-count">-</div>
-          <div class="card-sub">order berjalan</div>
+        <div class="stat-card purple">
+          <div class="stat-icon purple">📋</div>
+          <div class="stat-val" id="order-count">—</div>
+          <div class="stat-label">Order Aktif</div>
         </div>
-        <div class="card yellow">
-          <div class="card-label">📦 Transaksi Hari Ini</div>
-          <div class="card-value" id="trx-today">-</div>
-          <div class="card-sub">laporan masuk</div>
+        <div class="stat-card yellow">
+          <div class="stat-icon yellow">📦</div>
+          <div class="stat-val" id="trx-today">—</div>
+          <div class="stat-label">Transaksi Hari Ini</div>
         </div>
-        <div class="card">
-          <div class="card-label">🟢 Status Bot</div>
-          <div class="card-value" style="font-size:16px;margin-top:6px"><span class="status-dot"></span>Online</div>
-          <div class="card-sub">Railway 24/7</div>
+        <div class="stat-card">
+          <div class="stat-icon blue">🤖</div>
+          <div class="stat-val" style="font-size:16px;padding-top:6px">
+            <div class="online-badge"><span class="pulse-dot"></span>Online</div>
+          </div>
+          <div class="stat-label">Status Bot Railway</div>
         </div>
       </div>
 
-      <div class="form-card">
-        <div class="section-header">
-          <h3>📋 Order Aktif</h3>
-          <button class="refresh-btn" onclick="loadActiveOrders()">🔄 Refresh</button>
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h3>Order Aktif</h3>
+            <p style="font-size:11px;color:var(--text3);margin-top:2px">OTP masuk akan muncul otomatis</p>
+          </div>
+          <button class="icon-btn" onclick="loadActiveOrders()" title="Refresh">↻</button>
         </div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>ID Order</th><th>Status</th><th>OTP</th><th>Pesan SMS</th><th>Expired</th><th>Aksi</th></tr></thead>
-            <tbody id="orders-table"><tr><td colspan="6" class="empty">Loading...</td></tr></tbody>
-          </table>
-        </div>
+        <table>
+          <thead>
+            <tr><th>ID Order</th><th>Status</th><th>OTP</th><th>Pesan SMS</th><th>Expired</th><th>Aksi</th></tr>
+          </thead>
+          <tbody id="orders-table">
+            <tr><td colspan="6" class="empty-row">Memuat...</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
     <!-- BELI -->
     <div class="page" id="page-beli">
-      <div class="page-title">🛒 Beli Nomor Virtual</div>
-      <div class="form-card">
-        <h3>Google/YouTube/Gmail 🇧🇷 Brazil</h3>
-        <p style="font-size:13px;color:#64748b;margin-bottom:16px">Harga mulai Rp 574 per nomor. OTP akan tampil otomatis setelah masuk.</p>
-        <button class="btn btn-primary" style="width:auto;padding:10px 24px" onclick="beliNomor()" id="btn-beli">🛒 Beli Nomor Sekarang</button>
-        <div id="beli-result" style="margin-top:20px"></div>
+      <div class="page-head">
+        <h2>Beli Nomor Virtual</h2>
+        <p>Nomor OTP Google · YouTube · Gmail</p>
       </div>
+
+      <div class="buy-hero">
+        <span class="buy-tag">🇧🇷 Brazil</span>
+        <span class="buy-tag">Google / YouTube / Gmail</span>
+        <h3>Nomor Virtual Instan</h3>
+        <p>OTP akan tampil secara otomatis setelah SMS masuk. Tidak perlu polling manual.</p>
+        <button class="btn btn-primary btn-lg" onclick="beliNomor()" id="btn-beli">
+          ＋ Beli Nomor Sekarang
+        </button>
+      </div>
+
+      <div id="beli-result"></div>
     </div>
 
     <!-- LAPORAN -->
     <div class="page" id="page-laporan">
-      <div class="page-title">📝 Input Laporan Penjualan</div>
-      <div class="form-card">
+      <div class="page-head">
+        <h2>Input Laporan Penjualan</h2>
+        <p>Data dikirim ke Google Form secara otomatis</p>
+      </div>
+      <div class="form-panel">
         <h3>Form Penjualan Premium</h3>
         <div class="form-grid">
-          <div class="form-group-dash">
+          <div class="fld">
             <label>Nama Kasir *</label>
             <select id="f-kasir">
               <option value="">Pilih kasir</option>
-              <option>Arshil</option>
-              <option>Arinal</option>
-              <option>Dewo</option>
+              <option>Arshil</option><option>Arinal</option><option>Dewo</option>
             </select>
           </div>
-          <div class="form-group-dash">
+          <div class="fld">
             <label>Nama Pembeli / Username *</label>
             <input type="text" id="f-pembeli" placeholder="Username pembeli">
           </div>
-          <div class="form-group-dash">
+          <div class="fld">
             <label>Detail Akun *</label>
             <select id="f-produk">
               <option value="">Pilih produk</option>
-              <option>Gemini Pro + 5 TB</option>
-              <option>Youtube Premium</option>
+              <option>Gemini Pro + 5 TB</option><option>Youtube Premium</option>
             </select>
           </div>
-          <div class="form-group-dash">
+          <div class="fld">
             <label>Durasi Premium *</label>
             <select id="f-durasi">
               <option value="">Pilih durasi</option>
-              <option>1 Bulan</option>
-              <option>2 Bulan</option>
-              <option>3 Bulan</option>
-              <option>4 Bulan</option>
-              <option>5 Bulan</option>
-              <option>6 Bulan</option>
-              <option>1 Tahun</option>
-              <option>18 Bulan</option>
+              <option>1 Bulan</option><option>2 Bulan</option><option>3 Bulan</option>
+              <option>4 Bulan</option><option>5 Bulan</option><option>6 Bulan</option>
+              <option>1 Tahun</option><option>18 Bulan</option>
             </select>
           </div>
-          <div class="form-group-dash">
-            <label>Email Admin Plan Penginvite</label>
-            <input type="email" id="f-emailadmin" placeholder="email@gmail.com (opsional)">
+          <div class="fld">
+            <label>Email Admin (opsional)</label>
+            <input type="email" id="f-emailadmin" placeholder="email@gmail.com">
           </div>
-          <div class="form-group-dash">
-            <label>Email Buyer (Jika lewat Invite)</label>
-            <input type="email" id="f-emailbuyer" placeholder="email@gmail.com (opsional)">
+          <div class="fld">
+            <label>Email Buyer (opsional)</label>
+            <input type="email" id="f-emailbuyer" placeholder="email@gmail.com">
           </div>
-          <div class="form-group-dash">
+          <div class="fld">
             <label>Tanggal Habis Premium *</label>
             <input type="date" id="f-tanggal">
           </div>
-          <div class="form-group-dash">
+          <div class="fld">
             <label>Platform Pembelian *</label>
             <select id="f-platform">
               <option value="">Pilih platform</option>
-              <option>G2G</option>
-              <option>ITEMKU</option>
-              <option>KONTAK WA</option>
+              <option>G2G</option><option>ITEMKU</option><option>KONTAK WA</option>
             </select>
           </div>
-          <div class="form-group-dash">
-            <label>Keterangan *</label>
+          <div class="fld">
+            <label>Status / Keterangan *</label>
             <select id="f-status">
               <option value="">Pilih status</option>
-              <option>BERJALAN</option>
-              <option>HAMPIR HABIS</option>
-              <option>HABIS</option>
+              <option>BERJALAN</option><option>HAMPIR HABIS</option><option>HABIS</option>
             </select>
           </div>
         </div>
-        <div style="margin-top:20px">
-          <button class="btn btn-primary" style="width:auto;padding:10px 28px" onclick="submitLaporan()">📤 Submit Laporan</button>
-          <div id="laporan-msg" style="margin-top:10px;font-size:13px"></div>
+        <div class="form-actions">
+          <button class="btn btn-primary btn-lg" onclick="submitLaporan()">↑ Submit Laporan</button>
+          <div class="form-msg" id="laporan-msg"></div>
         </div>
       </div>
     </div>
 
     <!-- REKAP -->
     <div class="page" id="page-rekap">
-      <div class="page-title">📊 Rekap Transaksi</div>
-      <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;flex-wrap:wrap">
-        <div class="tabs">
+      <div class="page-head">
+        <h2>Rekap Transaksi</h2>
+        <p>Riwayat seluruh laporan penjualan</p>
+      </div>
+      <div class="rekap-toolbar">
+        <div class="tab-bar">
           <div class="tab active" onclick="loadRekap('semua',this)">Semua</div>
           <div class="tab" onclick="loadRekap('hari-ini',this)">Hari Ini</div>
         </div>
-        <select id="filter-kasir" style="background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:7px 12px;border-radius:8px;font-size:13px;outline:none" onchange="loadRekapKasir()">
+        <select id="filter-kasir" onchange="loadRekapKasir()" style="background:var(--surface);border:1px solid var(--border2);color:var(--text);padding:8px 14px;border-radius:9px;font-size:12px;font-family:inherit;outline:none">
           <option value="">Semua Kasir</option>
-          <option>Arshil</option>
-          <option>Arinal</option>
-          <option>Dewo</option>
+          <option>Arshil</option><option>Arinal</option><option>Dewo</option>
         </select>
       </div>
-      <div class="table-wrap">
+      <div class="panel">
         <table>
-          <thead><tr><th>Tanggal</th><th>Kasir</th><th>Pembeli</th><th>Produk</th><th>Durasi</th><th>Platform</th><th>Status</th></tr></thead>
-          <tbody id="rekap-table"><tr><td colspan="7" class="empty">Loading...</td></tr></tbody>
+          <thead>
+            <tr><th>Tanggal</th><th>Kasir</th><th>Pembeli</th><th>Produk</th><th>Durasi</th><th>Platform</th><th>Status</th></tr>
+          </thead>
+          <tbody id="rekap-table">
+            <tr><td colspan="7" class="empty-row">Memuat...</td></tr>
+          </tbody>
         </table>
       </div>
     </div>
+
   </div>
 </div>
 
@@ -342,16 +776,27 @@ let TOKEN = localStorage.getItem('token');
 let ROLE = localStorage.getItem('role');
 let NAME = localStorage.getItem('name');
 
-// Init
 if (TOKEN) showDashboard();
 
+function toast(msg, type = 'info') {
+  const colors = { success: '#22d3a0', error: '#f25c7c', info: '#7c6ef5', warn: '#f5c842' };
+  const icons = { success: '✓', error: '✕', info: '◈', warn: '⚠' };
+  const el = document.createElement('div');
+  el.className = 'toast-item';
+  el.innerHTML = `<span class="toast-dot" style="background:${colors[type]}"></span>${msg}`;
+  document.getElementById('toast').appendChild(el);
+  setTimeout(() => el.remove(), 3200);
+}
+
 async function api(method, path, body) {
-  const res = await fetch(path, {
-    method,
-    headers: { 'Content-Type': 'application/json', 'x-token': TOKEN },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  return res.json();
+  try {
+    const res = await fetch(path, {
+      method,
+      headers: { 'Content-Type': 'application/json', 'x-token': TOKEN },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    return res.json();
+  } catch(e) { return { error: e.message }; }
 }
 
 async function doLogin() {
@@ -375,7 +820,8 @@ function showDashboard() {
   document.getElementById('login-page').style.display = 'none';
   document.getElementById('dashboard').style.display = 'block';
   document.getElementById('sidebar-name').textContent = NAME;
-  document.getElementById('sidebar-role').textContent = ROLE === 'admin' ? '👑 Admin' : '🧑‍💼 Kasir';
+  document.getElementById('sidebar-role').textContent = ROLE === 'admin' ? 'Admin' : 'Kasir';
+  document.getElementById('user-avatar').textContent = NAME ? NAME[0].toUpperCase() : '?';
   loadHome();
 }
 
@@ -384,26 +830,29 @@ function doLogout() {
   location.reload();
 }
 
-function showPage(page) {
+function showPage(page, el) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
-  event.currentTarget.classList.add('active');
+  if (el) el.classList.add('active');
   if (page === 'home') loadHome();
   if (page === 'rekap') loadRekap('semua');
 }
 
 async function loadHome() {
-  // Saldo
   const bal = await api('GET', '/api/saldo');
-  if (bal.balance !== undefined) {
+  if (bal.balance !== undefined)
     document.getElementById('saldo-value').textContent = 'Rp ' + Number(bal.balance).toLocaleString('id-ID');
-  }
-  // Rekap hari ini count
   const rekap = await api('GET', '/api/rekap?filter=hari-ini');
   if (Array.isArray(rekap)) document.getElementById('trx-today').textContent = rekap.length;
-  // Order aktif
   loadActiveOrders();
+}
+
+function statusBadge(s) {
+  if (s === 'ACTIVE') return 'badge-green';
+  if (s === 'OTP_RECEIVED') return 'badge-blue';
+  if (s === 'EXPIRED' || s === 'CANCELLED') return 'badge-red';
+  return 'badge-yellow';
 }
 
 async function loadActiveOrders() {
@@ -411,26 +860,24 @@ async function loadActiveOrders() {
   const tbody = document.getElementById('orders-table');
   document.getElementById('order-count').textContent = Array.isArray(orders) ? orders.length : 0;
   if (!Array.isArray(orders) || orders.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" class="empty">Tidak ada order aktif</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-row">Tidak ada order aktif saat ini</td></tr>';
     return;
   }
-  const statusBadgeOrder = s => {
-    if (s === 'ACTIVE') return 'badge-green';
-    if (s === 'OTP_RECEIVED') return 'badge-blue';
-    if (s === 'EXPIRED' || s === 'CANCELLED') return 'badge-red';
-    return 'badge-yellow';
-  };
   tbody.innerHTML = orders.map(o => `
     <tr>
-      <td><code style="color:#a78bfa">${o.id}</code></td>
-      <td><span class="badge ${statusBadgeOrder(o.status)}">${o.status}</span></td>
-      <td>${o.otp_code ? `<span class="badge badge-blue" style="font-size:14px;letter-spacing:2px">🔑 ${o.otp_code}</span>` : '<span style="color:#64748b;font-size:12px">Menunggu...</span>'}</td>
-      <td style="color:#94a3b8;font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.otp_message || '-'}</td>
-      <td style="color:#64748b;font-size:12px">${new Date(o.expires_at).toLocaleString('id-ID')}</td>
-      <td style="display:flex;gap:5px;flex-wrap:wrap">
-        <button class="btn btn-sm" style="background:#4f46e5;color:white" onclick="resendOTP('${o.id}')">🔄 Resend</button>
-        <button class="btn btn-warning btn-sm" onclick="cancelOrder('${o.id}')">Batal</button>
-        <button class="btn btn-success btn-sm" onclick="finishOrder('${o.id}')">Selesai</button>
+      <td><code>${o.id}</code></td>
+      <td><span class="badge ${statusBadge(o.status)}">${o.status}</span></td>
+      <td>${o.otp_code
+        ? `<span class="otp-val">${o.otp_code}</span>`
+        : `<span class="waiting-otp"><span class="spin">⟳</span> Menunggu...</span>`}</td>
+      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text3);font-size:12px">${o.otp_message || '—'}</td>
+      <td style="font-size:12px;color:var(--text3)">${new Date(o.expires_at).toLocaleString('id-ID')}</td>
+      <td>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-ghost" onclick="resendOTP('${o.id}')">↺ Resend</button>
+          <button class="btn btn-warning" onclick="cancelOrder('${o.id}')">Batal</button>
+          <button class="btn btn-success" onclick="finishOrder('${o.id}')">✓ Selesai</button>
+        </div>
       </td>
     </tr>
   `).join('');
@@ -438,20 +885,39 @@ async function loadActiveOrders() {
 
 async function beliNomor() {
   const btn = document.getElementById('btn-beli');
-  btn.disabled = true; btn.textContent = '⏳ Membeli...';
-  const result = document.getElementById('beli-result');
-  result.innerHTML = '';
+  btn.disabled = true; btn.textContent = '⏳ Memproses...';
   const order = await api('POST', '/api/orders/buy');
-  btn.disabled = false; btn.textContent = '🛒 Beli Nomor Sekarang';
-  if (order.error) { result.innerHTML = `<div style="color:#ef4444">❌ ${order.error}</div>`; return; }
+  btn.disabled = false; btn.innerHTML = '＋ Beli Nomor Sekarang';
+
+  const result = document.getElementById('beli-result');
+  if (order.error) {
+    result.innerHTML = `<div style="color:var(--red);background:rgba(242,92,124,0.08);border:1px solid rgba(242,92,124,0.2);border-radius:12px;padding:16px;font-size:13px">✕ ${order.error}</div>`;
+    return;
+  }
   result.innerHTML = `
-    <div class="form-card" style="border-color:#6366f1">
-      <h3 style="color:#a78bfa">✅ Order Berhasil!</h3>
-      <p style="margin:8px 0;font-size:13px">🆔 ID: <code style="color:#a78bfa">${order.id}</code></p>
-      <p style="margin:8px 0;font-size:13px">📞 Nomor: <strong>+${order.phone_number}</strong></p>
-      <p style="margin:8px 0;font-size:13px">⏳ Expired: ${new Date(order.expires_at).toLocaleString('id-ID')}</p>
-      <div id="otp-monitor-${order.id}">
-        <div style="color:#64748b;font-size:13px;margin-top:12px">🔄 Menunggu OTP masuk...</div>
+    <div class="order-result">
+      <h4>✓ Order Berhasil Dibuat</h4>
+      <div class="order-info">
+        <div class="order-info-item">
+          <div class="oi-label">ID Order</div>
+          <div class="oi-val"><code>${order.id}</code></div>
+        </div>
+        <div class="order-info-item">
+          <div class="oi-label">Nomor Telepon</div>
+          <div class="oi-val">+${order.phone_number}</div>
+        </div>
+        <div class="order-info-item">
+          <div class="oi-label">Harga</div>
+          <div class="oi-val">Rp ${Number(order.amount).toLocaleString('id-ID')}</div>
+        </div>
+        <div class="order-info-item">
+          <div class="oi-label">Expired</div>
+          <div class="oi-val" style="font-size:12px">${new Date(order.expires_at).toLocaleString('id-ID')}</div>
+        </div>
+      </div>
+      <div class="otp-big-box" id="otp-monitor-${order.id}">
+        <div class="otp-big-label">OTP Code</div>
+        <div class="otp-waiting"><span class="spin">⟳</span> Menunggu SMS masuk...</div>
       </div>
     </div>
   `;
@@ -462,40 +928,47 @@ async function pollOTP(orderId) {
   const container = document.getElementById(`otp-monitor-${orderId}`);
   if (!container) return;
   const seen = new Set();
-  const interval = setInterval(async () => {
+
+  async function check() {
+    if (!document.getElementById(`otp-monitor-${orderId}`)) return;
     const order = await api('GET', `/api/orders/${orderId}`);
-    if (!order || order.error) return;
-    if (['EXPIRED','CANCELLED','COMPLETED'].includes(order.status)) {
-      clearInterval(interval);
-      if (!order.otp_code) container.innerHTML = `<div style="color:#ef4444;font-size:13px;margin-top:12px">❌ Order ${order.status} tanpa OTP.</div>`;
-      return;
-    }
+    if (!order || order.error) { setTimeout(check, 1000); return; }
+
     if (order.otp_code && !seen.has(order.otp_code)) {
       seen.add(order.otp_code);
-      container.innerHTML += `
-        <div class="otp-box">
-          <div class="otp-label">🔑 OTP Masuk!</div>
-          <div class="otp-code">${order.otp_code}</div>
-        </div>`;
+      container.innerHTML = `
+        <div class="otp-big-label">OTP Code</div>
+        <div class="otp-big-code">${order.otp_code}</div>
+      `;
+      toast('OTP masuk: ' + order.otp_code, 'success');
     }
-  }, 1000);
+
+    if (!['EXPIRED','CANCELLED','COMPLETED'].includes(order.status)) {
+      setTimeout(check, 500);
+    } else if (!order.otp_code) {
+      container.innerHTML = `<div style="color:var(--text3);font-size:13px">Order ${order.status} tanpa OTP.</div>`;
+    }
+  }
+  check();
 }
 
 async function resendOTP(id) {
   const res = await api('POST', '/api/orders/resend', { id });
-  if (res.error) { alert('Gagal resend: ' + res.error); return; }
-  alert('✅ Permintaan resend OTP berhasil dikirim!');
-  setTimeout(loadActiveOrders, 3000);
+  if (res.error) { toast('Gagal resend: ' + res.error, 'error'); return; }
+  toast('Permintaan resend OTP dikirim', 'success');
+  setTimeout(loadActiveOrders, 2000);
 }
 
 async function cancelOrder(id) {
   if (!confirm(`Cancel order ${id}?`)) return;
   await api('POST', '/api/orders/cancel', { id });
+  toast('Order dibatalkan', 'warn');
   loadActiveOrders();
 }
 
 async function finishOrder(id) {
   await api('POST', '/api/orders/finish', { id });
+  toast('Order diselesaikan', 'success');
   loadActiveOrders();
 }
 
@@ -510,27 +983,25 @@ async function submitLaporan() {
   const msg = document.getElementById('laporan-msg');
 
   if (!kasir || !pembeli || !produk || !durasi || !tanggalRaw || !platform || !status) {
-    msg.innerHTML = '<span style="color:#ef4444">⚠️ Lengkapi semua field wajib!</span>';
+    msg.innerHTML = '<span style="color:var(--red)">⚠ Lengkapi semua field wajib</span>';
     return;
   }
-  // Convert YYYY-MM-DD ke DD/MM/YYYY
   const [y, m, d] = tanggalRaw.split('-');
-  const tanggal = `${d}/${m}/${y}`;
-
-  msg.innerHTML = '<span style="color:#94a3b8">⏳ Mengirim...</span>';
+  msg.innerHTML = '<span style="color:var(--text2)">Mengirim...</span>';
   const res = await api('POST', '/api/laporan', {
     namaKasir: kasir, namaPembeli: pembeli, detailAkun: produk,
     durasi, emailAdmin: document.getElementById('f-emailadmin').value,
     emailBuyer: document.getElementById('f-emailbuyer').value,
-    tanggalHabis: tanggal, platform, keterangan: status,
+    tanggalHabis: `${d}/${m}/${y}`, platform, keterangan: status,
   });
-  if (res.error) { msg.innerHTML = `<span style="color:#ef4444">❌ ${res.error}</span>`; return; }
-  msg.innerHTML = '<span style="color:#22c55e">✅ Laporan berhasil dikirim ke Google Form!</span>';
-  // Reset form
+  if (res.error) { msg.innerHTML = `<span style="color:var(--red)">✕ ${res.error}</span>`; return; }
+  msg.innerHTML = '<span style="color:var(--green)">✓ Laporan berhasil dikirim</span>';
+  toast('Laporan berhasil dikirim ke Google Form', 'success');
   ['f-kasir','f-pembeli','f-produk','f-durasi','f-tanggal','f-platform','f-status','f-emailadmin','f-emailbuyer'].forEach(id => {
     const el = document.getElementById(id);
     if (el.tagName === 'SELECT') el.selectedIndex = 0; else el.value = '';
   });
+  setTimeout(() => msg.innerHTML = '', 4000);
 }
 
 async function loadRekap(filter, tabEl) {
@@ -546,31 +1017,29 @@ async function loadRekap(filter, tabEl) {
 async function loadRekapKasir() {
   const kasir = document.getElementById('filter-kasir').value;
   const url = kasir ? `/api/rekap?filter=kasir&kasir=${kasir}` : '/api/rekap';
-  const data = await api('GET', url);
-  renderRekap(data);
+  renderRekap(await api('GET', url));
 }
 
 function renderRekap(data) {
   const tbody = document.getElementById('rekap-table');
   if (!Array.isArray(data) || data.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" class="empty">Belum ada data transaksi</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-row">Belum ada data transaksi</td></tr>';
     return;
   }
-  const statusBadge = s => s === 'BERJALAN' ? 'badge-green' : s === 'HAMPIR HABIS' ? 'badge-yellow' : 'badge-red';
+  const sb = s => s === 'BERJALAN' ? 'badge-green' : s === 'HAMPIR HABIS' ? 'badge-yellow' : 'badge-red';
   tbody.innerHTML = [...data].reverse().map(r => `
     <tr>
-      <td style="color:#64748b;font-size:12px">${r.submittedAt?.slice(0,10) || '-'}</td>
-      <td>${r.namaKasir}</td>
+      <td style="font-size:12px;color:var(--text3)">${r.submittedAt?.slice(0,10) || '—'}</td>
+      <td style="font-weight:500;color:var(--text)">${r.namaKasir}</td>
       <td>${r.namaPembeli}</td>
-      <td>${r.detailAkun}</td>
-      <td>${r.durasi}</td>
+      <td style="font-size:12px">${r.detailAkun}</td>
+      <td><span class="badge badge-purple">${r.durasi}</span></td>
       <td><span class="badge badge-blue">${r.platform}</span></td>
-      <td><span class="badge ${statusBadge(r.keterangan)}">${r.keterangan}</span></td>
+      <td><span class="badge ${sb(r.keterangan)}">${r.keterangan}</span></td>
     </tr>
   `).join('');
 }
 
-// Enter key login
 document.getElementById('password').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 document.getElementById('username').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 </script>
