@@ -1,9 +1,14 @@
 const fs = require('fs');
 const path = require('path');
 
-const PRODUCTS_FILE = path.join(__dirname, '../data/products.json');
-const ORDERS_FILE = path.join(__dirname, '../data/store-orders.json');
-const SETTINGS_FILE = path.join(__dirname, '../data/store-settings.json');
+// Gunakan auth_info jika ada (Railway volume), fallback ke data/
+const DATA_DIR = fs.existsSync('/app/auth_info')
+    ? '/app/auth_info'
+    : path.join(__dirname, '../data');
+
+const PRODUCTS_FILE = path.join(DATA_DIR, 'products.json');
+const ORDERS_FILE = path.join(DATA_DIR, 'store-orders.json');
+const SETTINGS_FILE = path.join(DATA_DIR, 'store-settings.json');
 
 function readJSON(file, def) {
     try { return JSON.parse(fs.readFileSync(file, 'utf8')); }
