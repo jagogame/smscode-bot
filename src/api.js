@@ -20,6 +20,11 @@ function requireAuth(req, res, next) {
 router.use(express.static(path.join(__dirname, '../public')));
 router.use(express.json());
 
+// Admin panel
+router.get('/admin', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/admin.html'));
+});
+
 // Login
 router.post('/api/login', (req, res) => {
     const { username, password } = req.body;
