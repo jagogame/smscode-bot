@@ -13,19 +13,6 @@ const { handleMessage } = require('./src/handler');
 const apiRouter = require('./src/api');
 require('dotenv').config();
 
-// Saat di Railway, salin data awal ke volume jika belum ada
-const fs = require('fs');
-const path = require('path');
-if (fs.existsSync('/app/auth_info')) {
-    const files = ['products.json', 'store-settings.json'];
-    for (const f of files) {
-        const dest = `/app/auth_info/${f}`;
-        const src = path.join(__dirname, 'data', f);
-        if (!fs.existsSync(dest) && fs.existsSync(src)) {
-            fs.copyFileSync(src, dest);
-        }
-    }
-}
 
 // Web server untuk tampilkan QR di Railway
 const app = express();

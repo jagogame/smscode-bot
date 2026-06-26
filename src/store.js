@@ -1,14 +1,14 @@
 const fs = require('fs');
 const path = require('path');
 
-// Gunakan auth_info jika ada (Railway volume), fallback ke data/
-const DATA_DIR = fs.existsSync('/app/auth_info')
-    ? '/app/auth_info'
-    : path.join(__dirname, '../data');
+// Produk & setting: selalu dari data/ (git), agar update produk langsung berlaku
+// Pesanan: di volume auth_info (Railway) agar tidak hilang saat restart
+const GIT_DIR = path.join(__dirname, '../data');
+const VOL_DIR = fs.existsSync('/app/auth_info') ? '/app/auth_info' : GIT_DIR;
 
-const PRODUCTS_FILE = path.join(DATA_DIR, 'products.json');
-const ORDERS_FILE = path.join(DATA_DIR, 'store-orders.json');
-const SETTINGS_FILE = path.join(DATA_DIR, 'store-settings.json');
+const PRODUCTS_FILE = path.join(GIT_DIR, 'products.json');
+const SETTINGS_FILE = path.join(GIT_DIR, 'store-settings.json');
+const ORDERS_FILE = path.join(VOL_DIR, 'store-orders.json');
 
 function readJSON(file, def) {
     try { return JSON.parse(fs.readFileSync(file, 'utf8')); }
