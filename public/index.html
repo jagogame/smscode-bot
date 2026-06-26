@@ -600,6 +600,9 @@ function showPage(page,el){
   if(el)el.classList.add('active');
   if(page==='home')loadHome();
   if(page==='rekap')loadRekap('semua');
+  if(page==='toko')loadProducts();
+  if(page==='store-orders')loadStoreOrders();
+  if(page==='pengaturan')loadSettings();
 }
 
 function animateValue(el,val){
@@ -914,14 +917,6 @@ async function saveSettings() {
   setTimeout(()=>msg.innerHTML='',3000);
 }
 
-// patch showPage to load store pages
-const _origShowPage = showPage;
-function showPage(page,el){
-  _origShowPage(page,el);
-  if(page==='toko')loadProducts();
-  if(page==='store-orders')loadStoreOrders();
-  if(page==='pengaturan')loadSettings();
-}
 </script>
 </body>
 </html>
