@@ -303,6 +303,16 @@ code{font-family:'SF Mono','Fira Code',monospace;font-size:11px;background:var(-
       <div class="nav-item" onclick="showPage('rekap',this)">
         <span class="nav-ico">◎</span><span>Rekap</span>
       </div>
+      <div style="height:1px;background:var(--border);margin:8px 2px"></div>
+      <div class="nav-item" onclick="showPage('toko',this)">
+        <span class="nav-ico">🛍</span><span>Toko</span>
+      </div>
+      <div class="nav-item" onclick="showPage('store-orders',this)">
+        <span class="nav-ico">📬</span><span>Pesanan</span>
+      </div>
+      <div class="nav-item" onclick="showPage('pengaturan',this)">
+        <span class="nav-ico">⚙</span><span>Pengaturan</span>
+      </div>
     </nav>
     <div class="sidebar-bot">
       <div class="user-row">
@@ -428,6 +438,93 @@ code{font-family:'SF Mono','Fira Code',monospace;font-size:11px;background:var(-
           <button class="btn btn-fill" onclick="submitLaporan()">Submit laporan</button>
           <div class="form-msg" id="laporan-msg"></div>
         </div>
+      </div>
+    </div>
+
+    <!-- TOKO -->
+    <div class="page" id="page-toko">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px">
+        <div><div class="page-title">Kelola Toko</div><div class="page-sub" style="margin:0">Tambah dan atur produk yang dijual</div></div>
+        <div style="display:flex;gap:10px">
+          <a href="/store" target="_blank" class="btn btn-ghost" style="text-decoration:none">↗ Lihat Toko</a>
+          <button class="btn btn-fill" onclick="openAddProduct()">＋ Tambah Produk</button>
+        </div>
+      </div>
+      <div class="card">
+        <table>
+          <thead><tr><th>Produk</th><th>Kategori</th><th>Harga</th><th>Status</th><th>Aksi</th></tr></thead>
+          <tbody id="products-table"><tr><td colspan="5" class="empty-td">Memuat...</td></tr></tbody>
+        </table>
+      </div>
+      <!-- Add/Edit Product Modal -->
+      <div id="product-modal" style="display:none;position:fixed;inset:0;background:rgba(10,8,6,.55);z-index:500;align-items:center;justify-content:center;padding:20px">
+        <div style="background:var(--white);border-radius:16px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto">
+          <div style="padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+            <div style="font-size:15px;font-weight:700" id="pm-title">Tambah Produk</div>
+            <button onclick="closeProductModal()" style="background:var(--cream);border:none;border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:15px;color:var(--text2)">✕</button>
+          </div>
+          <div style="padding:20px 24px">
+            <div class="form-grid">
+              <div class="fld" style="grid-column:1/-1"><label>Nama Produk *</label><input id="pm-name" placeholder="cth: YouTube Premium 1 Bulan"></div>
+              <div class="fld"><label>Kategori *</label>
+                <select id="pm-cat"><option>Mobile Legend</option><option>YouTube</option><option>Google</option><option>Gemini</option><option>Umum</option></select>
+              </div>
+              <div class="fld"><label>Harga (Rp) *</label><input id="pm-price" type="number" placeholder="25000"></div>
+              <div class="fld" style="grid-column:1/-1"><label>Deskripsi</label><input id="pm-desc" placeholder="Deskripsi singkat produk"></div>
+              <div class="fld" style="grid-column:1/-1"><label>URL Gambar (opsional)</label><input id="pm-img" placeholder="https://..."></div>
+            </div>
+          </div>
+          <div style="padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:10px">
+            <button class="btn btn-fill" style="flex:1" onclick="saveProduct()">Simpan Produk</button>
+            <button class="btn btn-ghost" onclick="closeProductModal()">Batal</button>
+          </div>
+          <div style="padding:0 24px 16px;font-size:12px" id="pm-msg"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STORE ORDERS -->
+    <div class="page" id="page-store-orders">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px">
+        <div><div class="page-title">Pesanan Masuk</div><div class="page-sub" style="margin:0">Order dari halaman toko publik</div></div>
+        <button class="icon-btn" onclick="loadStoreOrders()">↻</button>
+      </div>
+      <div class="card">
+        <table>
+          <thead><tr><th>ID</th><th>Produk</th><th>Customer</th><th>WA</th><th>Harga</th><th>Status</th><th>Waktu</th><th>Aksi</th></tr></thead>
+          <tbody id="store-orders-table"><tr><td colspan="8" class="empty-td">Memuat...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PENGATURAN -->
+    <div class="page" id="page-pengaturan">
+      <div class="page-title">Pengaturan Toko</div>
+      <div class="page-sub">Atur info pembayaran dan tampilan toko publik</div>
+      <div class="form-card">
+        <h3>Informasi Toko</h3>
+        <div class="form-grid">
+          <div class="fld"><label>Nama Toko</label><input id="s-name" placeholder="Jago Game"></div>
+          <div class="fld"><label>WhatsApp (format: 62xxx)</label><input id="s-wa" placeholder="628xxxxxxxxxx"></div>
+          <div class="fld" style="grid-column:1/-1"><label>Deskripsi Toko</label><input id="s-desc" placeholder="Deskripsi toko untuk halaman publik"></div>
+        </div>
+      </div>
+      <div class="form-card">
+        <h3>Pembayaran — Transfer Bank</h3>
+        <div class="form-grid">
+          <div class="fld"><label>Nama Bank</label><input id="s-bank-name" placeholder="BCA"></div>
+          <div class="fld"><label>No. Rekening</label><input id="s-bank-acc" placeholder="1234567890"></div>
+          <div class="fld" style="grid-column:1/-1"><label>Atas Nama</label><input id="s-bank-holder" placeholder="Nama pemilik rekening"></div>
+        </div>
+      </div>
+      <div class="form-card">
+        <h3>Pembayaran — QRIS</h3>
+        <div class="fld"><label>URL Gambar QRIS</label><input id="s-qris" placeholder="https://... (link gambar QRIS kamu)"></div>
+        <div id="s-qris-preview" style="margin-top:12px"></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-fill" onclick="saveSettings()">Simpan Pengaturan</button>
+        <div class="form-msg" id="settings-msg"></div>
       </div>
     </div>
 
@@ -678,6 +775,153 @@ function renderRekap(data){
 
 document.getElementById('password').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
 document.getElementById('username').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
+
+// ── TOKO ─────────────────────────────────────────────────
+let editingProductId = null;
+
+async function loadProducts() {
+  const data = await api('GET','/api/admin/products');
+  const tb = document.getElementById('products-table');
+  if(!Array.isArray(data)||!data.length){tb.innerHTML='<tr><td colspan="5" class="empty-td">Belum ada produk. Klik "Tambah Produk".</td></tr>';return}
+  tb.innerHTML = data.map(p=>`
+    <tr>
+      <td style="font-weight:600;color:var(--text)">${p.name}</td>
+      <td><span class="badge bg-orange">${p.category}</span></td>
+      <td>Rp ${Number(p.price).toLocaleString('id-ID')}</td>
+      <td><span class="badge ${p.active?'bg-green':'bg-red'}">${p.active?'Aktif':'Nonaktif'}</span></td>
+      <td><div style="display:flex;gap:5px">
+        <button class="btn" onclick="editProduct('${p.id}')">✎ Edit</button>
+        <button class="btn ${p.active?'btn-danger':'btn-ok'}" onclick="toggleProduct('${p.id}',${!p.active})">${p.active?'Nonaktifkan':'Aktifkan'}</button>
+        <button class="btn btn-danger" onclick="deleteProduct('${p.id}')">✕</button>
+      </div></td>
+    </tr>`).join('');
+}
+
+function openAddProduct() {
+  editingProductId = null;
+  document.getElementById('pm-title').textContent = 'Tambah Produk';
+  ['pm-name','pm-desc','pm-img','pm-msg'].forEach(id=>document.getElementById(id).value||document.getElementById(id).textContent?document.getElementById(id).value=''||document.getElementById(id).textContent='':'');
+  document.getElementById('pm-price').value='';
+  document.getElementById('pm-msg').textContent='';
+  document.getElementById('product-modal').style.display='flex';
+}
+
+function editProduct(id) {
+  api('GET','/api/admin/products').then(products=>{
+    const p=products.find(x=>x.id===id); if(!p)return;
+    editingProductId=id;
+    document.getElementById('pm-title').textContent='Edit Produk';
+    document.getElementById('pm-name').value=p.name;
+    document.getElementById('pm-price').value=p.price;
+    document.getElementById('pm-desc').value=p.description||'';
+    document.getElementById('pm-img').value=p.image||'';
+    document.getElementById('pm-cat').value=p.category||'Umum';
+    document.getElementById('pm-msg').textContent='';
+    document.getElementById('product-modal').style.display='flex';
+  });
+}
+
+async function saveProduct() {
+  const name=document.getElementById('pm-name').value.trim();
+  const price=document.getElementById('pm-price').value;
+  const msg=document.getElementById('pm-msg');
+  if(!name||!price){msg.innerHTML='<span style="color:var(--red)">Nama dan harga wajib diisi</span>';return}
+  const body={name,price:Number(price),description:document.getElementById('pm-desc').value.trim(),category:document.getElementById('pm-cat').value,image:document.getElementById('pm-img').value.trim()};
+  const r = editingProductId
+    ? await api('PUT',`/api/admin/products/${editingProductId}`,body)
+    : await api('POST','/api/admin/products',body);
+  if(r.error){msg.innerHTML=`<span style="color:var(--red)">${r.error}</span>`;return}
+  toast(editingProductId?'Produk diperbarui':'Produk ditambahkan','ok');
+  closeProductModal(); loadProducts();
+}
+
+async function toggleProduct(id,active) {
+  await api('PUT',`/api/admin/products/${id}`,{active});
+  loadProducts();
+}
+
+async function deleteProduct(id) {
+  if(!confirm('Hapus produk ini?'))return;
+  await api('DELETE',`/api/admin/products/${id}`);
+  toast('Produk dihapus','info'); loadProducts();
+}
+
+function closeProductModal() {
+  document.getElementById('product-modal').style.display='none';
+}
+
+// ── STORE ORDERS ─────────────────────────────────────────
+const orderStatus = {PENDING:'bg-amber',CONFIRMED:'bg-blue',DONE:'bg-green',CANCELLED:'bg-red'};
+
+async function loadStoreOrders() {
+  const data = await api('GET','/api/admin/orders');
+  const tb = document.getElementById('store-orders-table');
+  if(!Array.isArray(data)||!data.length){tb.innerHTML='<tr><td colspan="8" class="empty-td">Belum ada pesanan masuk</td></tr>';return}
+  tb.innerHTML=[...data].reverse().map(o=>`
+    <tr>
+      <td><code style="font-size:10px">${o.id}</code></td>
+      <td style="font-weight:500;color:var(--text);font-size:12px">${o.productName}</td>
+      <td>${o.customerName}</td>
+      <td><a href="https://wa.me/${o.customerWA.replace(/\D/g,'')}" target="_blank" style="color:var(--green);font-size:12px">📱 ${o.customerWA}</a></td>
+      <td>Rp ${Number(o.productPrice).toLocaleString('id-ID')}</td>
+      <td><span class="badge ${orderStatus[o.status]||'bg-amber'}">${o.status}</span></td>
+      <td style="font-size:11px;color:var(--text3)">${new Date(o.createdAt).toLocaleString('id-ID')}</td>
+      <td><div style="display:flex;gap:4px;flex-wrap:wrap">
+        ${o.status==='PENDING'?`<button class="btn btn-ok" style="font-size:11px" onclick="updateOrder('${o.id}','CONFIRMED')">✓ Konfirmasi</button>`:''}
+        ${o.status==='CONFIRMED'?`<button class="btn btn-fill" style="font-size:11px;padding:5px 10px" onclick="updateOrder('${o.id}','DONE')">✓ Selesai</button>`:''}
+        ${['PENDING','CONFIRMED'].includes(o.status)?`<button class="btn btn-danger" style="font-size:11px" onclick="updateOrder('${o.id}','CANCELLED')">✕</button>`:''}
+      </div></td>
+    </tr>`).join('');
+}
+
+async function updateOrder(id,status) {
+  await api('PUT',`/api/admin/orders/${id}`,{status});
+  toast(`Order ${status.toLowerCase()}`,'ok');
+  loadStoreOrders();
+}
+
+// ── PENGATURAN ────────────────────────────────────────────
+async function loadSettings() {
+  const s = await api('GET','/api/admin/settings');
+  if(!s||s.error)return;
+  document.getElementById('s-name').value=s.storeName||'';
+  document.getElementById('s-wa').value=s.whatsapp||'';
+  document.getElementById('s-desc').value=s.storeDesc||'';
+  document.getElementById('s-bank-name').value=s.bankName||'';
+  document.getElementById('s-bank-acc').value=s.bankAccount||'';
+  document.getElementById('s-bank-holder').value=s.bankHolder||'';
+  document.getElementById('s-qris').value=s.qrisImage||'';
+  if(s.qrisImage) document.getElementById('s-qris-preview').innerHTML=`<img src="${s.qrisImage}" style="max-width:160px;border-radius:8px;border:1px solid var(--border2)" onerror="this.remove()">`;
+}
+
+async function saveSettings() {
+  const msg=document.getElementById('settings-msg');
+  msg.innerHTML='<span style="color:var(--text2)">Menyimpan...</span>';
+  const r=await api('PUT','/api/admin/settings',{
+    storeName:document.getElementById('s-name').value,
+    whatsapp:document.getElementById('s-wa').value,
+    storeDesc:document.getElementById('s-desc').value,
+    bankName:document.getElementById('s-bank-name').value,
+    bankAccount:document.getElementById('s-bank-acc').value,
+    bankHolder:document.getElementById('s-bank-holder').value,
+    qrisImage:document.getElementById('s-qris').value,
+  });
+  if(r.error){msg.innerHTML=`<span style="color:var(--red)">${r.error}</span>`;return}
+  msg.innerHTML='<span style="color:var(--green)">✓ Pengaturan disimpan</span>';
+  toast('Pengaturan disimpan','ok');
+  const qris=document.getElementById('s-qris').value;
+  document.getElementById('s-qris-preview').innerHTML=qris?`<img src="${qris}" style="max-width:160px;border-radius:8px;border:1px solid var(--border2)" onerror="this.remove()">`:'' ;
+  setTimeout(()=>msg.innerHTML='',3000);
+}
+
+// patch showPage to load store pages
+const _origShowPage = showPage;
+function showPage(page,el){
+  _origShowPage(page,el);
+  if(page==='toko')loadProducts();
+  if(page==='store-orders')loadStoreOrders();
+  if(page==='pengaturan')loadSettings();
+}
 </script>
 </body>
 </html>

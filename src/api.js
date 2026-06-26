@@ -3,6 +3,7 @@ const path = require('path');
 const { login, getSession, logout } = require('./auth');
 const sms = require('./smscode');
 const { submitForm, getRekapHariIni, getRekapSemua, getRekapByKasir } = require('./sales');
+const store = require('./store');
 
 const router = express.Router();
 
@@ -123,6 +124,60 @@ router.get('/api/rekap', requireAuth, (req, res) => {
     else if (filter === 'kasir' && kasir) data = getRekapByKasir(kasir);
     else data = getRekapSemua();
     res.json(data);
+});
+
+// ── STORE: PUBLIC ──────────────────────────────────────────
+router.get('/api/store/products', (req, res) => {
+    res.json(store.getActiveProducts());
+});
+
+router.post('/api/store/orders', (req, res) => {
+    try {
+        const order = store.createOrder(req.body);
+        res.json(order);
+    } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+router.get('/api/store/settings', (req, res) => {
+    res.json(store.getSettings());
+});
+
+// ── STORE: ADMIN ───────────────────────────────────────────
+router.get('/api/admin/products', requireAuth, (req, res) => {
+    res.json(store.getProducts());
+});
+
+router.post('/api/admin/products', requireAuth, (req, res) => {
+    try { res.json(store.addProduct(req.body)); }
+    catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+router.put('/api/admin/products/:id', requireAuth, (req, res) => {
+    try { res.json(store.updateProduct(req.params.id, req.body)); }
+    catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+router.delete('/api/admin/products/:id', requireAuth, (req, res) => {
+    store.deleteProduct(req.params.id);
+    res.json({ ok: true });
+});
+
+router.get('/api/admin/orders', requireAuth, (req, res) => {
+    res.json(store.getOrders());
+});
+
+router.put('/api/admin/orders/:id', requireAuth, (req, res) => {
+    try { res.json(store.updateOrderStatus(req.params.id, req.body.status)); }
+    catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+router.get('/api/admin/settings', requireAuth, (req, res) => {
+    res.json(store.getSettings());
+});
+
+router.put('/api/admin/settings', requireAuth, (req, res) => {
+    store.saveSettings(req.body);
+    res.json({ ok: true });
 });
 
 module.exports = router;
