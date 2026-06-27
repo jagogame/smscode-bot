@@ -11,6 +11,7 @@ const express = require('express');
 const pino = require('pino');
 const { handleMessage } = require('./src/handler');
 const apiRouter = require('./src/api');
+const wa = require('./src/wa');
 require('dotenv').config();
 
 
@@ -56,6 +57,7 @@ async function startBot() {
     });
 
     sock.ev.on('creds.update', saveCreds);
+    wa.setSock(sock);
 
     sock.ev.on('connection.update', ({ connection, lastDisconnect, qr }) => {
         if (qr) {

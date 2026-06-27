@@ -236,8 +236,8 @@ code{font-family:'SF Mono',monospace;font-size:11px;background:var(--bg2);color:
       </div>
       <div class="card">
         <table>
-          <thead><tr><th>Produk</th><th>Kategori</th><th>Harga</th><th>Status</th><th>Aksi</th></tr></thead>
-          <tbody id="t-produk"><tr><td colspan="5" class="empty-td">Memuat...</td></tr></tbody>
+          <thead><tr><th>Produk</th><th>Kategori</th><th>Harga</th><th>Stok</th><th>Status</th><th>Aksi</th></tr></thead>
+          <tbody id="t-produk"><tr><td colspan="6" class="empty-td">Memuat...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -296,6 +296,28 @@ code{font-family:'SF Mono',monospace;font-size:11px;background:var(--bg2);color:
       <button class="btn" onclick="closeProdModal()">Batal</button>
     </div>
     <div class="m-msg" id="pm-msg"></div>
+  </div>
+</div>
+
+<!-- STOCK MODAL -->
+<div class="m-overlay" id="stock-modal">
+  <div class="m-box">
+    <div class="m-hd"><h3 id="stk-title">Stok Akun</h3><button class="m-cls" onclick="closeStock()">✕</button></div>
+    <div class="m-body">
+      <p style="font-size:12.5px;color:var(--text2,#6B6560);line-height:1.6;margin-bottom:10px">
+        Masukkan detail/kredensial tiap akun. <b>Pisahkan tiap akun dengan baris berisi <code>---</code></b>.
+        Saat pembayaran lunas, 1 akun paling atas otomatis dikirim ke pembeli lalu dihapus dari stok.
+      </p>
+      <div class="fld">
+        <label>Daftar Akun (<span id="stk-count">0 akun</span>)</label>
+        <textarea id="stk-area" style="min-height:240px;font-family:'SF Mono',monospace;font-size:12.5px" placeholder="Email: akun1@mail.com&#10;Password: rahasia123&#10;Kode login ML: 123456&#10;---&#10;Email: akun2@mail.com&#10;Password: rahasia456"></textarea>
+      </div>
+    </div>
+    <div class="m-ft">
+      <button class="btn btn-dark" style="flex:1" onclick="saveStock()">Simpan Stok</button>
+      <button class="btn" onclick="closeStock()">Tutup</button>
+    </div>
+    <div class="m-msg" id="stk-msg"></div>
   </div>
 </div>
 
@@ -402,19 +424,43 @@ async function updOrd(id,status){
 // PRODUK
 let editId=null;
 async function loadProduk(){
-  const data=await api('GET','/api/admin/products');
+  const[data,stock]=await Promise.all([api('GET','/api/admin/products'),api('GET','/api/admin/stock').catch(()=>({}))]);
   const tb=document.getElementById('t-produk');
-  if(!Array.isArray(data)||!data.length){tb.innerHTML='<tr><td colspan="5" class="empty-td">Belum ada produk. Klik "Tambah".</td></tr>';return}
-  tb.innerHTML=data.map(p=>`<tr>
+  if(!Array.isArray(data)||!data.length){tb.innerHTML='<tr><td colspan="6" class="empty-td">Belum ada produk. Klik "Tambah".</td></tr>';return}
+  tb.innerHTML=data.map(p=>{
+    const n=(stock&&stock[p.id])||0;
+    return `<tr>
     <td style="font-weight:600;color:var(--dark)">${p.name}</td>
     <td><span class="badge o">${p.category}</span></td>
     <td>Rp ${Number(p.price).toLocaleString('id-ID')}</td>
+    <td><button class="btn ${n>0?'btn-g':'btn-r'}" onclick="openStock('${p.id}')">${n} akun</button></td>
     <td><span class="badge ${p.active?'g':'r'}">${p.active?'Aktif':'Nonaktif'}</span></td>
     <td><div style="display:flex;gap:4px">
       <button class="btn" onclick="editProd('${p.id}')">✎ Edit</button>
       <button class="btn ${p.active?'btn-r':'btn-g'}" onclick="toggleProd('${p.id}',${!p.active})">${p.active?'Nonaktifkan':'Aktifkan'}</button>
       <button class="btn btn-r" onclick="delProd('${p.id}')">✕</button>
-    </div></td></tr>`).join('');
+    </div></td></tr>`}).join('');
+}
+
+let stockProdId=null;
+async function openStock(id){
+  stockProdId=id;
+  const prod=(await api('GET','/api/admin/products')).find(p=>p.id===id);
+  const data=await api('GET','/api/admin/stock/'+id);
+  document.getElementById('stk-title').textContent='Stok Akun — '+(prod?prod.name:'');
+  document.getElementById('stk-area').value=(data.items||[]).join('\n---\n');
+  document.getElementById('stk-count').textContent=(data.items||[]).length+' akun tersedia';
+  document.getElementById('stk-msg').textContent='';
+  document.getElementById('stock-modal').classList.add('open');
+}
+function closeStock(){document.getElementById('stock-modal').classList.remove('open')}
+async function saveStock(){
+  const raw=document.getElementById('stk-area').value;
+  const items=raw.split(/\n-{3,}\n/).map(s=>s.trim()).filter(Boolean);
+  const r=await api('PUT','/api/admin/stock/'+stockProdId,{items});
+  document.getElementById('stk-msg').textContent='✓ Tersimpan: '+r.count+' akun';
+  toast('Stok disimpan: '+r.count+' akun','ok');
+  loadProduk();
 }
 
 function openAddProd(){

@@ -9,6 +9,10 @@ const VOL_DIR = fs.existsSync('/app/auth_info') ? '/app/auth_info' : GIT_DIR;
 const PRODUCTS_FILE = path.join(GIT_DIR, 'products.json');
 const SETTINGS_FILE = path.join(GIT_DIR, 'store-settings.json');
 const ORDERS_FILE = path.join(VOL_DIR, 'store-orders.json');
+// Stok kredensial akun (sensitif & berubah saat terjual) -> di volume
+const STOCK_FILE = path.join(VOL_DIR, 'store-stock.json');
+
+function randToken() { return Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6); }
 
 function readJSON(file, def) {
     try { return JSON.parse(fs.readFileSync(file, 'utf8')); }
@@ -57,6 +61,31 @@ function deleteProduct(id) {
 
 function getActiveProducts() { return getProducts().filter(p => p.active); }
 
+// STOCK (kredensial akun untuk auto-delivery)
+function getStock() { return readJSON(STOCK_FILE, {}); }
+function saveStock(s) { writeJSON(STOCK_FILE, s); }
+function getStockCount(productId) {
+    const arr = getStock()[productId];
+    return Array.isArray(arr) ? arr.length : 0;
+}
+// Ganti seluruh stok sebuah produk dengan daftar kredensial (1 baris kosong dipisah --- atau newline ganda)
+function setStock(productId, items) {
+    const stock = getStock();
+    stock[productId] = (items || []).map(x => String(x).trim()).filter(Boolean);
+    saveStock(stock);
+    return stock[productId].length;
+}
+// Ambil & hapus 1 kredensial (FIFO). Return string atau null bila habis.
+function popStock(productId) {
+    const stock = getStock();
+    const arr = stock[productId];
+    if (!Array.isArray(arr) || !arr.length) return null;
+    const cred = arr.shift();
+    stock[productId] = arr;
+    saveStock(stock);
+    return cred;
+}
+
 // ORDERS
 function getOrders() { return readJSON(ORDERS_FILE, []); }
 function saveOrders(o) { writeJSON(ORDERS_FILE, o); }
@@ -70,6 +99,7 @@ function createOrder(data) {
     const orders = getOrders();
     const order = {
         id: 'ORD-' + Date.now(),
+        accessToken: randToken(),
         productId: product.id,
         productName: product.name,
         productPrice: product.price,
@@ -77,13 +107,30 @@ function createOrder(data) {
         customerName: data.customerName,
         customerWA: data.customerWA,
         notes: data.notes || '',
-        status: 'PENDING',
+        status: 'PENDING',          // PENDING -> PAID -> DELIVERED (atau PAID_NO_STOCK)
+        paymentStatus: 'UNPAID',
+        credential: null,
         createdAt: new Date().toISOString(),
+        paidAt: null,
+        deliveredAt: null,
         confirmedAt: null,
     };
     orders.push(order);
     saveOrders(orders);
     return order;
+}
+
+function getOrderById(id) {
+    return getOrders().find(o => o.id === id) || null;
+}
+
+function patchOrder(id, patch) {
+    const orders = getOrders();
+    const idx = orders.findIndex(o => o.id === id);
+    if (idx === -1) throw new Error('Order tidak ditemukan');
+    orders[idx] = { ...orders[idx], ...patch };
+    saveOrders(orders);
+    return orders[idx];
 }
 
 function updateOrderStatus(id, status) {
@@ -115,6 +162,7 @@ function saveSettings(data) {
 
 module.exports = {
     getProducts, addProduct, updateProduct, deleteProduct, getActiveProducts,
-    getOrders, createOrder, updateOrderStatus,
+    getOrders, createOrder, updateOrderStatus, getOrderById, patchOrder,
+    getStock, getStockCount, setStock, popStock,
     getSettings, saveSettings,
 };

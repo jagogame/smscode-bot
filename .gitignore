@@ -1,3 +1,6 @@
 node_modules/
 auth_info/
 .env
+
+data/store-stock.json
+data/store-orders.json

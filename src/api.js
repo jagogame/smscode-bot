@@ -4,8 +4,39 @@ const { login, getSession, logout } = require('./auth');
 const sms = require('./smscode');
 const { submitForm, getRekapHariIni, getRekapSemua, getRekapByKasir } = require('./sales');
 const store = require('./store');
+const midtrans = require('./midtrans');
+const wa = require('./wa');
 
 const router = express.Router();
+
+// Kirim produk otomatis setelah pembayaran lunas
+async function deliverOrder(order) {
+    if (order.status === 'DELIVERED') return order;
+    const cred = store.popStock(order.productId);
+    const settings = store.getSettings();
+    if (!cred) {
+        const updated = store.patchOrder(order.id, { status: 'PAID_NO_STOCK', paymentStatus: 'PAID', paidAt: new Date().toISOString() });
+        // Beritahu admin agar kirim manual
+        if (settings.whatsapp && wa.isReady()) {
+            wa.sendText(settings.whatsapp, `⚠️ STOK HABIS!\nPesanan ${order.id} (${order.productName}) sudah LUNAS tapi stok akun kosong.\nPembeli: ${order.customerName} (${order.customerWA})\nSegera kirim manual & isi stok.`).catch(() => {});
+        }
+        return updated;
+    }
+    const updated = store.patchOrder(order.id, {
+        status: 'DELIVERED', paymentStatus: 'PAID',
+        credential: cred, paidAt: new Date().toISOString(), deliveredAt: new Date().toISOString(),
+    });
+    // Kirim ke WhatsApp pembeli
+    if (wa.isReady()) {
+        const msg = `✅ *Pembayaran Berhasil — Jago Game*\n\nTerima kasih ${order.customerName}! 🎉\nPesanan: *${order.productName}*\nID: ${order.id}\n\n━━━━━━━━━━━━━━\n📦 *DETAIL AKUN KAMU:*\n\n${cred}\n━━━━━━━━━━━━━━\n\nSimpan baik-baik & segera ganti password. Ada kendala? Balas chat ini. 🙏`;
+        wa.sendText(order.customerWA, msg).catch(() => {});
+    }
+    // Beritahu admin
+    if (settings.whatsapp && wa.isReady()) {
+        wa.sendText(settings.whatsapp, `💰 TERJUAL!\n${order.productName}\nRp ${Number(order.productPrice).toLocaleString('id-ID')}\nPembeli: ${order.customerName} (${order.customerWA})\nSisa stok: ${store.getStockCount(order.productId)}`).catch(() => {});
+    }
+    return updated;
+}
 
 // Middleware auth
 function requireAuth(req, res, next) {
@@ -147,6 +178,59 @@ router.get('/api/store/settings', (req, res) => {
     res.json(store.getSettings());
 });
 
+// Konfigurasi pembayaran untuk frontend
+router.get('/api/store/config', (req, res) => {
+    res.json({
+        midtransEnabled: midtrans.isConfigured(),
+        clientKey: midtrans.getClientKey(),
+        isProduction: midtrans.isProduction(),
+    });
+});
+
+// Buat transaksi Midtrans untuk sebuah order -> kembalikan snap token
+router.post('/api/store/pay', async (req, res) => {
+    try {
+        const order = store.getOrderById(req.body.orderId);
+        if (!order) return res.status(404).json({ error: 'Order tidak ditemukan' });
+        if (!midtrans.isConfigured()) return res.status(400).json({ error: 'Pembayaran otomatis belum aktif' });
+        const tx = await midtrans.createTransaction({
+            orderId: order.id,
+            amount: order.productPrice,
+            customerName: order.customerName,
+            productName: order.productName,
+        });
+        res.json({ token: tx.token, redirect_url: tx.redirect_url });
+    } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+// Webhook notifikasi dari Midtrans
+router.post('/api/store/midtrans/notification', async (req, res) => {
+    try {
+        const n = req.body;
+        if (!midtrans.verifySignature(n)) return res.status(403).json({ error: 'Invalid signature' });
+        const order = store.getOrderById(n.order_id);
+        if (!order) return res.status(404).json({ error: 'Order tidak ditemukan' });
+        if (midtrans.isPaid(n)) {
+            await deliverOrder(order);
+        } else if (['deny', 'cancel', 'expire', 'failure'].includes(n.transaction_status)) {
+            store.patchOrder(order.id, { paymentStatus: n.transaction_status.toUpperCase() });
+        }
+        res.json({ ok: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Cek status order (untuk halaman sukses) - butuh accessToken
+router.get('/api/store/order-status', (req, res) => {
+    const order = store.getOrderById(req.query.id);
+    if (!order || order.accessToken !== req.query.token) return res.status(404).json({ error: 'Order tidak ditemukan' });
+    res.json({
+        id: order.id,
+        status: order.status,
+        paymentStatus: order.paymentStatus,
+        credential: order.status === 'DELIVERED' ? order.credential : null,
+    });
+});
+
 // ── STORE: ADMIN ───────────────────────────────────────────
 router.get('/api/admin/products', requireAuth, (req, res) => {
     res.json(store.getProducts());
@@ -165,6 +249,33 @@ router.put('/api/admin/products/:id', requireAuth, (req, res) => {
 router.delete('/api/admin/products/:id', requireAuth, (req, res) => {
     store.deleteProduct(req.params.id);
     res.json({ ok: true });
+});
+
+// Stok kredensial per produk
+router.get('/api/admin/stock/:productId', requireAuth, (req, res) => {
+    const items = store.getStock()[req.params.productId] || [];
+    res.json({ count: items.length, items });
+});
+router.put('/api/admin/stock/:productId', requireAuth, (req, res) => {
+    const count = store.setStock(req.params.productId, req.body.items || []);
+    res.json({ ok: true, count });
+});
+// Ringkasan jumlah stok semua produk
+router.get('/api/admin/stock', requireAuth, (req, res) => {
+    const stock = store.getStock();
+    const out = {};
+    for (const k in stock) out[k] = (stock[k] || []).length;
+    res.json(out);
+});
+
+// Kirim ulang / kirim manual sebuah order (mis. setelah isi stok)
+router.post('/api/admin/orders/:id/deliver', requireAuth, async (req, res) => {
+    try {
+        const order = store.getOrderById(req.params.id);
+        if (!order) return res.status(404).json({ error: 'Order tidak ditemukan' });
+        const updated = await deliverOrder({ ...order, status: 'PAID' });
+        res.json(updated);
+    } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
 router.get('/api/admin/orders', requireAuth, (req, res) => {

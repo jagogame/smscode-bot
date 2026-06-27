@@ -161,6 +161,12 @@ nav{position:sticky;top:0;z-index:200;background:rgba(26,23,20,0.97);backdrop-fi
 .btn-done{width:100%;padding:12px;background:var(--bg2);color:var(--dark);border:1px solid var(--border2);border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;margin-top:10px;transition:background .15s}
 .btn-done:hover{background:var(--bg3)}
 
+/* SUCCESS / CREDENTIAL */
+.spinner{width:38px;height:38px;border:3px solid var(--bg3);border-top-color:var(--orange);border-radius:50%;margin:8px auto 0;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.cred-label{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;text-align:left}
+.cred-box{background:var(--dark);color:#EDE8DE;font-family:'SF Mono',ui-monospace,monospace;font-size:13px;line-height:1.7;padding:16px;border-radius:12px;white-space:pre-wrap;word-break:break-word;text-align:left;max-height:220px;overflow:auto}
+
 /* MODAL FOOTER */
 .modal-ft{padding:16px 22px;border-top:1px solid var(--border);background:var(--white)}
 .btn-submit{width:100%;padding:14px;background:var(--dark);color:var(--bg);border:none;border-radius:11px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .15s,transform .1s}
@@ -320,6 +326,32 @@ footer a:hover{color:rgba(253,252,250,0.8)}
         </div>
       </div>
 
+      <!-- SCREEN 4: SUCCESS (auto-delivery) -->
+      <div class="scr" id="scr-success">
+        <div class="fbody" style="text-align:center">
+          <div id="sx-wait">
+            <div class="spinner"></div>
+            <h3 style="font-size:17px;font-weight:800;margin:18px 0 6px">Menunggu pembayaran…</h3>
+            <p style="font-size:13px;color:var(--text2);line-height:1.6">Selesaikan pembayaran di jendela Midtrans.<br>Akun akan otomatis dikirim setelah lunas.</p>
+          </div>
+          <div id="sx-done" style="display:none">
+            <div style="font-size:46px;margin-bottom:8px">✅</div>
+            <h3 style="font-size:18px;font-weight:800;margin-bottom:4px">Pembayaran Berhasil!</h3>
+            <p style="font-size:13px;color:var(--text2);margin-bottom:18px">Akun kamu sudah dikirim ke WhatsApp juga 📲</p>
+            <div class="cred-label">Detail Akun Kamu</div>
+            <pre class="cred-box" id="sx-cred">—</pre>
+            <button class="btn-wa" id="sx-wa" href="#" onclick="copyCred()" style="margin-top:14px;cursor:pointer">📋 Salin Detail Akun</button>
+            <button class="btn-done" onclick="closeModal()">Selesai</button>
+          </div>
+          <div id="sx-nostock" style="display:none">
+            <div style="font-size:46px;margin-bottom:8px">⏳</div>
+            <h3 style="font-size:17px;font-weight:800;margin-bottom:4px">Pembayaran Diterima</h3>
+            <p style="font-size:13px;color:var(--text2);line-height:1.6">Stok akun sedang disiapkan. Tim kami akan mengirim detail akun ke WhatsApp kamu sesegera mungkin. 🙏</p>
+            <button class="btn-done" onclick="closeModal()" style="margin-top:16px">Tutup</button>
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <!-- FOOTER (button changes per screen) -->
@@ -330,7 +362,7 @@ footer a:hover{color:rgba(253,252,250,0.8)}
 </div>
 
 <script>
-let products=[], settings={}, selectedProduct=null, activeFilter='Semua', curScreen='detail';
+let products=[], settings={}, selectedProduct=null, activeFilter='Semua', curScreen='detail', payConfig={midtransEnabled:false}, curOrder=null, pollTimer=null;
 
 const icons={'Mobile Legend':'🎮','YouTube':'▶️','Google':'🔵','Gemini':'✨','Umum':'📦'};
 function icon(cat){for(const k in icons)if(cat&&cat.includes(k))return icons[k];return'📦'}
@@ -355,13 +387,21 @@ function topSkins(p){
 }
 
 async function init(){
-  const[p,s]=await Promise.all([
+  const[p,s,c]=await Promise.all([
     fetch('/api/store/products').then(r=>r.json()).catch(()=>[]),
     fetch('/api/store/settings').then(r=>r.json()).catch(()=>({})),
+    fetch('/api/store/config').then(r=>r.json()).catch(()=>({midtransEnabled:false})),
   ]);
   products=Array.isArray(p)?p:[];
   settings=s||{};
+  payConfig=c||{midtransEnabled:false};
   if(settings.whatsapp){document.getElementById('nav-wa').href=`https://wa.me/${settings.whatsapp.replace(/\D/g,'')}`}
+  if(payConfig.midtransEnabled&&payConfig.clientKey){
+    const sc=document.createElement('script');
+    sc.src=payConfig.isProduction?'https://app.midtrans.com/snap/snap.js':'https://app.sandbox.midtrans.com/snap/snap.js';
+    sc.setAttribute('data-client-key',payConfig.clientKey);
+    document.head.appendChild(sc);
+  }
   buildFilters();
   render('Semua');
 }
@@ -407,11 +447,11 @@ function render(cat){
 
 function showScreen(name){
   curScreen=name;
-  ['detail','form','pay'].forEach(s=>document.getElementById('scr-'+s).classList.toggle('on',s===name));
+  ['detail','form','pay','success'].forEach(s=>document.getElementById('scr-'+s).classList.toggle('on',s===name));
   document.querySelector('.modal-scroll').scrollTop=0;
   const ft=document.getElementById('m-ft'), cta=document.getElementById('btn-cta');
   if(name==='detail'){ft.style.display='block';cta.disabled=false;cta.textContent='Pesan Sekarang →'}
-  else if(name==='form'){ft.style.display='block';cta.disabled=false;cta.textContent='Lanjut ke Pembayaran →'}
+  else if(name==='form'){ft.style.display='block';cta.disabled=false;cta.textContent=payConfig.midtransEnabled?'Bayar Sekarang →':'Lanjut ke Pembayaran →'}
   else{ft.style.display='none'}
 }
 
@@ -465,7 +505,7 @@ function openModal(id){
   document.getElementById('modal').classList.add('open');
 }
 
-function closeModal(){document.getElementById('modal').classList.remove('open')}
+function closeModal(){document.getElementById('modal').classList.remove('open');if(pollTimer)clearInterval(pollTimer)}
 
 async function submitOrder(){
   const name=document.getElementById('f-name').value.trim();
@@ -482,7 +522,26 @@ async function submitOrder(){
   }).then(r=>r.json()).catch(e=>({error:e.message}));
 
   if(res.error){err.textContent=res.error;btn.disabled=false;btn.textContent='Lanjut ke Pembayaran →';return}
+  curOrder=res;
 
+  // PEMBAYARAN OTOMATIS (Midtrans) bila aktif & Snap siap
+  if(payConfig.midtransEnabled && window.snap){
+    const pay=await fetch('/api/store/pay',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({orderId:res.id})}).then(r=>r.json()).catch(e=>({error:e.message}));
+    if(pay.error||!pay.token){err.textContent=pay.error||'Gagal memulai pembayaran';btn.disabled=false;btn.textContent='Bayar Sekarang →';return}
+    showScreen('success');
+    document.getElementById('sx-wait').style.display='block';
+    document.getElementById('sx-done').style.display='none';
+    document.getElementById('sx-nostock').style.display='none';
+    window.snap.pay(pay.token,{
+      onSuccess:()=>pollOrder(),
+      onPending:()=>pollOrder(),
+      onError:()=>{toast('Pembayaran gagal');showScreen('form');btn.disabled=false;btn.textContent='Bayar Sekarang →'},
+      onClose:()=>{pollOrder()},
+    });
+    return;
+  }
+
+  // FALLBACK: pembayaran manual (transfer/QRIS)
   document.getElementById('pay-id').textContent=res.id;
   document.getElementById('pay-total').textContent='Rp '+Number(selectedProduct.price).toLocaleString('id-ID');
   const hasQRIS=settings.qrisImage, hasBank=settings.bankAccount;
@@ -500,6 +559,37 @@ async function submitOrder(){
   }
   showScreen('pay');
   toast('Pesanan berhasil dibuat!');
+}
+
+// Polling status order sampai akun terkirim
+function pollOrder(){
+  if(!curOrder)return;
+  showScreen('success');
+  if(pollTimer)clearInterval(pollTimer);
+  let tries=0;
+  const check=async()=>{
+    tries++;
+    const st=await fetch(`/api/store/order-status?id=${encodeURIComponent(curOrder.id)}&token=${encodeURIComponent(curOrder.accessToken)}`).then(r=>r.json()).catch(()=>({}));
+    if(st.status==='DELIVERED'&&st.credential){
+      clearInterval(pollTimer);
+      document.getElementById('sx-wait').style.display='none';
+      document.getElementById('sx-done').style.display='block';
+      document.getElementById('sx-cred').textContent=st.credential;
+      toast('Akun berhasil dikirim! 🎉');
+    }else if(st.status==='PAID_NO_STOCK'){
+      clearInterval(pollTimer);
+      document.getElementById('sx-wait').style.display='none';
+      document.getElementById('sx-nostock').style.display='block';
+    }
+    if(tries>150)clearInterval(pollTimer); // berhenti setelah ~5 menit
+  };
+  pollTimer=setInterval(check,2000);
+  check();
+}
+
+function copyCred(){
+  const t=document.getElementById('sx-cred').textContent;
+  navigator.clipboard.writeText(t).then(()=>toast('Detail akun disalin!')).catch(()=>{});
 }
 
 function toast(msg){
