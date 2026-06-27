@@ -16,17 +16,15 @@
   --border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.13);
   --green:#2D7D5A;--green-bg:#EAF3EC;
   --red:#C04A3A;--red-bg:#FCECEA;
+  --purple:#7C5CBF;--purple-bg:#F0EBF9;
+  --blue:#3E6DB5;--blue-bg:#E9F0FA;
+  --gold:#B8862F;--gold-bg:#FAF2E0;
 }
 html{scroll-behavior:smooth}
 body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--dark);-webkit-font-smoothing:antialiased}
 
 /* NAV */
-nav{
-  position:sticky;top:0;z-index:200;
-  background:rgba(26,23,20,0.97);
-  backdrop-filter:blur(12px);
-  border-bottom:1px solid rgba(255,255,255,0.06);
-}
+nav{position:sticky;top:0;z-index:200;background:rgba(26,23,20,0.97);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,0.06)}
 .nav-inner{max-width:1160px;margin:0 auto;padding:0 24px;height:58px;display:flex;align-items:center;justify-content:space-between}
 .nav-brand{display:flex;align-items:center;gap:10px;text-decoration:none}
 .nav-logo{width:34px;height:34px;border-radius:9px;object-fit:cover}
@@ -65,19 +63,24 @@ nav{
 
 /* PRODUCTS */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
-.card{background:var(--white);border:1px solid var(--border);border-radius:16px;overflow:hidden;transition:transform .18s,border-color .18s;cursor:pointer}
-.card:hover{transform:translateY(-3px);border-color:var(--border2)}
-.card-img{width:100%;height:160px;object-fit:cover;background:var(--bg2);display:block}
+.card{background:var(--white);border:1px solid var(--border);border-radius:16px;overflow:hidden;transition:transform .18s,border-color .18s,box-shadow .18s;cursor:pointer;position:relative}
+.card:hover{transform:translateY(-4px);border-color:var(--border2);box-shadow:0 12px 30px -12px rgba(0,0,0,.18)}
+.card-imgwrap{position:relative;overflow:hidden}
+.card-img{width:100%;height:160px;object-fit:cover;background:var(--bg2);display:block;transition:transform .35s}
+.card:hover .card-img{transform:scale(1.05)}
 .card-img-ph{width:100%;height:160px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:48px}
+.skin-badge{position:absolute;top:10px;left:10px;background:rgba(26,23,20,.82);color:#fff;font-size:10px;font-weight:700;padding:4px 10px;border-radius:20px;backdrop-filter:blur(4px);letter-spacing:.3px}
 .card-body{padding:18px}
 .card-cat{font-size:10px;font-weight:700;color:var(--orange);text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px}
-.card-name{font-size:15px;font-weight:700;letter-spacing:-.2px;margin-bottom:6px;line-height:1.3}
-.card-desc{font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:16px;min-height:38px}
+.card-name{font-size:15px;font-weight:700;letter-spacing:-.2px;margin-bottom:8px;line-height:1.3}
+.card-tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px;min-height:24px}
+.mini-chip{font-size:10px;font-weight:600;padding:3px 9px;border-radius:20px;background:var(--bg2);color:var(--text2);white-space:nowrap}
+.mini-chip.more{background:transparent;color:var(--text3);padding:3px 4px}
 .card-foot{display:flex;align-items:center;justify-content:space-between}
 .card-price{font-size:17px;font-weight:800;letter-spacing:-.3px}
 .card-price small{font-size:11px;font-weight:400;color:var(--text3);display:block;margin-top:1px}
-.btn-order{padding:9px 20px;background:var(--dark);color:var(--bg);border:none;border-radius:9px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s;white-space:nowrap}
-.btn-order:hover{opacity:.8}
+.btn-detail{padding:9px 18px;background:var(--dark);color:var(--bg);border:none;border-radius:9px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s;white-space:nowrap}
+.btn-detail:hover{opacity:.8}
 .empty{text-align:center;padding:60px;color:var(--text3);font-size:13px;grid-column:1/-1}
 
 /* TRUST BAR */
@@ -89,35 +92,58 @@ nav{
 .ti-l{font-size:11px;color:var(--text2);margin-top:3px}
 
 /* MODAL */
-.overlay{position:fixed;inset:0;background:rgba(10,8,6,.65);z-index:500;display:none;align-items:center;justify-content:center;padding:16px}
+.overlay{position:fixed;inset:0;background:rgba(10,8,6,.65);z-index:500;display:none;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(3px)}
 .overlay.open{display:flex}
-.modal{background:var(--white);border-radius:20px;width:100%;max-width:460px;max-height:92vh;overflow-y:auto;animation:mIn .2s ease}
-@keyframes mIn{from{opacity:0;transform:translateY(12px)}}
-.modal-hd{padding:22px 24px 18px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;border-bottom:1px solid var(--border)}
-.modal-hd h3{font-size:17px;font-weight:800;letter-spacing:-.3px}
-.modal-hd p{font-size:12px;color:var(--text2);margin-top:3px}
-.btn-close{width:30px;height:30px;background:var(--bg2);border:none;border-radius:7px;cursor:pointer;font-size:16px;color:var(--text2);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.modal-body{padding:22px 24px}
+.modal{background:var(--white);border-radius:20px;width:100%;max-width:480px;max-height:92vh;overflow:hidden;display:flex;flex-direction:column;animation:mIn .22s cubic-bezier(.2,.7,.3,1)}
+@keyframes mIn{from{opacity:0;transform:translateY(16px) scale(.98)}}
+.modal-scroll{overflow-y:auto;flex:1}
+
+/* DETAIL HERO IMG */
+.det-hero{position:relative;height:200px;background:var(--bg2)}
+.det-hero img{width:100%;height:100%;object-fit:cover;display:block}
+.det-hero-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:64px}
+.det-hero::after{content:'';position:absolute;inset:0;background:linear-gradient(to top,rgba(26,23,20,.55),transparent 45%)}
+.det-close{position:absolute;top:12px;right:12px;width:32px;height:32px;background:rgba(26,23,20,.6);border:none;border-radius:9px;cursor:pointer;font-size:15px;color:#fff;display:flex;align-items:center;justify-content:center;z-index:3;backdrop-filter:blur(4px);transition:background .15s}
+.det-close:hover{background:rgba(26,23,20,.85)}
+.det-hero-cat{position:absolute;bottom:12px;left:16px;z-index:2;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.8px;background:var(--orange);padding:4px 11px;border-radius:20px}
+.det-body{padding:20px 22px 8px}
+.det-name{font-size:18px;font-weight:800;letter-spacing:-.4px;line-height:1.3;margin-bottom:12px}
+.det-pricerow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;background:var(--bg);border-radius:13px;margin-bottom:20px}
+.det-price{font-size:22px;font-weight:800;letter-spacing:-.5px}
+.det-price small{font-size:11px;font-weight:500;color:var(--text3);display:block;margin-top:1px}
+.det-skincount{text-align:right}
+.det-skincount b{font-size:18px;font-weight:800;display:block}
+.det-skincount span{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+.det-seclabel{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:11px;display:flex;align-items:center;gap:7px}
+.det-seclabel::after{content:'';flex:1;height:1px;background:var(--border)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px}
+.chip{font-size:11.5px;font-weight:600;padding:5px 11px;border-radius:8px;background:var(--bg2);color:var(--dark2);border:1px solid transparent;line-height:1.2}
+.chip.legend{background:var(--gold-bg);color:var(--gold);border-color:rgba(184,134,47,.2)}
+.chip.collector{background:var(--purple-bg);color:var(--purple);border-color:rgba(124,92,191,.18)}
+.chip.epic{background:var(--blue-bg);color:var(--blue);border-color:rgba(62,109,181,.16)}
+.det-prose{font-size:13.5px;color:var(--text2);line-height:1.75;margin-bottom:18px}
+.det-legend{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:6px;padding-top:2px}
+.lg-item{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--text2);font-weight:600}
+.lg-dot{width:9px;height:9px;border-radius:3px}
+
+/* FORM */
+.scr{display:none}
+.scr.on{display:block}
+.form-back{display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:var(--text2);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;padding:0;margin-bottom:16px;transition:color .15s}
+.form-back:hover{color:var(--dark)}
+.fbody{padding:20px 22px}
 .prod-summary{background:var(--bg);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;margin-bottom:20px}
 .ps-icon{font-size:28px;flex-shrink:0}
-.ps-name{font-size:13px;font-weight:700}
+.ps-name{font-size:13px;font-weight:700;line-height:1.3}
 .ps-price{font-size:17px;font-weight:800;margin-top:3px}
 .fld{margin-bottom:14px}
 .fld label{display:block;font-size:11px;font-weight:600;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
 .fld input,.fld textarea{width:100%;padding:11px 14px;background:var(--bg);border:1px solid var(--border2);border-radius:9px;font-family:inherit;font-size:14px;color:var(--dark);outline:none;transition:border-color .15s}
 .fld input:focus,.fld textarea:focus{border-color:var(--orange);background:var(--white)}
 .fld textarea{min-height:72px;resize:vertical}
-.modal-ft{padding:16px 24px;border-top:1px solid var(--border)}
-.btn-submit{width:100%;padding:13px;background:var(--dark);color:var(--bg);border:none;border-radius:10px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .15s}
-.btn-submit:hover{opacity:.85}
-.btn-submit:disabled{opacity:.45;cursor:not-allowed}
 .form-err{font-size:12px;color:var(--red);margin-top:8px;text-align:center}
 
-/* PAYMENT SCREEN */
-.pay-screen{display:none}
-.pay-screen.on{display:block}
-.form-screen{display:block}
-.form-screen.off{display:none}
+/* PAYMENT */
 .pay-id{font-family:'SF Mono',monospace;font-size:13px;font-weight:700;background:var(--bg2);padding:5px 12px;border-radius:7px;display:inline-block;margin-bottom:18px}
 .pay-box{background:var(--bg);border-radius:14px;padding:20px;margin-bottom:14px}
 .pay-box h4{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:14px;text-align:center}
@@ -135,6 +161,13 @@ nav{
 .btn-done{width:100%;padding:12px;background:var(--bg2);color:var(--dark);border:1px solid var(--border2);border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;margin-top:10px;transition:background .15s}
 .btn-done:hover{background:var(--bg3)}
 
+/* MODAL FOOTER */
+.modal-ft{padding:16px 22px;border-top:1px solid var(--border);background:var(--white)}
+.btn-submit{width:100%;padding:14px;background:var(--dark);color:var(--bg);border:none;border-radius:11px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .15s,transform .1s}
+.btn-submit:hover{opacity:.88}
+.btn-submit:active{transform:scale(.99)}
+.btn-submit:disabled{opacity:.45;cursor:not-allowed}
+
 /* FOOTER */
 footer{background:var(--dark);padding:36px 24px;text-align:center}
 footer p{font-size:12px;color:rgba(253,252,250,0.3);line-height:1.8}
@@ -151,12 +184,11 @@ footer a:hover{color:rgba(253,252,250,0.8)}
   .hero h1{font-size:32px}
   .hs{padding:12px 20px}
   .ti{padding:12px 20px}
-  .grid{grid-template-columns:1fr 1fr}
+  .grid{grid-template-columns:1fr 1fr;gap:10px}
+  .card-body{padding:14px}
   .nav-admin{display:none}
 }
-@media(max-width:420px){
-  .grid{grid-template-columns:1fr}
-}
+@media(max-width:420px){.grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -198,7 +230,7 @@ footer a:hover{color:rgba(253,252,250,0.8)}
 <!-- PRODUCTS -->
 <div class="section" id="produk">
   <div class="section-head"><h2>Produk Tersedia</h2></div>
-  <div class="section-sub">Klik produk untuk langsung pesan</div>
+  <div class="section-sub">Klik produk untuk melihat detail lengkap & daftar skin</div>
   <div class="filter-bar" id="filter-bar">
     <button class="filter-btn on" data-cat="Semua" onclick="setFilter('Semua',this)">Semua</button>
   </div>
@@ -221,90 +253,101 @@ footer a:hover{color:rgba(253,252,250,0.8)}
   <a href="https://www.itemku.com/t/jago-game" target="_blank">Itemku</a> · <a href="https://www.g2g.com" target="_blank">G2G</a></p>
 </footer>
 
-<!-- ORDER MODAL -->
+<!-- MODAL -->
 <div class="overlay" id="modal">
   <div class="modal">
-    <div class="modal-hd">
-      <div>
-        <h3 id="m-title">Pesan Produk</h3>
-        <p id="m-cat">Kategori</p>
-      </div>
-      <button class="btn-close" onclick="closeModal()">✕</button>
-    </div>
-    <div class="modal-body">
+    <div class="modal-scroll">
 
-      <!-- FORM -->
-      <div class="form-screen" id="scr-form">
-        <div class="prod-summary">
-          <div class="ps-icon" id="ps-icon">📦</div>
-          <div>
-            <div class="ps-name" id="ps-name">—</div>
-            <div class="ps-price" id="ps-price">—</div>
+      <!-- SCREEN 1: DETAIL -->
+      <div class="scr on" id="scr-detail">
+        <div class="det-hero">
+          <button class="det-close" onclick="closeModal()">✕</button>
+          <div id="det-img"></div>
+          <span class="det-hero-cat" id="det-cat">—</span>
+        </div>
+        <div class="det-body">
+          <div class="det-name" id="det-name">—</div>
+          <div class="det-pricerow">
+            <div class="det-price" id="det-price">—<small>harga termurah</small></div>
+            <div class="det-skincount" id="det-skincount" style="display:none"><b id="det-skn">0</b><span>Skin</span></div>
           </div>
+          <div id="det-content"></div>
         </div>
-        <div class="fld">
-          <label>Nama lengkap kamu *</label>
-          <input id="f-name" type="text" placeholder="Masukkan nama kamu">
-        </div>
-        <div class="fld">
-          <label>Nomor WhatsApp *</label>
-          <input id="f-wa" type="tel" placeholder="08xxxxxxxxxx">
-        </div>
-        <div class="fld">
-          <label>Catatan (opsional)</label>
-          <textarea id="f-note" placeholder="Misal: akun yang ingin diverifikasi, permintaan khusus, dll."></textarea>
-        </div>
-        <div class="form-err" id="f-err"></div>
       </div>
 
-      <!-- PAYMENT -->
-      <div class="pay-screen" id="scr-pay">
-        <div style="margin-bottom:16px">
-          <div style="font-size:11px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">ID Pesanan</div>
-          <span class="pay-id" id="pay-id">—</span>
-        </div>
-
-        <div class="pay-box" id="box-qris" style="display:none">
-          <h4>Bayar via QRIS</h4>
-          <div class="pay-qris">
-            <img id="pay-qris-img" src="" alt="QRIS">
-            <p>Scan dengan GoPay, OVO, Dana, atau aplikasi apapun</p>
+      <!-- SCREEN 2: FORM -->
+      <div class="scr" id="scr-form">
+        <div class="fbody">
+          <button class="form-back" onclick="showScreen('detail')">← Kembali ke detail</button>
+          <div class="prod-summary">
+            <div class="ps-icon" id="ps-icon">📦</div>
+            <div>
+              <div class="ps-name" id="ps-name">—</div>
+              <div class="ps-price" id="ps-price">—</div>
+            </div>
           </div>
+          <div class="fld"><label>Nama lengkap kamu *</label><input id="f-name" type="text" placeholder="Masukkan nama kamu"></div>
+          <div class="fld"><label>Nomor WhatsApp *</label><input id="f-wa" type="tel" placeholder="08xxxxxxxxxx"></div>
+          <div class="fld"><label>Catatan (opsional)</label><textarea id="f-note" placeholder="Misal: permintaan khusus, pertanyaan, dll."></textarea></div>
+          <div class="form-err" id="f-err"></div>
         </div>
-
-        <div class="pay-box" id="box-bank" style="display:none">
-          <h4>Transfer Bank</h4>
-          <div class="pay-bank-row"><span class="pbr-l">Bank</span><span class="pbr-v" id="pay-bank">—</span></div>
-          <div class="pay-bank-row"><span class="pbr-l">No. Rekening</span><span class="pbr-v" id="pay-acc">—</span></div>
-          <div class="pay-bank-row"><span class="pbr-l">Atas Nama</span><span class="pbr-v" id="pay-holder">—</span></div>
-          <div class="pay-bank-row" style="border:none"><span class="pbr-l">Total Bayar</span>
-            <div><div class="pay-total" id="pay-total">—</div></div>
-          </div>
-        </div>
-
-        <div class="pay-note">
-          Setelah transfer, kirim bukti pembayaran ke WhatsApp kami. Order diproses dalam <strong>5–15 menit</strong> setelah pembayaran dikonfirmasi. 🙏
-        </div>
-
-        <a class="btn-wa" id="pay-wa-btn" href="#" target="_blank">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-          Kirim Bukti Bayar ke WhatsApp
-        </a>
-        <button class="btn-done" onclick="closeModal()">Tutup</button>
       </div>
+
+      <!-- SCREEN 3: PAYMENT -->
+      <div class="scr" id="scr-pay">
+        <div class="fbody">
+          <div style="margin-bottom:16px">
+            <div style="font-size:11px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">ID Pesanan</div>
+            <span class="pay-id" id="pay-id">—</span>
+          </div>
+          <div class="pay-box" id="box-qris" style="display:none">
+            <h4>Bayar via QRIS</h4>
+            <div class="pay-qris"><img id="pay-qris-img" src="" alt="QRIS"><p>Scan dengan GoPay, OVO, Dana, atau aplikasi apapun</p></div>
+          </div>
+          <div class="pay-box" id="box-bank" style="display:none">
+            <h4>Transfer Bank</h4>
+            <div class="pay-bank-row"><span class="pbr-l">Bank</span><span class="pbr-v" id="pay-bank">—</span></div>
+            <div class="pay-bank-row"><span class="pbr-l">No. Rekening</span><span class="pbr-v" id="pay-acc">—</span></div>
+            <div class="pay-bank-row"><span class="pbr-l">Atas Nama</span><span class="pbr-v" id="pay-holder">—</span></div>
+            <div class="pay-bank-row" style="border:none"><span class="pbr-l">Total Bayar</span><div><div class="pay-total" id="pay-total">—</div></div></div>
+          </div>
+          <div class="pay-note">Setelah transfer, kirim bukti pembayaran ke WhatsApp kami. Order diproses dalam <strong>5–15 menit</strong> setelah pembayaran dikonfirmasi. 🙏</div>
+          <a class="btn-wa" id="pay-wa-btn" href="#" target="_blank">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+            Kirim Bukti Bayar ke WhatsApp
+          </a>
+          <button class="btn-done" onclick="closeModal()">Tutup</button>
+        </div>
+      </div>
+
     </div>
 
+    <!-- FOOTER (button changes per screen) -->
     <div class="modal-ft" id="m-ft">
-      <button class="btn-submit" id="btn-submit" onclick="submitOrder()">Lanjut ke Pembayaran →</button>
+      <button class="btn-submit" id="btn-cta" onclick="ctaClick()">Pesan Sekarang →</button>
     </div>
   </div>
 </div>
 
 <script>
-let products=[], settings={}, selectedProduct=null, activeFilter='Semua';
+let products=[], settings={}, selectedProduct=null, activeFilter='Semua', curScreen='detail';
 
 const icons={'Mobile Legend':'🎮','YouTube':'▶️','Google':'🔵','Gemini':'✨','Umum':'📦'};
 function icon(cat){for(const k in icons)if(cat&&cat.includes(k))return icons[k];return'📦'}
+function esc(s){return(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+
+// Rarity classification for chips
+const EPIC=['kof','transformers','prime','aspirants','sanrio','ducati','soul','kishin','jjk','aot','hxh','naruto','saint','star wars','starwars','abyss','neobeast','nexus','mistbender','metro','zenith','exorcist','allstar','all-star','kungfupanda','christmas','valentine','seasons','11.11','clouds','naruto'];
+function chipClass(skin){
+  const s=skin.toLowerCase().trim();
+  if(s.startsWith('legend'))return'legend';
+  if(s.startsWith('collector'))return'collector';
+  for(const e of EPIC)if(s.startsWith(e))return'epic';
+  return'';
+}
+function isSkinList(p){
+  return p.category==='Mobile Legend' && (p.description||'').split(',').length>=4;
+}
 
 async function init(){
   const[p,s]=await Promise.all([
@@ -313,22 +356,15 @@ async function init(){
   ]);
   products=Array.isArray(p)?p:[];
   settings=s||{};
-
-  if(settings.whatsapp){
-    const n=settings.whatsapp.replace(/\D/g,'');
-    document.getElementById('nav-wa').href=`https://wa.me/${n}`;
-  }
-
+  if(settings.whatsapp){document.getElementById('nav-wa').href=`https://wa.me/${settings.whatsapp.replace(/\D/g,'')}`}
   buildFilters();
   render('Semua');
 }
 
 function buildFilters(){
   const cats=['Semua',...new Set(products.map(p=>p.category))];
-  const bar=document.getElementById('filter-bar');
-  bar.innerHTML=cats.map(c=>`<button class="filter-btn${c==='Semua'?' on':''}" onclick="setFilter('${c}',this)">${c}</button>`).join('');
+  document.getElementById('filter-bar').innerHTML=cats.map(c=>`<button class="filter-btn${c==='Semua'?' on':''}" onclick="setFilter('${esc(c)}',this)">${esc(c)}</button>`).join('');
 }
-
 function setFilter(cat,el){
   activeFilter=cat;
   document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('on'));
@@ -340,40 +376,86 @@ function render(cat){
   const list=cat==='Semua'?products:products.filter(p=>p.category===cat);
   const g=document.getElementById('grid');
   if(!list.length){g.innerHTML='<div class="empty">Belum ada produk di kategori ini.</div>';return}
-  g.innerHTML=list.map(p=>`
+  g.innerHTML=list.map(p=>{
+    const skinList=isSkinList(p);
+    const items=skinList?p.description.split(',').map(x=>x.trim()).filter(Boolean):[];
+    const teaser=skinList
+      ? items.slice(0,3).map(s=>`<span class="mini-chip">${esc(s)}</span>`).join('')+(items.length>3?`<span class="mini-chip more">+${items.length-3} lainnya</span>`:'')
+      : `<span class="mini-chip">${esc((p.description||'Klik untuk lihat detail').slice(0,60))}</span>`;
+    return `
     <div class="card" onclick="openModal('${p.id}')">
-      ${p.image
-        ?`<img class="card-img" src="${p.image}" alt="${p.name}" onerror="this.outerHTML='<div class=card-img-ph>${icon(p.category)}</div>'">`
-        :`<div class="card-img-ph">${icon(p.category)}</div>`}
+      <div class="card-imgwrap">
+        ${p.image?`<img class="card-img" src="${esc(p.image)}" alt="${esc(p.name)}" onerror="this.outerHTML='<div class=card-img-ph>${icon(p.category)}</div>'">`:`<div class="card-img-ph">${icon(p.category)}</div>`}
+        ${skinList?`<span class="skin-badge">${items.length} skin</span>`:''}
+      </div>
       <div class="card-body">
-        <div class="card-cat">${p.category}</div>
-        <div class="card-name">${p.name}</div>
-        <div class="card-desc">${p.description||'Klik untuk pesan sekarang'}</div>
+        <div class="card-cat">${esc(p.category)}</div>
+        <div class="card-name">${esc(p.name)}</div>
+        <div class="card-tags">${teaser}</div>
         <div class="card-foot">
           <div class="card-price">Rp ${Number(p.price).toLocaleString('id-ID')}<small>per item</small></div>
-          <button class="btn-order">Pesan</button>
+          <button class="btn-detail">Detail</button>
         </div>
       </div>
-    </div>`).join('');
+    </div>`}).join('');
+}
+
+function showScreen(name){
+  curScreen=name;
+  ['detail','form','pay'].forEach(s=>document.getElementById('scr-'+s).classList.toggle('on',s===name));
+  document.querySelector('.modal-scroll').scrollTop=0;
+  const ft=document.getElementById('m-ft'), cta=document.getElementById('btn-cta');
+  if(name==='detail'){ft.style.display='block';cta.disabled=false;cta.textContent='Pesan Sekarang →'}
+  else if(name==='form'){ft.style.display='block';cta.disabled=false;cta.textContent='Lanjut ke Pembayaran →'}
+  else{ft.style.display='none'}
+}
+
+function ctaClick(){
+  if(curScreen==='detail')showScreen('form');
+  else if(curScreen==='form')submitOrder();
 }
 
 function openModal(id){
   selectedProduct=products.find(p=>p.id===id);
   if(!selectedProduct)return;
-  document.getElementById('m-title').textContent=selectedProduct.name;
-  document.getElementById('m-cat').textContent=selectedProduct.category;
-  document.getElementById('ps-icon').textContent=icon(selectedProduct.category);
-  document.getElementById('ps-name').textContent=selectedProduct.name;
-  document.getElementById('ps-price').textContent='Rp '+Number(selectedProduct.price).toLocaleString('id-ID');
+  const p=selectedProduct;
+
+  // DETAIL screen
+  document.getElementById('det-img').outerHTML=`<div id="det-img">${p.image?`<img src="${esc(p.image)}" alt="${esc(p.name)}" onerror="this.parentNode.outerHTML='<div id=det-img><div class=det-hero-ph>${icon(p.category)}</div></div>'">`:`<div class="det-hero-ph">${icon(p.category)}</div>`}</div>`;
+  document.getElementById('det-cat').textContent=p.category;
+  document.getElementById('det-name').textContent=p.name;
+  document.getElementById('det-price').innerHTML='Rp '+Number(p.price).toLocaleString('id-ID')+'<small>harga termurah</small>';
+
+  const content=document.getElementById('det-content');
+  const skinList=isSkinList(p);
+  if(skinList){
+    const items=p.description.split(',').map(x=>x.trim()).filter(Boolean);
+    document.getElementById('det-skincount').style.display='block';
+    document.getElementById('det-skn').textContent=items.length;
+    const chips=items.map(s=>`<span class="chip ${chipClass(s)}">${esc(s)}</span>`).join('');
+    content.innerHTML=`
+      <div class="det-seclabel">Daftar Skin & Hero</div>
+      <div class="chips">${chips}</div>
+      <div class="det-legend">
+        <span class="lg-item"><span class="lg-dot" style="background:var(--gold)"></span>Legend</span>
+        <span class="lg-item"><span class="lg-dot" style="background:var(--purple)"></span>Collector</span>
+        <span class="lg-item"><span class="lg-dot" style="background:var(--blue)"></span>Epic / Kolaborasi</span>
+      </div>`;
+  }else{
+    document.getElementById('det-skincount').style.display='none';
+    content.innerHTML=`<div class="det-seclabel">Deskripsi</div><div class="det-prose">${esc(p.description||'Produk digital siap kirim. Klik pesan sekarang untuk melanjutkan.')}</div>`;
+  }
+
+  // FORM summary
+  document.getElementById('ps-icon').textContent=icon(p.category);
+  document.getElementById('ps-name').textContent=p.name;
+  document.getElementById('ps-price').textContent='Rp '+Number(p.price).toLocaleString('id-ID');
   document.getElementById('f-name').value='';
   document.getElementById('f-wa').value='';
   document.getElementById('f-note').value='';
   document.getElementById('f-err').textContent='';
-  document.getElementById('scr-form').className='form-screen';
-  document.getElementById('scr-pay').className='pay-screen';
-  document.getElementById('m-ft').style.display='block';
-  document.getElementById('btn-submit').disabled=false;
-  document.getElementById('btn-submit').textContent='Lanjut ke Pembayaran →';
+
+  showScreen('detail');
   document.getElementById('modal').classList.add('open');
 }
 
@@ -385,23 +467,19 @@ async function submitOrder(){
   const err=document.getElementById('f-err');
   if(!name||!wa){err.textContent='Nama dan nomor WhatsApp wajib diisi';return}
   err.textContent='';
-  const btn=document.getElementById('btn-submit');
+  const btn=document.getElementById('btn-cta');
   btn.disabled=true;btn.textContent='Memproses...';
 
   const res=await fetch('/api/store/orders',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
+    method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({productId:selectedProduct.id,customerName:name,customerWA:wa,notes:document.getElementById('f-note').value}),
   }).then(r=>r.json()).catch(e=>({error:e.message}));
 
   if(res.error){err.textContent=res.error;btn.disabled=false;btn.textContent='Lanjut ke Pembayaran →';return}
 
-  // Show payment
   document.getElementById('pay-id').textContent=res.id;
   document.getElementById('pay-total').textContent='Rp '+Number(selectedProduct.price).toLocaleString('id-ID');
-
-  const hasQRIS=settings.qrisImage;
-  const hasBank=settings.bankAccount;
+  const hasQRIS=settings.qrisImage, hasBank=settings.bankAccount;
   document.getElementById('box-qris').style.display=hasQRIS?'block':'none';
   if(hasQRIS)document.getElementById('pay-qris-img').src=settings.qrisImage;
   document.getElementById('box-bank').style.display=hasBank?'block':'none';
@@ -414,10 +492,7 @@ async function submitOrder(){
     const n=settings.whatsapp.replace(/\D/g,'');
     document.getElementById('pay-wa-btn').href=`https://wa.me/${n}?text=Halo+kak+Jago+Game%2C+saya+sudah+transfer+untuk+pesanan+${res.id}+atas+nama+${encodeURIComponent(name)}+produk+${encodeURIComponent(selectedProduct.name)}`;
   }
-
-  document.getElementById('scr-form').className='form-screen off';
-  document.getElementById('scr-pay').className='pay-screen on';
-  document.getElementById('m-ft').style.display='none';
+  showScreen('pay');
   toast('Pesanan berhasil dibuat!');
 }
 
@@ -428,6 +503,7 @@ function toast(msg){
 }
 
 document.getElementById('modal').addEventListener('click',function(e){if(e.target===this)closeModal()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
 
 init();
 </script>
