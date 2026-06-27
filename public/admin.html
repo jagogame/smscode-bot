@@ -289,6 +289,13 @@ code{font-family:'SF Mono',monospace;font-size:11px;background:var(--bg2);color:
         <div class="fld"><label>Harga (Rp) *</label><input id="pm-price" type="number" placeholder="25000"></div>
         <div class="fld" style="grid-column:1/-1"><label>Deskripsi</label><textarea id="pm-desc" placeholder="Deskripsi singkat produk"></textarea></div>
         <div class="fld" style="grid-column:1/-1"><label>URL Gambar (opsional)</label><input id="pm-img" placeholder="https://..."></div>
+        <div class="fld" style="grid-column:1/-1;background:var(--bg2,#EDE8DE);padding:12px 14px;border-radius:9px">
+          <label style="display:flex;align-items:center;gap:9px;cursor:pointer;margin:0">
+            <input id="pm-auto" type="checkbox" style="width:18px;height:18px;cursor:pointer">
+            <span style="font-size:13px;font-weight:600">Pengiriman otomatis (auto-delivery)</span>
+          </label>
+          <p style="font-size:11.5px;color:var(--text2,#6B6560);margin:7px 0 0;line-height:1.5">Jika aktif: stok dihitung dari jumlah akun, produk otomatis "Habis" bila stok 0, dan akun terkirim otomatis saat lunas. Cocok untuk akun ML. Matikan untuk produk yang dikirim manual.</p>
+        </div>
       </div>
     </div>
     <div class="m-ft">
@@ -467,6 +474,7 @@ function openAddProd(){
   editId=null;
   document.getElementById('pm-title').textContent='Tambah Produk';
   ['pm-name','pm-price','pm-desc','pm-img'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('pm-auto').checked=false;
   document.getElementById('pm-msg').textContent='';
   document.getElementById('prod-modal').classList.add('open');
 }
@@ -481,6 +489,7 @@ async function editProd(id){
   document.getElementById('pm-desc').value=p.description||'';
   document.getElementById('pm-img').value=p.image||'';
   document.getElementById('pm-cat').value=p.category||'Umum';
+  document.getElementById('pm-auto').checked=!!p.autoDeliver;
   document.getElementById('pm-msg').textContent='';
   document.getElementById('prod-modal').classList.add('open');
 }
@@ -489,7 +498,7 @@ async function saveProd(){
   const name=document.getElementById('pm-name').value.trim(),price=document.getElementById('pm-price').value;
   const msg=document.getElementById('pm-msg');
   if(!name||!price){msg.innerHTML='<span style="color:var(--red)">Nama dan harga wajib diisi</span>';return}
-  const body={name,price:Number(price),description:document.getElementById('pm-desc').value.trim(),category:document.getElementById('pm-cat').value,image:document.getElementById('pm-img').value.trim()};
+  const body={name,price:Number(price),description:document.getElementById('pm-desc').value.trim(),category:document.getElementById('pm-cat').value,image:document.getElementById('pm-img').value.trim(),autoDeliver:document.getElementById('pm-auto').checked};
   const r=editId?await api('PUT',`/api/admin/products/${editId}`,body):await api('POST','/api/admin/products',body);
   if(r.error){msg.innerHTML=`<span style="color:var(--red)">${r.error}</span>`;return}
   toast(editId?'Produk diperbarui':'Produk ditambahkan','ok');

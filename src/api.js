@@ -9,9 +9,17 @@ const wa = require('./wa');
 
 const router = express.Router();
 
+// Kunci untuk cegah double-delivery order yang sama (mis. webhook ganda)
+const delivering = new Set();
+
 // Kirim produk otomatis setelah pembayaran lunas
 async function deliverOrder(order) {
-    if (order.status === 'DELIVERED') return order;
+    // Selalu baca status terbaru dari penyimpanan
+    const fresh = store.getOrderById(order.id) || order;
+    if (fresh.status === 'DELIVERED') return fresh;
+    if (delivering.has(order.id)) return fresh;
+    delivering.add(order.id);
+    try {
     const cred = store.popStock(order.productId);
     const settings = store.getSettings();
     if (!cred) {
@@ -36,6 +44,24 @@ async function deliverOrder(order) {
         wa.sendText(settings.whatsapp, `💰 TERJUAL!\n${order.productName}\nRp ${Number(order.productPrice).toLocaleString('id-ID')}\nPembeli: ${order.customerName} (${order.customerWA})\nSisa stok: ${store.getStockCount(order.productId)}`).catch(() => {});
     }
     return updated;
+    } finally {
+        delivering.delete(order.id);
+    }
+}
+
+// Rate limiter sederhana (in-memory) per IP
+function rateLimiter({ windowMs, max, message }) {
+    const hits = new Map();
+    return (req, res, next) => {
+        const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || 'unknown';
+        const now = Date.now();
+        const rec = hits.get(ip) || { count: 0, reset: now + windowMs };
+        if (now > rec.reset) { rec.count = 0; rec.reset = now + windowMs; }
+        rec.count++;
+        hits.set(ip, rec);
+        if (rec.count > max) return res.status(429).json({ error: message || 'Terlalu banyak permintaan, coba lagi nanti.' });
+        next();
+    };
 }
 
 // Middleware auth
@@ -56,8 +82,13 @@ router.get('/admin', (req, res) => {
     res.sendFile(path.join(__dirname, '../public/admin.html'));
 });
 
-// Login
-router.post('/api/login', (req, res) => {
+// Halaman lacak pesanan
+router.get('/lacak', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/lacak.html'));
+});
+
+// Login (maks 8 percobaan / 5 menit)
+router.post('/api/login', rateLimiter({ windowMs: 5 * 60 * 1000, max: 8, message: 'Terlalu banyak percobaan login. Tunggu 5 menit.' }), (req, res) => {
     const { username, password } = req.body;
     const token = login(username, password);
     if (!token) return res.status(401).json({ error: 'Username atau password salah' });
@@ -167,8 +198,13 @@ router.get('/api/store/products', (req, res) => {
     res.json(store.getActiveProducts());
 });
 
-router.post('/api/store/orders', (req, res) => {
+router.post('/api/store/orders', rateLimiter({ windowMs: 60 * 1000, max: 10, message: 'Terlalu banyak pesanan. Tunggu sebentar.' }), (req, res) => {
     try {
+        // Tolak bila produk auto-deliver tapi stok habis
+        const product = store.getProducts().find(p => p.id === req.body.productId);
+        if (product && product.autoDeliver && store.getStockCount(product.id) <= 0) {
+            return res.status(400).json({ error: 'Stok produk ini sedang habis. Silakan chat WhatsApp kami.' });
+        }
         const order = store.createOrder(req.body);
         res.json(order);
     } catch (e) { res.status(400).json({ error: e.message }); }
@@ -227,6 +263,25 @@ router.get('/api/store/order-status', (req, res) => {
         id: order.id,
         status: order.status,
         paymentStatus: order.paymentStatus,
+        credential: order.status === 'DELIVERED' ? order.credential : null,
+    });
+});
+
+// Lacak pesanan pakai ID + nomor WhatsApp (untuk pembeli yang tutup browser)
+router.post('/api/store/track', rateLimiter({ windowMs: 60 * 1000, max: 15 }), (req, res) => {
+    const { orderId, wa: waNum } = req.body;
+    const order = store.getOrderById((orderId || '').trim());
+    const norm = s => String(s || '').replace(/\D/g, '').replace(/^0/, '62');
+    if (!order || norm(order.customerWA) !== norm(waNum)) {
+        return res.status(404).json({ error: 'Pesanan tidak ditemukan. Pastikan ID & nomor WhatsApp benar.' });
+    }
+    res.json({
+        id: order.id,
+        productName: order.productName,
+        productPrice: order.productPrice,
+        status: order.status,
+        paymentStatus: order.paymentStatus,
+        createdAt: order.createdAt,
         credential: order.status === 'DELIVERED' ? order.credential : null,
     });
 });

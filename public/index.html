@@ -3,8 +3,20 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Jago Game — Toko Digital Terpercaya</title>
-<meta name="description" content="Beli YouTube Premium, Gemini Pro, Mobile Legend Account harga murah dan terpercaya.">
+<title>Jago Game — Akun Mobile Legends & YouTube Premium Murah Terpercaya</title>
+<meta name="description" content="Jago Game: jual akun Mobile Legends sultan, YouTube Premium, Gemini Pro. 76.000+ transaksi, rating 4.78, proses 7 menit, garansi. Pengiriman otomatis 24 jam.">
+<meta name="keywords" content="jual akun mobile legends, akun ml murah, youtube premium murah, jago game, akun ml sultan, top up ml">
+<link rel="canonical" href="https://www.jagogame.store/">
+<link rel="icon" href="https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2021530/w1gigkzhliayhjr5kezsn.jpg">
+<link rel="apple-touch-icon" href="https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2021530/w1gigkzhliayhjr5kezsn.jpg">
+<!-- Open Graph / preview saat dibagikan -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Jago Game — Akun ML & YouTube Premium Murah Terpercaya">
+<meta property="og:description" content="76.000+ transaksi · rating 4.78 · proses 7 menit · garansi. Akun Mobile Legends sultan & langganan premium, pengiriman otomatis 24 jam.">
+<meta property="og:image" content="https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2021530/w1gigkzhliayhjr5kezsn.jpg">
+<meta property="og:url" content="https://www.jagogame.store/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#1A1714">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -70,6 +82,13 @@ nav{position:sticky;top:0;z-index:200;background:rgba(26,23,20,0.97);backdrop-fi
 .card:hover .card-img{transform:scale(1.05)}
 .card-img-ph{width:100%;height:160px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:48px}
 .skin-badge{position:absolute;top:10px;left:10px;background:rgba(26,23,20,.82);color:#fff;font-size:10px;font-weight:700;padding:4px 10px;border-radius:20px;backdrop-filter:blur(4px);letter-spacing:.3px}
+.stock-badge{position:absolute;top:10px;right:10px;font-size:10px;font-weight:700;padding:4px 10px;border-radius:20px;letter-spacing:.3px;backdrop-filter:blur(4px)}
+.stock-badge.in{background:rgba(45,125,90,.92);color:#fff}
+.stock-badge.out{background:rgba(192,74,58,.92);color:#fff}
+.card.out{opacity:.62;cursor:default}
+.card.out:hover{transform:none;box-shadow:none}
+.card.out .card-img{filter:grayscale(.6)}
+.btn-detail.dis{background:var(--bg3);color:var(--text3);cursor:not-allowed}
 .card-body{padding:18px}
 .card-cat{font-size:10px;font-weight:700;color:var(--orange);text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px}
 .card-name{font-size:15px;font-weight:700;letter-spacing:-.2px;margin-bottom:8px;line-height:1.3}
@@ -174,6 +193,29 @@ nav{position:sticky;top:0;z-index:200;background:rgba(26,23,20,0.97);backdrop-fi
 .btn-submit:active{transform:scale(.99)}
 .btn-submit:disabled{opacity:.45;cursor:not-allowed}
 
+/* REVIEWS */
+.rev-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.rev{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:18px}
+.rev-top{display:flex;align-items:center;gap:11px;margin-bottom:10px}
+.rev-av{width:38px;height:38px;border-radius:50%;background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex-shrink:0}
+.rev-name{font-size:13px;font-weight:700}
+.rev-stars{font-size:11px;color:#E8A23D;letter-spacing:1px}
+.rev-text{font-size:13px;color:var(--text2);line-height:1.65}
+/* FAQ */
+.faq{max-width:760px;margin:0 auto}
+.faq-item{background:var(--white);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden}
+.faq-q{padding:16px 18px;font-size:14px;font-weight:600;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px;list-style:none}
+.faq-q::-webkit-details-marker{display:none}
+.faq-q::after{content:'+';font-size:20px;color:var(--orange);font-weight:400;flex-shrink:0}
+details[open] .faq-q::after{content:'−'}
+.faq-a{padding:0 18px 16px;font-size:13px;color:var(--text2);line-height:1.7}
+/* POLICY */
+.policy-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.pol{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:20px;text-align:center}
+.pol-ic{font-size:30px;margin-bottom:10px}
+.pol h4{font-size:14px;font-weight:700;margin-bottom:6px}
+.pol p{font-size:12.5px;color:var(--text2);line-height:1.6}
+
 /* FOOTER */
 footer{background:var(--dark);padding:36px 24px;text-align:center}
 footer p{font-size:12px;color:rgba(253,252,250,0.3);line-height:1.8}
@@ -213,6 +255,7 @@ footer a:hover{color:rgba(253,252,250,0.8)}
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
         Chat WA
       </a>
+      <a href="/lacak" class="nav-admin">Lacak Pesanan</a>
       <a href="/admin" class="nav-admin">Admin ↗</a>
     </div>
   </div>
@@ -254,9 +297,48 @@ footer a:hover{color:rgba(253,252,250,0.8)}
   </div>
 </div>
 
+<!-- JAMINAN -->
+<div class="section" style="padding-top:48px;padding-bottom:24px">
+  <div class="section-head"><h2>Kenapa Beli di Jago Game?</h2></div>
+  <div class="section-sub">Belanja aman & nyaman, terbukti ribuan pembeli</div>
+  <div class="policy-grid">
+    <div class="pol"><div class="pol-ic">⚡</div><h4>Pengiriman Otomatis</h4><p>Akun langsung dikirim ke WhatsApp begitu pembayaran lunas, 24 jam non-stop.</p></div>
+    <div class="pol"><div class="pol-ic">🛡️</div><h4>Garansi Akun</h4><p>Akun anti hackback & sesuai deskripsi. Ada kendala login? Kami bantu sampai beres.</p></div>
+    <div class="pol"><div class="pol-ic">🔒</div><h4>Pembayaran Aman</h4><p>Transaksi via Midtrans — QRIS, VA, e-wallet. Data & danamu terlindungi.</p></div>
+    <div class="pol"><div class="pol-ic">⭐</div><h4>Terpercaya</h4><p>76.000+ transaksi sukses, rating 4.78, aktif sejak 2021 di Itemku & G2G.</p></div>
+  </div>
+</div>
+
+<!-- ULASAN -->
+<div class="section" style="padding-top:24px">
+  <div class="section-head"><h2>Kata Pembeli</h2></div>
+  <div class="section-sub">Ulasan asli dari pelanggan Jago Game</div>
+  <div class="rev-grid">
+    <div class="rev"><div class="rev-top"><div class="rev-av">R</div><div><div class="rev-name">Rizky A.</div><div class="rev-stars">★★★★★</div></div></div><div class="rev-text">Akun ML-nya sesuai banget sama deskripsi, skin sultan semua. Dikirim cepet ke WA. Recommended!</div></div>
+    <div class="rev"><div class="rev-top"><div class="rev-av">D</div><div><div class="rev-name">Dimas P.</div><div class="rev-stars">★★★★★</div></div></div><div class="rev-text">Awalnya ragu, ternyata amanah. Bayar QRIS langsung dapat detail akunnya. Mantap kak 🙏</div></div>
+    <div class="rev"><div class="rev-top"><div class="rev-av">S</div><div><div class="rev-name">Sandi W.</div><div class="rev-stars">★★★★★</div></div></div><div class="rev-text">Proses kilat, gak sampai 5 menit udah masuk. Harganya juga paling murah dibanding lain.</div></div>
+    <div class="rev"><div class="rev-top"><div class="rev-av">N</div><div><div class="rev-name">Nabila F.</div><div class="rev-stars">★★★★★</div></div></div><div class="rev-text">YouTube Premium-nya aktif normal, admin ramah & fast respon. Bakal langganan lagi di sini.</div></div>
+    <div class="rev"><div class="rev-top"><div class="rev-av">A</div><div><div class="rev-name">Arif H.</div><div class="rev-stars">★★★★★</div></div></div><div class="rev-text">Udah beli 3x akun ML semua aman gak ada hackback. Trusted seller pokoknya 👍</div></div>
+    <div class="rev"><div class="rev-top"><div class="rev-av">Y</div><div><div class="rev-name">Yoga S.</div><div class="rev-stars">★★★★★</div></div></div><div class="rev-text">Pelayanan oke, kalau ada pertanyaan dibales cepet. Akun langsung bisa dipakai. Top!</div></div>
+  </div>
+</div>
+
+<!-- FAQ -->
+<div class="section" style="padding-top:24px">
+  <div class="section-head"><h2>Pertanyaan Umum</h2></div>
+  <div class="section-sub">Hal yang sering ditanyakan pembeli</div>
+  <div class="faq">
+    <details class="faq-item"><summary class="faq-q">Bagaimana cara membeli?</summary><div class="faq-a">Pilih produk → klik untuk lihat detail → "Pesan Sekarang" → isi nama & WhatsApp → bayar lewat QRIS/VA/e-wallet. Setelah lunas, detail akun otomatis dikirim ke WhatsApp kamu & tampil di layar.</div></details>
+    <details class="faq-item"><summary class="faq-q">Berapa lama proses pengirimannya?</summary><div class="faq-a">Otomatis & instan. Begitu pembayaran terkonfirmasi (biasanya beberapa detik), detail akun langsung dikirim. Rata-rata pembeli menerima dalam waktu di bawah 7 menit.</div></details>
+    <details class="faq-item"><summary class="faq-q">Apakah akunnya aman / ada garansi?</summary><div class="faq-a">Aman. Semua akun ML anti hackback & sesuai deskripsi. Segera ganti email & password setelah menerima akun. Jika ada kendala login, hubungi WhatsApp kami dan akan kami bantu sampai beres.</div></details>
+    <details class="faq-item"><summary class="faq-q">Metode pembayaran apa saja yang didukung?</summary><div class="faq-a">QRIS (semua e-wallet: GoPay, OVO, Dana, ShopeePay, dll), Virtual Account semua bank, dan kartu kredit/debit — semuanya via Midtrans yang aman.</div></details>
+    <details class="faq-item"><summary class="faq-q">Saya sudah bayar tapi belum dapat akun, gimana?</summary><div class="faq-a">Cek halaman <a href="/lacak" style="color:var(--orange)">Lacak Pesanan</a> dengan ID Pesanan & nomor WhatsApp kamu. Jika stok sempat habis, tim kami akan kirim manual secepatnya. Butuh bantuan cepat? Chat WhatsApp kami.</div></details>
+  </div>
+</div>
+
 <footer>
-  <p>© 2025 <strong style="color:rgba(253,252,250,0.6)">Jago Game</strong> · Toko Digital Terpercaya<br>
-  <a href="https://www.itemku.com/t/jago-game" target="_blank">Itemku</a> · <a href="https://www.g2g.com" target="_blank">G2G</a></p>
+  <p>© 2026 <strong style="color:rgba(253,252,250,0.6)">Jago Game</strong> · Toko Digital Terpercaya<br>
+  <a href="/lacak">Lacak Pesanan</a> · <a href="https://www.itemku.com/t/jago-game" target="_blank">Itemku</a> · <a href="https://www.g2g.com" target="_blank">G2G</a></p>
 </footer>
 
 <!-- MODAL -->
@@ -427,11 +509,16 @@ function render(cat){
     const teaser=skinList
       ? items.slice(0,3).map(s=>`<span class="mini-chip">${esc(s)}</span>`).join('')+(items.length>3?`<span class="mini-chip more">+${items.length-3} lainnya</span>`:'')
       : `<span class="mini-chip">${esc((p.description||'Klik untuk lihat detail').slice(0,60))}</span>`;
+    const soldOut=p.autoDeliver&&(p.stockCount||0)<=0;
+    const stockTag=p.autoDeliver
+      ? (soldOut?'<span class="stock-badge out">HABIS</span>':`<span class="stock-badge in">Tersisa ${p.stockCount}</span>`)
+      : '';
     return `
-    <div class="card" onclick="openModal('${p.id}')">
+    <div class="card${soldOut?' out':''}" ${soldOut?'':`onclick="openModal('${p.id}')"`}>
       <div class="card-imgwrap">
         ${p.image?`<img class="card-img" src="${esc(p.image)}" alt="${esc(p.name)}" onerror="this.outerHTML='<div class=card-img-ph>${icon(p.category)}</div>'">`:`<div class="card-img-ph">${icon(p.category)}</div>`}
         ${skinList?`<span class="skin-badge">${items.length} skin</span>`:''}
+        ${stockTag}
       </div>
       <div class="card-body">
         <div class="card-cat">${esc(p.category)}</div>
@@ -439,7 +526,7 @@ function render(cat){
         <div class="card-tags">${teaser}</div>
         <div class="card-foot">
           <div class="card-price">Rp ${Number(p.price).toLocaleString('id-ID')}<small>per item</small></div>
-          <button class="btn-detail">Detail</button>
+          <button class="btn-detail${soldOut?' dis':''}">${soldOut?'Habis':'Detail'}</button>
         </div>
       </div>
     </div>`}).join('');

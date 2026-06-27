@@ -35,6 +35,7 @@ function addProduct(data) {
         category: data.category || 'Umum',
         price: Number(data.price),
         stock: data.stock === undefined ? -1 : Number(data.stock), // -1 = unlimited
+        autoDeliver: data.autoDeliver === true || data.autoDeliver === 'true',
         image: data.image || '',
         active: true,
         createdAt: new Date().toISOString(),
@@ -59,7 +60,13 @@ function deleteProduct(id) {
     saveProducts(filtered);
 }
 
-function getActiveProducts() { return getProducts().filter(p => p.active); }
+function getActiveProducts() {
+    const stock = getStock();
+    return getProducts().filter(p => p.active).map(p => ({
+        ...p,
+        stockCount: Array.isArray(stock[p.id]) ? stock[p.id].length : 0,
+    }));
+}
 
 // STOCK (kredensial akun untuk auto-delivery)
 function getStock() { return readJSON(STOCK_FILE, {}); }
