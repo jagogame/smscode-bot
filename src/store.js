@@ -11,6 +11,7 @@ const SETTINGS_FILE = path.join(GIT_DIR, 'store-settings.json');
 const ORDERS_FILE = path.join(VOL_DIR, 'store-orders.json');
 // Stok kredensial akun (sensitif & berubah saat terjual) -> di volume
 const STOCK_FILE = path.join(VOL_DIR, 'store-stock.json');
+const VOUCHERS_FILE = path.join(VOL_DIR, 'store-vouchers.json');
 
 function randToken() { return Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6); }
 
@@ -93,6 +94,57 @@ function popStock(productId) {
     return cred;
 }
 
+// VOUCHERS
+function getVouchers() { return readJSON(VOUCHERS_FILE, []); }
+function saveVouchers(v) { writeJSON(VOUCHERS_FILE, v); }
+function addVoucher(data) {
+    const vouchers = getVouchers();
+    const v = {
+        code: String(data.code || '').trim().toUpperCase(),
+        type: data.type === 'fixed' ? 'fixed' : 'percent', // percent | fixed
+        value: Number(data.value) || 0,
+        minPrice: Number(data.minPrice) || 0,
+        maxDiscount: Number(data.maxDiscount) || 0, // 0 = tanpa batas (untuk percent)
+        usageLimit: Number(data.usageLimit) || 0,    // 0 = tak terbatas
+        used: 0,
+        active: true,
+        createdAt: new Date().toISOString(),
+    };
+    if (!v.code) throw new Error('Kode voucher wajib diisi');
+    if (vouchers.some(x => x.code === v.code)) throw new Error('Kode voucher sudah ada');
+    vouchers.push(v);
+    saveVouchers(vouchers);
+    return v;
+}
+function deleteVoucher(code) {
+    saveVouchers(getVouchers().filter(v => v.code !== String(code).toUpperCase()));
+}
+function toggleVoucher(code, active) {
+    const vouchers = getVouchers();
+    const v = vouchers.find(x => x.code === String(code).toUpperCase());
+    if (v) { v.active = active; saveVouchers(vouchers); }
+    return v;
+}
+// Validasi voucher untuk sebuah harga. Return {valid, discount, finalPrice, message, code}
+function validateVoucher(code, amount) {
+    const c = String(code || '').trim().toUpperCase();
+    if (!c) return { valid: false, message: 'Kode kosong' };
+    const v = getVouchers().find(x => x.code === c);
+    if (!v || !v.active) return { valid: false, message: 'Voucher tidak ditemukan' };
+    if (v.usageLimit > 0 && v.used >= v.usageLimit) return { valid: false, message: 'Voucher sudah habis' };
+    if (amount < v.minPrice) return { valid: false, message: `Min. pembelian Rp ${v.minPrice.toLocaleString('id-ID')}` };
+    let discount = v.type === 'percent' ? Math.round(amount * v.value / 100) : v.value;
+    if (v.type === 'percent' && v.maxDiscount > 0) discount = Math.min(discount, v.maxDiscount);
+    discount = Math.min(discount, amount);
+    return { valid: true, discount, finalPrice: amount - discount, code: c, message: 'Voucher diterapkan' };
+}
+function useVoucher(code) {
+    if (!code) return;
+    const vouchers = getVouchers();
+    const v = vouchers.find(x => x.code === String(code).toUpperCase());
+    if (v) { v.used = (v.used || 0) + 1; saveVouchers(vouchers); }
+}
+
 // ORDERS
 function getOrders() { return readJSON(ORDERS_FILE, []); }
 function saveOrders(o) { writeJSON(ORDERS_FILE, o); }
@@ -103,6 +155,14 @@ function createOrder(data) {
     if (!product) throw new Error('Produk tidak ditemukan');
     if (!product.active) throw new Error('Produk tidak tersedia');
 
+    // Voucher (opsional)
+    let discount = 0, voucherCode = null, finalPrice = product.price;
+    if (data.voucherCode) {
+        const vr = validateVoucher(data.voucherCode, product.price);
+        if (!vr.valid) throw new Error('Voucher: ' + vr.message);
+        discount = vr.discount; voucherCode = vr.code; finalPrice = vr.finalPrice;
+    }
+
     const orders = getOrders();
     const order = {
         id: 'ORD-' + Date.now(),
@@ -110,6 +170,9 @@ function createOrder(data) {
         productId: product.id,
         productName: product.name,
         productPrice: product.price,
+        voucherCode,
+        discount,
+        finalPrice,
         category: product.category,
         customerName: data.customerName,
         customerWA: data.customerWA,
@@ -171,5 +234,6 @@ module.exports = {
     getProducts, addProduct, updateProduct, deleteProduct, getActiveProducts,
     getOrders, createOrder, updateOrderStatus, getOrderById, patchOrder,
     getStock, getStockCount, setStock, popStock,
+    getVouchers, addVoucher, deleteVoucher, toggleVoucher, validateVoucher, useVoucher,
     getSettings, saveSettings,
 };

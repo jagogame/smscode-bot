@@ -68,6 +68,14 @@ nav{position:sticky;top:0;z-index:200;background:rgba(26,23,20,0.97);backdrop-fi
 .section-head h2{font-size:22px;font-weight:800;letter-spacing:-.5px}
 .section-sub{font-size:13px;color:var(--text2);margin-bottom:24px}
 
+/* TOOLBAR */
+.toolbar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.search-box{flex:1;min-width:200px;position:relative}
+.search-box input{width:100%;padding:11px 14px 11px 38px;background:var(--white);border:1px solid var(--border2);border-radius:10px;font-family:inherit;font-size:14px;color:var(--dark);outline:none;transition:border-color .15s}
+.search-box input:focus{border-color:var(--orange)}
+.search-box::before{content:'🔍';position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:13px;opacity:.5}
+.sort-sel{padding:11px 14px;background:var(--white);border:1px solid var(--border2);border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;color:var(--text2);cursor:pointer;outline:none}
+
 /* FILTER */
 .filter-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px}
 .filter-btn{padding:7px 18px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border2);background:var(--white);color:var(--text2);transition:all .15s;font-family:inherit}
@@ -161,6 +169,17 @@ nav{position:sticky;top:0;z-index:200;background:rgba(26,23,20,0.97);backdrop-fi
 .fld input:focus,.fld textarea:focus{border-color:var(--orange);background:var(--white)}
 .fld textarea{min-height:72px;resize:vertical}
 .form-err{font-size:12px;color:var(--red);margin-top:8px;text-align:center}
+.voucher-row{display:flex;gap:8px}
+.voucher-row input{flex:1;padding:11px 14px;background:var(--bg);border:1px solid var(--border2);border-radius:9px;font-family:inherit;font-size:14px;color:var(--dark);outline:none}
+.voucher-row input:focus{border-color:var(--orange);background:var(--white)}
+.btn-vcheck{padding:0 18px;background:var(--dark);color:var(--bg);border:none;border-radius:9px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.voucher-msg{font-size:12px;margin-top:6px;font-weight:600}
+.voucher-msg.ok{color:var(--green)}
+.voucher-msg.no{color:var(--red)}
+.price-summary{background:var(--bg);border-radius:11px;padding:14px 16px;margin-top:4px}
+.ps-row{display:flex;justify-content:space-between;font-size:13px;color:var(--text2);padding:3px 0}
+.ps-row.disc{color:var(--green);font-weight:600}
+.ps-row.total{font-size:16px;font-weight:800;color:var(--dark);border-top:1px solid var(--border);margin-top:6px;padding-top:9px}
 
 /* PAYMENT */
 .pay-id{font-family:'SF Mono',monospace;font-size:13px;font-weight:700;background:var(--bg2);padding:5px 12px;border-radius:7px;display:inline-block;margin-bottom:18px}
@@ -280,6 +299,15 @@ footer a:hover{color:rgba(253,252,250,0.8)}
 <div class="section" id="produk">
   <div class="section-head"><h2>Produk Tersedia</h2></div>
   <div class="section-sub">Klik produk untuk melihat detail lengkap & daftar skin</div>
+  <div class="toolbar">
+    <div class="search-box"><input id="search" type="text" placeholder="Cari produk atau skin…" oninput="onSearch(this.value)"></div>
+    <select class="sort-sel" id="sort" onchange="onSort(this.value)">
+      <option value="default">Urutkan: Default</option>
+      <option value="price-asc">Harga: Termurah</option>
+      <option value="price-desc">Harga: Termahal</option>
+      <option value="name">Nama A–Z</option>
+    </select>
+  </div>
   <div class="filter-bar" id="filter-bar">
     <button class="filter-btn on" data-cat="Semua" onclick="setFilter('Semua',this)">Semua</button>
   </div>
@@ -338,7 +366,7 @@ footer a:hover{color:rgba(253,252,250,0.8)}
 
 <footer>
   <p>© 2026 <strong style="color:rgba(253,252,250,0.6)">Jago Game</strong> · Toko Digital Terpercaya<br>
-  <a href="/lacak">Lacak Pesanan</a> · <a href="https://www.itemku.com/t/jago-game" target="_blank">Itemku</a> · <a href="https://www.g2g.com" target="_blank">G2G</a></p>
+  <a href="/lacak">Lacak Pesanan</a> · <a href="/kebijakan">Syarat & Kebijakan</a> · <a href="https://www.itemku.com/t/jago-game" target="_blank">Itemku</a> · <a href="https://www.g2g.com" target="_blank">G2G</a></p>
 </footer>
 
 <!-- MODAL -->
@@ -377,6 +405,19 @@ footer a:hover{color:rgba(253,252,250,0.8)}
           <div class="fld"><label>Nama lengkap kamu *</label><input id="f-name" type="text" placeholder="Masukkan nama kamu"></div>
           <div class="fld"><label>Nomor WhatsApp *</label><input id="f-wa" type="tel" placeholder="08xxxxxxxxxx"></div>
           <div class="fld"><label>Catatan (opsional)</label><textarea id="f-note" placeholder="Misal: permintaan khusus, pertanyaan, dll."></textarea></div>
+          <div class="fld">
+            <label>Kode Voucher (opsional)</label>
+            <div class="voucher-row">
+              <input id="f-voucher" type="text" placeholder="Masukkan kode" style="text-transform:uppercase">
+              <button type="button" class="btn-vcheck" onclick="checkVoucher()">Pakai</button>
+            </div>
+            <div class="voucher-msg" id="f-vmsg"></div>
+          </div>
+          <div class="price-summary" id="price-summary">
+            <div class="ps-row"><span>Subtotal</span><span id="sum-sub">—</span></div>
+            <div class="ps-row disc" id="sum-disc-row" style="display:none"><span>Diskon voucher</span><span id="sum-disc">—</span></div>
+            <div class="ps-row total"><span>Total</span><span id="sum-total">—</span></div>
+          </div>
           <div class="form-err" id="f-err"></div>
         </div>
       </div>
@@ -444,7 +485,7 @@ footer a:hover{color:rgba(253,252,250,0.8)}
 </div>
 
 <script>
-let products=[], settings={}, selectedProduct=null, activeFilter='Semua', curScreen='detail', payConfig={midtransEnabled:false}, curOrder=null, pollTimer=null;
+let products=[], settings={}, selectedProduct=null, activeFilter='Semua', curScreen='detail', payConfig={midtransEnabled:false}, curOrder=null, pollTimer=null, searchQuery='', sortBy='default', appliedVoucher=null;
 
 const icons={'Mobile Legend':'🎮','YouTube':'▶️','Google':'🔵','Gemini':'✨','Umum':'📦'};
 function icon(cat){for(const k in icons)if(cat&&cat.includes(k))return icons[k];return'📦'}
@@ -478,6 +519,7 @@ async function init(){
   settings=s||{};
   payConfig=c||{midtransEnabled:false};
   if(settings.whatsapp){document.getElementById('nav-wa').href=`https://wa.me/${settings.whatsapp.replace(/\D/g,'')}`}
+  injectAnalytics();
   if(payConfig.midtransEnabled&&payConfig.clientKey){
     const sc=document.createElement('script');
     sc.src=payConfig.isProduction?'https://app.midtrans.com/snap/snap.js':'https://app.sandbox.midtrans.com/snap/snap.js';
@@ -485,7 +527,22 @@ async function init(){
     document.head.appendChild(sc);
   }
   buildFilters();
-  render('Semua');
+  applyView();
+}
+function onSearch(v){searchQuery=v.toLowerCase().trim();applyView()}
+function onSort(v){sortBy=v;applyView()}
+
+function injectAnalytics(){
+  // Google Analytics
+  if(settings.gaId){
+    const s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id='+settings.gaId;document.head.appendChild(s);
+    window.dataLayer=window.dataLayer||[];window.gtag=function(){dataLayer.push(arguments)};gtag('js',new Date());gtag('config',settings.gaId);
+  }
+  // Meta (Facebook) Pixel
+  if(settings.fbPixel){
+    !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init',settings.fbPixel);fbq('track','PageView');
+  }
 }
 
 function buildFilters(){
@@ -496,13 +553,19 @@ function setFilter(cat,el){
   activeFilter=cat;
   document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('on'));
   el.classList.add('on');
-  render(cat);
+  applyView();
 }
 
-function render(cat){
-  const list=cat==='Semua'?products:products.filter(p=>p.category===cat);
+function applyView(){
+  let list=activeFilter==='Semua'?products.slice():products.filter(p=>p.category===activeFilter);
+  if(searchQuery){
+    list=list.filter(p=>(p.name+' '+(p.description||'')+' '+p.category).toLowerCase().includes(searchQuery));
+  }
+  if(sortBy==='price-asc')list.sort((a,b)=>a.price-b.price);
+  else if(sortBy==='price-desc')list.sort((a,b)=>b.price-a.price);
+  else if(sortBy==='name')list.sort((a,b)=>a.name.localeCompare(b.name));
   const g=document.getElementById('grid');
-  if(!list.length){g.innerHTML='<div class="empty">Belum ada produk di kategori ini.</div>';return}
+  if(!list.length){g.innerHTML='<div class="empty">Tidak ada produk yang cocok.</div>';return}
   g.innerHTML=list.map(p=>{
     const skinList=isSkinList(p);
     const items=skinList?topSkins(p):[];
@@ -587,12 +650,36 @@ function openModal(id){
   document.getElementById('f-wa').value='';
   document.getElementById('f-note').value='';
   document.getElementById('f-err').textContent='';
+  document.getElementById('f-voucher').value='';
+  document.getElementById('f-vmsg').textContent='';
+  appliedVoucher=null;
+  updateSummary();
 
   showScreen('detail');
   document.getElementById('modal').classList.add('open');
 }
 
 function closeModal(){document.getElementById('modal').classList.remove('open');if(pollTimer)clearInterval(pollTimer)}
+
+function rupiah(n){return 'Rp '+Number(n).toLocaleString('id-ID')}
+function updateSummary(){
+  if(!selectedProduct)return;
+  const price=selectedProduct.price;
+  const disc=appliedVoucher?appliedVoucher.discount:0;
+  document.getElementById('sum-sub').textContent=rupiah(price);
+  document.getElementById('sum-disc-row').style.display=disc>0?'flex':'none';
+  document.getElementById('sum-disc').textContent='− '+rupiah(disc);
+  document.getElementById('sum-total').textContent=rupiah(price-disc);
+}
+async function checkVoucher(){
+  const code=document.getElementById('f-voucher').value.trim();
+  const msg=document.getElementById('f-vmsg');
+  if(!code){msg.textContent='';appliedVoucher=null;updateSummary();return}
+  const r=await fetch('/api/store/voucher/check',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code,productId:selectedProduct.id})}).then(r=>r.json()).catch(e=>({valid:false,message:e.message}));
+  if(r.valid){appliedVoucher=r;msg.className='voucher-msg ok';msg.textContent='✓ Voucher dipakai, hemat '+rupiah(r.discount);}
+  else{appliedVoucher=null;msg.className='voucher-msg no';msg.textContent='✕ '+(r.message||'Voucher tidak valid');}
+  updateSummary();
+}
 
 async function submitOrder(){
   const name=document.getElementById('f-name').value.trim();
@@ -605,7 +692,7 @@ async function submitOrder(){
 
   const res=await fetch('/api/store/orders',{
     method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({productId:selectedProduct.id,customerName:name,customerWA:wa,notes:document.getElementById('f-note').value}),
+    body:JSON.stringify({productId:selectedProduct.id,customerName:name,customerWA:wa,notes:document.getElementById('f-note').value,voucherCode:appliedVoucher?appliedVoucher.code:undefined}),
   }).then(r=>r.json()).catch(e=>({error:e.message}));
 
   if(res.error){err.textContent=res.error;btn.disabled=false;btn.textContent='Lanjut ke Pembayaran →';return}
@@ -630,7 +717,7 @@ async function submitOrder(){
 
   // FALLBACK: pembayaran manual (transfer/QRIS)
   document.getElementById('pay-id').textContent=res.id;
-  document.getElementById('pay-total').textContent='Rp '+Number(selectedProduct.price).toLocaleString('id-ID');
+  document.getElementById('pay-total').textContent='Rp '+Number(res.finalPrice!=null?res.finalPrice:selectedProduct.price).toLocaleString('id-ID');
   const hasQRIS=settings.qrisImage, hasBank=settings.bankAccount;
   document.getElementById('box-qris').style.display=hasQRIS?'block':'none';
   if(hasQRIS)document.getElementById('pay-qris-img').src=settings.qrisImage;

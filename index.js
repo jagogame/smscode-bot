@@ -12,7 +12,10 @@ const pino = require('pino');
 const { handleMessage } = require('./src/handler');
 const apiRouter = require('./src/api');
 const wa = require('./src/wa');
+const backup = require('./src/backup');
 require('dotenv').config();
+
+backup.startSchedule();
 
 
 // Web server untuk tampilkan QR di Railway

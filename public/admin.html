@@ -267,9 +267,40 @@ code{font-family:'SF Mono',monospace;font-size:11px;background:var(--bg2);color:
         <div class="fld"><label>URL Gambar QRIS</label><input id="st-qris" placeholder="https://... link gambar QRIS"></div>
         <div id="qris-prev" style="margin-top:10px"></div>
       </div>
+      <div class="form-card">
+        <h3>Analytics (opsional)</h3>
+        <div class="form-grid">
+          <div class="fld"><label>Google Analytics ID</label><input id="st-ga" placeholder="G-XXXXXXXXXX"></div>
+          <div class="fld"><label>Meta Pixel ID</label><input id="st-fb" placeholder="1234567890"></div>
+        </div>
+      </div>
       <div class="form-actions">
         <button class="btn btn-dark" onclick="saveSetting()">Simpan Pengaturan</button>
         <div class="form-msg" id="setting-msg"></div>
+      </div>
+
+      <div class="form-card">
+        <h3>Voucher Diskon</h3>
+        <div class="form-grid">
+          <div class="fld"><label>Kode</label><input id="vc-code" placeholder="HEMAT10"></div>
+          <div class="fld"><label>Tipe</label><select id="vc-type"><option value="percent">Persen (%)</option><option value="fixed">Nominal (Rp)</option></select></div>
+          <div class="fld"><label>Nilai (% atau Rp)</label><input id="vc-value" type="number" placeholder="10"></div>
+          <div class="fld"><label>Min. pembelian (Rp)</label><input id="vc-min" type="number" placeholder="0"></div>
+          <div class="fld"><label>Maks. diskon (Rp, utk %)</label><input id="vc-max" type="number" placeholder="0 = tanpa batas"></div>
+          <div class="fld"><label>Batas pemakaian</label><input id="vc-limit" type="number" placeholder="0 = tak terbatas"></div>
+        </div>
+        <div class="form-actions" style="margin-top:4px"><button class="btn btn-dark" onclick="addVoucher()">＋ Tambah Voucher</button><div class="form-msg" id="vc-msg"></div></div>
+        <table style="margin-top:14px"><thead><tr><th>Kode</th><th>Diskon</th><th>Dipakai</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="t-voucher"><tr><td colspan="5" class="empty-td">Belum ada voucher</td></tr></tbody></table>
+      </div>
+
+      <div class="form-card">
+        <h3>Backup Data</h3>
+        <p style="font-size:12.5px;color:var(--text2,#6B6560);line-height:1.6;margin-bottom:12px">Pesanan & stok otomatis di-backup tiap 24 jam (disimpan 14 versi terakhir). Kamu juga bisa backup/unduh manual kapan saja.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn" onclick="runBackupNow()">💾 Backup Sekarang</button>
+          <button class="btn btn-dark" onclick="downloadBackup()">⬇️ Unduh Backup (.json)</button>
+        </div>
+        <div class="form-msg" id="bk-msg" style="margin-top:8px"></div>
       </div>
     </div>
 
@@ -519,7 +550,10 @@ async function loadSetting(){
   document.getElementById('st-bacc').value=s.bankAccount||'';
   document.getElementById('st-bholder').value=s.bankHolder||'';
   document.getElementById('st-qris').value=s.qrisImage||'';
+  document.getElementById('st-ga').value=s.gaId||'';
+  document.getElementById('st-fb').value=s.fbPixel||'';
   if(s.qrisImage)document.getElementById('qris-prev').innerHTML=`<img src="${s.qrisImage}" style="max-width:150px;border-radius:8px;border:1px solid var(--border2)" onerror="this.remove()">`;
+  loadVouchers();
 }
 
 async function saveSetting(){
@@ -530,6 +564,7 @@ async function saveSetting(){
     storeDesc:document.getElementById('st-desc').value,bankName:document.getElementById('st-bname').value,
     bankAccount:document.getElementById('st-bacc').value,bankHolder:document.getElementById('st-bholder').value,
     qrisImage:document.getElementById('st-qris').value,
+    gaId:document.getElementById('st-ga').value.trim(),fbPixel:document.getElementById('st-fb').value.trim(),
   });
   if(r.error){msg.innerHTML=`<span style="color:var(--red)">${r.error}</span>`;return}
   msg.innerHTML='<span style="color:var(--green)">✓ Tersimpan</span>';
@@ -537,6 +572,48 @@ async function saveSetting(){
   const q=document.getElementById('st-qris').value;
   document.getElementById('qris-prev').innerHTML=q?`<img src="${q}" style="max-width:150px;border-radius:8px;border:1px solid var(--border2)" onerror="this.remove()">`:'' ;
   setTimeout(()=>msg.innerHTML='',3000);
+}
+
+// VOUCHER
+async function loadVouchers(){
+  const data=await api('GET','/api/admin/vouchers').catch(()=>[]);
+  const tb=document.getElementById('t-voucher');
+  if(!Array.isArray(data)||!data.length){tb.innerHTML='<tr><td colspan="5" class="empty-td">Belum ada voucher</td></tr>';return}
+  tb.innerHTML=data.map(v=>{
+    const disc=v.type==='percent'?(v.value+'%'+(v.maxDiscount?' (maks Rp'+Number(v.maxDiscount).toLocaleString('id-ID')+')':'')):('Rp '+Number(v.value).toLocaleString('id-ID'));
+    const limit=v.usageLimit>0?('/'+v.usageLimit):'';
+    return `<tr><td style="font-weight:700">${v.code}</td><td>${disc}</td><td>${v.used||0}${limit}</td>
+      <td><span class="badge ${v.active?'g':'r'}">${v.active?'Aktif':'Nonaktif'}</span></td>
+      <td><div style="display:flex;gap:4px">
+        <button class="btn ${v.active?'btn-r':'btn-g'}" onclick="toggleVoucher('${v.code}',${!v.active})">${v.active?'Off':'On'}</button>
+        <button class="btn btn-r" onclick="delVoucher('${v.code}')">✕</button>
+      </div></td></tr>`}).join('');
+}
+async function addVoucher(){
+  const msg=document.getElementById('vc-msg');
+  const body={code:document.getElementById('vc-code').value.trim(),type:document.getElementById('vc-type').value,value:document.getElementById('vc-value').value,minPrice:document.getElementById('vc-min').value,maxDiscount:document.getElementById('vc-max').value,usageLimit:document.getElementById('vc-limit').value};
+  if(!body.code||!body.value){msg.innerHTML='<span style="color:var(--red)">Kode & nilai wajib diisi</span>';return}
+  const r=await api('POST','/api/admin/vouchers',body);
+  if(r.error){msg.innerHTML=`<span style="color:var(--red)">${r.error}</span>`;return}
+  msg.innerHTML='<span style="color:var(--green)">✓ Voucher ditambah</span>';toast('Voucher ditambah','ok');
+  ['vc-code','vc-value','vc-min','vc-max','vc-limit'].forEach(id=>document.getElementById(id).value='');
+  loadVouchers();setTimeout(()=>msg.innerHTML='',3000);
+}
+async function toggleVoucher(code,active){await api('PUT','/api/admin/vouchers/'+code,{active});loadVouchers()}
+async function delVoucher(code){if(!confirm('Hapus voucher '+code+'?'))return;await api('DELETE','/api/admin/vouchers/'+code);toast('Voucher dihapus','ok');loadVouchers()}
+
+// BACKUP
+async function runBackupNow(){
+  const m=document.getElementById('bk-msg');m.innerHTML='<span style="color:var(--text2)">Memproses...</span>';
+  const r=await api('GET','/api/admin/backup/now');
+  m.innerHTML=r.ok?`<span style="color:var(--green)">✓ Backup dibuat (${r.total} pesanan)</span>`:`<span style="color:var(--red)">${r.error||'Gagal'}</span>`;
+  setTimeout(()=>m.innerHTML='',4000);
+}
+async function downloadBackup(){
+  const r=await fetch('/api/admin/backup/download',{headers:{'x-token':TOKEN}});
+  const blob=await r.blob();const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='jagogame-backup-'+Date.now()+'.json';a.click();URL.revokeObjectURL(url);
+  toast('Backup diunduh','ok');
 }
 
 document.getElementById('un').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});

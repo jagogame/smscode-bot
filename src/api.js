@@ -6,6 +6,7 @@ const { submitForm, getRekapHariIni, getRekapSemua, getRekapByKasir } = require(
 const store = require('./store');
 const midtrans = require('./midtrans');
 const wa = require('./wa');
+const backup = require('./backup');
 
 const router = express.Router();
 
@@ -34,6 +35,7 @@ async function deliverOrder(order) {
         status: 'DELIVERED', paymentStatus: 'PAID',
         credential: cred, paidAt: new Date().toISOString(), deliveredAt: new Date().toISOString(),
     });
+    if (order.voucherCode) store.useVoucher(order.voucherCode);
     // Kirim ke WhatsApp pembeli
     if (wa.isReady()) {
         const msg = `✅ *Pembayaran Berhasil — Jago Game*\n\nTerima kasih ${order.customerName}! 🎉\nPesanan: *${order.productName}*\nID: ${order.id}\n\n━━━━━━━━━━━━━━\n📦 *DETAIL AKUN KAMU:*\n\n${cred}\n━━━━━━━━━━━━━━\n\nSimpan baik-baik & segera ganti password. Ada kendala? Balas chat ini. 🙏`;
@@ -85,6 +87,11 @@ router.get('/admin', (req, res) => {
 // Halaman lacak pesanan
 router.get('/lacak', (req, res) => {
     res.sendFile(path.join(__dirname, '../public/lacak.html'));
+});
+
+// Halaman kebijakan & syarat
+router.get('/kebijakan', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/kebijakan.html'));
 });
 
 // Login (maks 8 percobaan / 5 menit)
@@ -231,12 +238,19 @@ router.post('/api/store/pay', async (req, res) => {
         if (!midtrans.isConfigured()) return res.status(400).json({ error: 'Pembayaran otomatis belum aktif' });
         const tx = await midtrans.createTransaction({
             orderId: order.id,
-            amount: order.productPrice,
+            amount: order.finalPrice != null ? order.finalPrice : order.productPrice,
             customerName: order.customerName,
             productName: order.productName,
         });
         res.json({ token: tx.token, redirect_url: tx.redirect_url });
     } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+// Cek voucher untuk sebuah produk
+router.post('/api/store/voucher/check', rateLimiter({ windowMs: 60 * 1000, max: 20 }), (req, res) => {
+    const product = store.getProducts().find(p => p.id === req.body.productId);
+    if (!product) return res.status(404).json({ valid: false, message: 'Produk tidak ditemukan' });
+    res.json(store.validateVoucher(req.body.code, product.price));
 });
 
 // Webhook notifikasi dari Midtrans
@@ -322,6 +336,28 @@ router.get('/api/admin/stock', requireAuth, (req, res) => {
     for (const k in stock) out[k] = (stock[k] || []).length;
     res.json(out);
 });
+
+// Voucher (admin)
+router.get('/api/admin/vouchers', requireAuth, (req, res) => res.json(store.getVouchers()));
+router.post('/api/admin/vouchers', requireAuth, (req, res) => {
+    try { res.json(store.addVoucher(req.body)); }
+    catch (e) { res.status(400).json({ error: e.message }); }
+});
+router.put('/api/admin/vouchers/:code', requireAuth, (req, res) => {
+    res.json(store.toggleVoucher(req.params.code, req.body.active));
+});
+router.delete('/api/admin/vouchers/:code', requireAuth, (req, res) => {
+    store.deleteVoucher(req.params.code);
+    res.json({ ok: true });
+});
+
+// Backup (admin)
+router.get('/api/admin/backup/now', requireAuth, (req, res) => res.json(backup.runBackup()));
+router.get('/api/admin/backup/download', requireAuth, (req, res) => {
+    res.setHeader('Content-Disposition', `attachment; filename="jagogame-backup-${Date.now()}.json"`);
+    res.json(backup.currentSnapshot());
+});
+router.get('/api/admin/backup/list', requireAuth, (req, res) => res.json(backup.listBackups()));
 
 // Kirim ulang / kirim manual sebuah order (mis. setelah isi stok)
 router.post('/api/admin/orders/:id/deliver', requireAuth, async (req, res) => {
