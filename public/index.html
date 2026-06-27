@@ -348,6 +348,11 @@ function chipClass(skin){
 function isSkinList(p){
   return p.category==='Mobile Legend' && (p.description||'').split(',').length>=4;
 }
+// Hanya skin terbaik & terlangka (Legend, Collector, Epic/kolaborasi) — buang Luckybox & Star
+function isPremium(skin){return chipClass(skin)!==''}
+function topSkins(p){
+  return (p.description||'').split(',').map(x=>x.trim()).filter(Boolean).filter(isPremium);
+}
 
 async function init(){
   const[p,s]=await Promise.all([
@@ -378,7 +383,7 @@ function render(cat){
   if(!list.length){g.innerHTML='<div class="empty">Belum ada produk di kategori ini.</div>';return}
   g.innerHTML=list.map(p=>{
     const skinList=isSkinList(p);
-    const items=skinList?p.description.split(',').map(x=>x.trim()).filter(Boolean):[];
+    const items=skinList?topSkins(p):[];
     const teaser=skinList
       ? items.slice(0,3).map(s=>`<span class="mini-chip">${esc(s)}</span>`).join('')+(items.length>3?`<span class="mini-chip more">+${items.length-3} lainnya</span>`:'')
       : `<span class="mini-chip">${esc((p.description||'Klik untuk lihat detail').slice(0,60))}</span>`;
@@ -429,12 +434,13 @@ function openModal(id){
   const content=document.getElementById('det-content');
   const skinList=isSkinList(p);
   if(skinList){
-    const items=p.description.split(',').map(x=>x.trim()).filter(Boolean);
+    const items=topSkins(p);
     document.getElementById('det-skincount').style.display='block';
     document.getElementById('det-skn').textContent=items.length;
+    document.querySelector('#det-skincount span').textContent='Unggulan';
     const chips=items.map(s=>`<span class="chip ${chipClass(s)}">${esc(s)}</span>`).join('');
     content.innerHTML=`
-      <div class="det-seclabel">Daftar Skin & Hero</div>
+      <div class="det-seclabel">Skin Terbaik & Terlangka</div>
       <div class="chips">${chips}</div>
       <div class="det-legend">
         <span class="lg-item"><span class="lg-dot" style="background:var(--gold)"></span>Legend</span>
