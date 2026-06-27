@@ -7,6 +7,7 @@ const store = require('./store');
 const midtrans = require('./midtrans');
 const wa = require('./wa');
 const backup = require('./backup');
+const { encrypt, decrypt } = require('./crypto');
 
 const router = express.Router();
 
@@ -33,7 +34,7 @@ async function deliverOrder(order) {
     }
     const updated = store.patchOrder(order.id, {
         status: 'DELIVERED', paymentStatus: 'PAID',
-        credential: cred, paidAt: new Date().toISOString(), deliveredAt: new Date().toISOString(),
+        credential: encrypt(cred), paidAt: new Date().toISOString(), deliveredAt: new Date().toISOString(),
     });
     if (order.voucherCode) store.useVoucher(order.voucherCode);
     // Kirim ke WhatsApp pembeli
@@ -277,7 +278,7 @@ router.get('/api/store/order-status', (req, res) => {
         id: order.id,
         status: order.status,
         paymentStatus: order.paymentStatus,
-        credential: order.status === 'DELIVERED' ? order.credential : null,
+        credential: order.status === 'DELIVERED' ? decrypt(order.credential) : null,
     });
 });
 
@@ -296,7 +297,7 @@ router.post('/api/store/track', rateLimiter({ windowMs: 60 * 1000, max: 15 }), (
         status: order.status,
         paymentStatus: order.paymentStatus,
         createdAt: order.createdAt,
-        credential: order.status === 'DELIVERED' ? order.credential : null,
+        credential: order.status === 'DELIVERED' ? decrypt(order.credential) : null,
     });
 });
 
@@ -322,7 +323,7 @@ router.delete('/api/admin/products/:id', requireAuth, (req, res) => {
 
 // Stok kredensial per produk
 router.get('/api/admin/stock/:productId', requireAuth, (req, res) => {
-    const items = store.getStock()[req.params.productId] || [];
+    const items = store.getStockItems(req.params.productId);
     res.json({ count: items.length, items });
 });
 router.put('/api/admin/stock/:productId', requireAuth, (req, res) => {
@@ -358,6 +359,48 @@ router.get('/api/admin/backup/download', requireAuth, (req, res) => {
     res.json(backup.currentSnapshot());
 });
 router.get('/api/admin/backup/list', requireAuth, (req, res) => res.json(backup.listBackups()));
+
+// Status koneksi WhatsApp
+router.get('/api/admin/wa-status', requireAuth, (req, res) => res.json(wa.getStatus()));
+
+// Laporan penjualan
+router.get('/api/admin/report', requireAuth, (req, res) => {
+    const orders = store.getOrders();
+    const paid = orders.filter(o => ['DELIVERED', 'PAID', 'PAID_NO_STOCK'].includes(o.status));
+    const rev = o => (o.finalPrice != null ? o.finalPrice : o.productPrice) || 0;
+    const today = new Date().toISOString().slice(0, 10);
+    const month = today.slice(0, 7);
+    const sum = arr => arr.reduce((a, o) => a + rev(o), 0);
+    const todayOrders = paid.filter(o => (o.paidAt || o.createdAt || '').slice(0, 10) === today);
+    const monthOrders = paid.filter(o => (o.paidAt || o.createdAt || '').slice(0, 7) === month);
+    const byProduct = {};
+    paid.forEach(o => { byProduct[o.productName] = (byProduct[o.productName] || 0) + 1; });
+    const best = Object.entries(byProduct).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([name, qty]) => ({ name, qty }));
+    res.json({
+        totalRevenue: sum(paid), totalOrders: paid.length,
+        todayRevenue: sum(todayOrders), todayOrders: todayOrders.length,
+        monthRevenue: sum(monthOrders), monthOrders: monthOrders.length,
+        pending: orders.filter(o => o.status === 'PENDING').length,
+        delivered: orders.filter(o => o.status === 'DELIVERED').length,
+        bestSellers: best,
+    });
+});
+
+// Export pesanan ke CSV
+router.get('/api/admin/orders/export.csv', requireAuth, (req, res) => {
+    const orders = store.getOrders();
+    const esc = v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
+    const head = ['ID', 'Tanggal', 'Produk', 'Harga', 'Diskon', 'Total', 'Voucher', 'Customer', 'WhatsApp', 'Status', 'Pembayaran'];
+    const rows = orders.map(o => [
+        o.id, o.createdAt, o.productName, o.productPrice, o.discount || 0,
+        o.finalPrice != null ? o.finalPrice : o.productPrice, o.voucherCode || '',
+        o.customerName, o.customerWA, o.status, o.paymentStatus,
+    ].map(esc).join(','));
+    const csv = '﻿' + [head.map(esc).join(','), ...rows].join('\n');
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="pesanan-jagogame-${Date.now()}.csv"`);
+    res.send(csv);
+});
 
 // Kirim ulang / kirim manual sebuah order (mis. setelah isi stok)
 router.post('/api/admin/orders/:id/deliver', requireAuth, async (req, res) => {

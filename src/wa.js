@@ -1,8 +1,17 @@
 // Penyimpan referensi socket WhatsApp (Baileys) agar modul lain bisa kirim pesan.
 let sock = null;
+let connected = false;
+let lastConnectedAt = null;
+let lastDisconnectAt = null;
 
 function setSock(s) { sock = s; }
-function isReady() { return !!sock; }
+function setConnected(v) {
+    connected = v;
+    if (v) lastConnectedAt = new Date().toISOString();
+    else lastDisconnectAt = new Date().toISOString();
+}
+function getStatus() { return { connected, lastConnectedAt, lastDisconnectAt }; }
+function isReady() { return !!sock && connected; }
 
 // Ubah nomor (08xx / 628xx / +628xx) jadi JID WhatsApp
 function toJid(phone) {
@@ -19,4 +28,4 @@ async function sendText(phone, text) {
     return true;
 }
 
-module.exports = { setSock, isReady, sendText, toJid };
+module.exports = { setSock, setConnected, getStatus, isReady, sendText, toJid };

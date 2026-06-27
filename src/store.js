@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { encrypt, decrypt } = require('./crypto');
 
 // Produk & setting: selalu dari data/ (git), agar update produk langsung berlaku
 // Pesanan: di volume auth_info (Railway) agar tidak hilang saat restart
@@ -76,14 +77,19 @@ function getStockCount(productId) {
     const arr = getStock()[productId];
     return Array.isArray(arr) ? arr.length : 0;
 }
-// Ganti seluruh stok sebuah produk dengan daftar kredensial (1 baris kosong dipisah --- atau newline ganda)
+// Ganti seluruh stok sebuah produk dengan daftar kredensial (disimpan terenkripsi)
 function setStock(productId, items) {
     const stock = getStock();
-    stock[productId] = (items || []).map(x => String(x).trim()).filter(Boolean);
+    stock[productId] = (items || []).map(x => String(x).trim()).filter(Boolean).map(encrypt);
     saveStock(stock);
     return stock[productId].length;
 }
-// Ambil & hapus 1 kredensial (FIFO). Return string atau null bila habis.
+// Daftar kredensial yang sudah didekripsi (untuk tampilan admin)
+function getStockItems(productId) {
+    const arr = getStock()[productId];
+    return Array.isArray(arr) ? arr.map(decrypt) : [];
+}
+// Ambil & hapus 1 kredensial (FIFO). Return string terdekripsi atau null bila habis.
 function popStock(productId) {
     const stock = getStock();
     const arr = stock[productId];
@@ -91,7 +97,7 @@ function popStock(productId) {
     const cred = arr.shift();
     stock[productId] = arr;
     saveStock(stock);
-    return cred;
+    return decrypt(cred);
 }
 
 // VOUCHERS
@@ -233,7 +239,7 @@ function saveSettings(data) {
 module.exports = {
     getProducts, addProduct, updateProduct, deleteProduct, getActiveProducts,
     getOrders, createOrder, updateOrderStatus, getOrderById, patchOrder,
-    getStock, getStockCount, setStock, popStock,
+    getStock, getStockCount, setStock, getStockItems, popStock,
     getVouchers, addVoucher, deleteVoucher, toggleVoucher, validateVoucher, useVoucher,
     getSettings, saveSettings,
 };

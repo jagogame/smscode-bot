@@ -579,7 +579,7 @@ function applyView(){
     return `
     <div class="card${soldOut?' out':''}" ${soldOut?'':`onclick="openModal('${p.id}')"`}>
       <div class="card-imgwrap">
-        ${p.image?`<img class="card-img" src="${esc(p.image)}" alt="${esc(p.name)}" onerror="this.outerHTML='<div class=card-img-ph>${icon(p.category)}</div>'">`:`<div class="card-img-ph">${icon(p.category)}</div>`}
+        ${p.image?`<img class="card-img" src="${esc(p.image)}" alt="${esc(p.name)}" loading="lazy" decoding="async" onerror="this.outerHTML='<div class=card-img-ph>${icon(p.category)}</div>'">`:`<div class="card-img-ph">${icon(p.category)}</div>`}
         ${skinList?`<span class="skin-badge">${items.length} skin</span>`:''}
         ${stockTag}
       </div>
@@ -616,7 +616,7 @@ function openModal(id){
   const p=selectedProduct;
 
   // DETAIL screen
-  document.getElementById('det-img').outerHTML=`<div id="det-img">${p.image?`<img src="${esc(p.image)}" alt="${esc(p.name)}" onerror="this.parentNode.outerHTML='<div id=det-img><div class=det-hero-ph>${icon(p.category)}</div></div>'">`:`<div class="det-hero-ph">${icon(p.category)}</div>`}</div>`;
+  document.getElementById('det-img').outerHTML=`<div id="det-img">${p.image?`<img src="${esc(p.image)}" alt="${esc(p.name)}" loading="lazy" decoding="async" onerror="this.parentNode.outerHTML='<div id=det-img><div class=det-hero-ph>${icon(p.category)}</div></div>'">`:`<div class="det-hero-ph">${icon(p.category)}</div>`}</div>`;
   document.getElementById('det-cat').textContent=p.category;
   document.getElementById('det-name').textContent=p.name;
   document.getElementById('det-price').innerHTML='Rp '+Number(p.price).toLocaleString('id-ID')+'<small>harga termurah</small>';

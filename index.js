@@ -71,6 +71,7 @@ async function startBot() {
 
         if (connection === 'close') {
             currentQR = null;
+            wa.setConnected(false);
             const code = new Boom(lastDisconnect?.error)?.output?.statusCode;
             const shouldReconnect = code !== DisconnectReason.loggedOut;
             console.log(`❌ Koneksi terputus (${code}). ${shouldReconnect ? 'Reconnecting...' : 'Hapus folder auth_info dan scan ulang.'}`);
@@ -79,6 +80,7 @@ async function startBot() {
 
         if (connection === 'open') {
             currentQR = null;
+            wa.setConnected(true);
             console.log('✅ Bot WhatsApp terhubung!');
         }
     });

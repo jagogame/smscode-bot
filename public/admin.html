@@ -194,10 +194,25 @@ code{font-family:'SF Mono',monospace;font-size:11px;background:var(--bg2);color:
       <div class="pg-title">Overview</div>
       <div class="pg-sub">Pantau pesanan masuk dan saldo OTP</div>
       <div class="stats">
-        <div class="stat"><div class="stat-l">Saldo OTP</div><div class="stat-v green" id="s-saldo">—</div></div>
+        <div class="stat"><div class="stat-l">Omzet hari ini</div><div class="stat-v green" id="s-rev-today">—</div></div>
+        <div class="stat"><div class="stat-l">Omzet bulan ini</div><div class="stat-v green" id="s-rev-month">—</div></div>
         <div class="stat"><div class="stat-l">Pesanan pending</div><div class="stat-v orange" id="s-pending">—</div></div>
-        <div class="stat"><div class="stat-l">Total pesanan</div><div class="stat-v" id="s-total">—</div></div>
-        <div class="stat"><div class="stat-l">Status bot</div><div class="live-chip"><span class="dot"></span>Online</div></div>
+        <div class="stat"><div class="stat-l">Total terjual</div><div class="stat-v" id="s-total">—</div></div>
+        <div class="stat"><div class="stat-l">Status bot WA</div><div id="bot-chip" class="live-chip"><span class="dot"></span>Mengecek…</div></div>
+      </div>
+      <div class="card">
+        <div class="card-hd">
+          <div><div class="card-hd-title">Ringkasan Penjualan</div><div class="card-hd-sub">Omzet & produk terlaris</div></div>
+          <button class="btn btn-dark" onclick="exportCsv()">⬇️ Export CSV</button>
+        </div>
+        <div style="padding:6px 0">
+          <div style="display:flex;gap:24px;flex-wrap:wrap;padding:8px 4px 16px">
+            <div><div style="font-size:11px;color:var(--text2,#6B6560)">Total Omzet</div><div style="font-size:22px;font-weight:800" id="r-total-rev">—</div></div>
+            <div><div style="font-size:11px;color:var(--text2,#6B6560)">Akun Terkirim</div><div style="font-size:22px;font-weight:800" id="r-delivered">—</div></div>
+          </div>
+          <div style="font-size:11px;font-weight:700;color:var(--text2,#6B6560);text-transform:uppercase;letter-spacing:.5px;padding:0 4px 8px">Produk Terlaris</div>
+          <div id="r-best" style="padding:0 4px">—</div>
+        </div>
       </div>
       <div class="card">
         <div class="card-hd">
@@ -410,16 +425,34 @@ function show(page,el){
 
 const osBadge={PENDING:'a',CONFIRMED:'b',DONE:'g',CANCELLED:'r'};
 
+const rp=n=>'Rp '+Number(n||0).toLocaleString('id-ID');
 async function loadHome(){
-  const[bal,ords]=await Promise.all([api('GET','/api/saldo'),api('GET','/api/admin/orders')]);
-  if(bal.balance!==undefined)document.getElementById('s-saldo').textContent='Rp '+Number(bal.balance).toLocaleString('id-ID');
+  const[rep,ords,was]=await Promise.all([api('GET','/api/admin/report'),api('GET','/api/admin/orders'),api('GET','/api/admin/wa-status')]);
+  if(rep&&!rep.error){
+    document.getElementById('s-rev-today').textContent=rp(rep.todayRevenue);
+    document.getElementById('s-rev-month').textContent=rp(rep.monthRevenue);
+    document.getElementById('s-pending').textContent=rep.pending;
+    document.getElementById('s-total').textContent=rep.delivered;
+    document.getElementById('r-total-rev').textContent=rp(rep.totalRevenue);
+    document.getElementById('r-delivered').textContent=rep.delivered;
+    document.getElementById('r-best').innerHTML=(rep.bestSellers&&rep.bestSellers.length)
+      ? rep.bestSellers.map((b,i)=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border,#eee);font-size:13px"><span>${i+1}. ${b.name}</span><span style="font-weight:700">${b.qty}x</span></div>`).join('')
+      : '<div style="font-size:13px;color:var(--text2,#6B6560)">Belum ada penjualan</div>';
+  }
+  // Status bot WA
+  const chip=document.getElementById('bot-chip');
+  if(was&&was.connected){chip.className='live-chip';chip.innerHTML='<span class="dot"></span>Online';}
+  else{chip.className='live-chip';chip.style.color='var(--red,#C04A3A)';chip.innerHTML='<span class="dot" style="background:var(--red,#C04A3A)"></span>Terputus';}
   if(Array.isArray(ords)){
-    const pending=ords.filter(o=>o.status==='PENDING').length;
-    document.getElementById('s-pending').textContent=pending;
-    document.getElementById('s-total').textContent=ords.length;
     const recent=[...ords].reverse().slice(0,5);
     document.getElementById('t-recent').innerHTML=recent.length?recent.map(o=>orderRow(o,true)).join(''):'<tr><td colspan="6" class="empty-td">Belum ada pesanan</td></tr>';
   }
+}
+async function exportCsv(){
+  const r=await fetch('/api/admin/orders/export.csv',{headers:{'x-token':TOKEN}});
+  const blob=await r.blob();const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='pesanan-jagogame.csv';a.click();URL.revokeObjectURL(url);
+  toast('CSV diunduh','ok');
 }
 
 async function loadPesanan(){

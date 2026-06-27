@@ -6,3 +6,4 @@ data/store-stock.json
 data/store-orders.json
 data/store-vouchers.json
 data/backups/
+data/sessions.json
