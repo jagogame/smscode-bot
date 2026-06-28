@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jago Game — Demo Tema Gaming</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0A0A0F;--bg2:#12121A;--card:#15151F;--card2:#1B1B27;
+  --line:rgba(255,255,255,.07);--line2:rgba(255,255,255,.13);
+  --txt:#ECECF2;--txt2:#9A9AAD;--txt3:#62627A;
+  --neon:#FF6A2B;--neon2:#FF8F5E;
+  --cyan:#27E0D8;--purple:#9B6BFF;--gold:#FFC53D;--pink:#FF4D8D;--green:#3DF08B;
+}
+body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--txt);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;z-index:0;background:
+  radial-gradient(ellipse 60% 50% at 15% 0%,rgba(255,106,43,.16),transparent 60%),
+  radial-gradient(ellipse 50% 50% at 90% 10%,rgba(155,107,255,.14),transparent 60%),
+  radial-gradient(ellipse 60% 40% at 50% 100%,rgba(39,224,216,.08),transparent 60%);
+  pointer-events:none}
+.wrap{position:relative;z-index:1;max-width:1140px;margin:0 auto;padding:0 22px}
+
+/* NAV */
+nav{position:sticky;top:0;z-index:50;background:rgba(10,10,15,.72);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.nav-in{max-width:1140px;margin:0 auto;padding:0 22px;height:62px;display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:11px;font-weight:800;font-size:17px;letter-spacing:.5px}
+.brand .logo{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--neon),var(--pink));display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 0 18px rgba(255,106,43,.5)}
+.brand span b{color:var(--neon)}
+.nav-cta{padding:9px 18px;border-radius:9px;background:linear-gradient(135deg,#1FBF57,#16A34A);color:#fff;font-weight:600;font-size:13px;text-decoration:none;box-shadow:0 0 16px rgba(34,197,94,.35)}
+
+/* HERO */
+.hero{text-align:center;padding:74px 0 50px}
+.pill{display:inline-flex;align-items:center;gap:8px;padding:7px 16px;border-radius:30px;border:1px solid var(--line2);background:rgba(255,255,255,.03);font-size:12px;color:var(--txt2);font-weight:600;margin-bottom:24px}
+.pill .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green)}
+.hero h1{font-size:60px;font-weight:800;line-height:1.02;letter-spacing:-2px;margin-bottom:18px}
+.hero h1 .g{background:linear-gradient(120deg,var(--neon),var(--pink),var(--purple));-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{color:var(--txt2);font-size:16px;max-width:540px;margin:0 auto 34px;line-height:1.7}
+.stats{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 26px;min-width:120px}
+.stat b{display:block;font-size:24px;font-weight:800;font-family:'JetBrains Mono',monospace}
+.stat b.c1{color:var(--neon)}.stat b.c2{color:var(--cyan)}.stat b.c3{color:var(--gold)}.stat b.c4{color:var(--purple)}
+.stat span{font-size:11px;color:var(--txt3);text-transform:uppercase;letter-spacing:1px}
+
+/* SECTION */
+.sec{padding:46px 0}
+.sec-h{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+.sec-h h2{font-size:24px;font-weight:800;letter-spacing:-.5px}
+.sec-h .bar{width:4px;height:24px;border-radius:3px;background:linear-gradient(var(--neon),var(--pink))}
+.sec-sub{color:var(--txt3);font-size:13px;margin-bottom:26px;padding-left:16px}
+
+/* FILTER */
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px}
+.chipf{padding:8px 18px;border-radius:30px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--line2);background:rgba(255,255,255,.02);color:var(--txt2);transition:.15s}
+.chipf.on,.chipf:hover{background:var(--neon);border-color:var(--neon);color:#0A0A0F;box-shadow:0 0 16px rgba(255,106,43,.4)}
+
+/* GRID */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:16px}
+.card{position:relative;background:linear-gradient(180deg,var(--card2),var(--card));border:1px solid var(--line);border-radius:18px;overflow:hidden;cursor:pointer;transition:transform .2s,border-color .2s,box-shadow .2s}
+.card:hover{transform:translateY(-6px);border-color:rgba(255,106,43,.5);box-shadow:0 14px 40px -12px rgba(255,106,43,.35)}
+.thumb{position:relative;height:170px;overflow:hidden;background:#0d0d14}
+.thumb img{width:100%;height:100%;object-fit:cover;transition:transform .4s;opacity:.92}
+.card:hover .thumb img{transform:scale(1.07)}
+.thumb::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(10,10,15,.85))}
+.tier{position:absolute;top:11px;left:11px;z-index:2;display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:8px;font-size:10px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;backdrop-filter:blur(4px)}
+.tier.mythic{background:rgba(255,77,141,.18);color:#FF8FB5;border:1px solid rgba(255,77,141,.5);box-shadow:0 0 14px rgba(255,77,141,.3)}
+.tier.legend{background:rgba(255,197,61,.16);color:var(--gold);border:1px solid rgba(255,197,61,.5)}
+.tier.epic{background:rgba(155,107,255,.16);color:#B79BFF;border:1px solid rgba(155,107,255,.5)}
+.stockb{position:absolute;top:11px;right:11px;z-index:2;padding:5px 10px;border-radius:30px;font-size:10px;font-weight:700;background:rgba(61,240,139,.15);color:var(--green);border:1px solid rgba(61,240,139,.4)}
+.body{padding:16px}
+.cat{font-size:10px;font-weight:700;color:var(--neon);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:7px}
+.name{font-size:14px;font-weight:700;line-height:1.35;margin-bottom:14px;min-height:38px}
+.specs{display:flex;flex-direction:column;gap:8px;margin-bottom:15px}
+.spec-row{display:flex;align-items:center;gap:9px}
+.spec-l{font-size:10px;color:var(--txt3);width:54px;text-transform:uppercase;letter-spacing:.5px}
+.track{flex:1;height:6px;border-radius:4px;background:rgba(255,255,255,.06);overflow:hidden}
+.fill{height:100%;border-radius:4px}
+.fill.w{background:linear-gradient(90deg,var(--neon),var(--gold))}
+.fill.s{background:linear-gradient(90deg,var(--purple),var(--pink))}
+.fill.h{background:linear-gradient(90deg,var(--cyan),#3DF0C8)}
+.spec-v{font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--txt);width:34px;text-align:right}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:15px}
+.ch{font-size:10px;font-weight:600;padding:4px 9px;border-radius:7px;border:1px solid transparent}
+.ch.l{background:rgba(255,77,141,.12);color:#FF8FB5;border-color:rgba(255,77,141,.3)}
+.ch.c{background:rgba(255,197,61,.1);color:var(--gold);border-color:rgba(255,197,61,.3)}
+.ch.e{background:rgba(255,106,43,.1);color:var(--neon2);border-color:rgba(255,106,43,.3)}
+.foot{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--line);padding-top:13px}
+.price{font-size:18px;font-weight:800;font-family:'JetBrains Mono',monospace}
+.price small{display:block;font-size:10px;color:var(--txt3);font-family:'Sora';font-weight:400}
+.buy{padding:9px 18px;border-radius:10px;border:none;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,var(--neon),var(--neon2));color:#0A0A0F;transition:.15s}
+.buy:hover{box-shadow:0 0 18px rgba(255,106,43,.5)}
+.note{text-align:center;color:var(--txt3);font-size:12px;padding:36px 0 56px}
+.note b{color:var(--neon)}
+@media(max-width:600px){.hero h1{font-size:40px}.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<nav><div class="nav-in">
+  <div class="brand"><div class="logo">🎮</div><span>JAGO<b>GAME</b></span></div>
+  <a href="#" class="nav-cta">Chat WhatsApp</a>
+</div></nav>
+
+<div class="wrap">
+  <div class="hero">
+    <div class="pill"><span class="dot"></span>1.000+ akun sultan siap kirim · online 24 jam</div>
+    <h1>Akun Game <span class="g">Sultan</span><br>Harga Pro Player</h1>
+    <p>Mobile Legends skin penuh, YouTube Premium, & langganan premium. Pengiriman otomatis, anti-hackback, garansi.</p>
+    <div class="stats">
+      <div class="stat"><b class="c1">76K+</b><span>Transaksi</span></div>
+      <div class="stat"><b class="c2">99%</b><span>Sukses</span></div>
+      <div class="stat"><b class="c3">4.78★</b><span>Rating</span></div>
+      <div class="stat"><b class="c4">7m</b><span>Avg Kirim</span></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h"><div class="bar"></div><h2>Produk Tersedia</h2></div>
+    <div class="sec-sub">Klik kartu untuk lihat detail & daftar skin langka</div>
+    <div class="filters">
+      <div class="chipf on">Semua</div><div class="chipf">Mobile Legends</div><div class="chipf">YouTube</div><div class="chipf">Gemini</div>
+    </div>
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <div class="note">Ini halaman <b>contoh tema</b> — data produk hanya sampel. Toko asli: <b>jagogame.up.railway.app</b></div>
+</div>
+
+<script>
+const P=[
+  {cat:'Mobile Legends',name:'ML #447 | Skin 633 | World Collector | 4 Legend',tier:'mythic',price:'5.200.000',img:'https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/zhgt82zut6mjw6w7fy9urs.jpg',wr:90,sk:100,hr:100,stock:3,chips:[['Legend Miya','l'],['Kishin Lancelot','c'],['KOF Gusion','e'],['+12','e']]},
+  {cat:'Mobile Legends',name:'ML #435 | Skin 566 | Mega Collector 2 | 4 Legend',tier:'legend',price:'2.950.000',img:'https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/jgxggthceb8a1nioazfoh.jpg',wr:78,sk:88,hr:92,stock:1,chips:[['Legend Alpha','l'],['Collector Cyclops','c'],['Abyss Moskov','e'],['+9','e']]},
+  {cat:'Mobile Legends',name:'ML #454 | Skin 605 | Mega Collector 2 | 3 Legend',tier:'legend',price:'2.850.000',img:'https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026428/gi5ww0t2n6kmsm3hgywyml.jpg',wr:84,sk:93,hr:88,stock:2,chips:[['Legend Freya','l'],['Collector Tigreal','c'],['AoT Martis','e'],['+8','e']]},
+  {cat:'Mobile Legends',name:'ML #438 | Skin 529 | Mega Collector 4 | Soul Benedetta',tier:'epic',price:'2.150.000',img:'https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026412/glj4w2xf7klrd1skrkhk.jpg',wr:90,sk:81,hr:80,stock:5,chips:[['Legend Gusion','l'],['Collector Natalia','c'],['Soul Benedetta','e']]},
+  {cat:'YouTube',name:'YouTube Premium Individual 1 Bulan',tier:'epic',price:'17.561',img:'https://id-live-01.slatic.net/p/bf14722996cd13e1c9fedad8a775368c.jpg',yt:1,stock:99,chips:[['Tanpa Iklan','e'],['YT Music','e'],['Garansi','c']]},
+  {cat:'Mobile Legends',name:'ML #461 | Skin 544 | Mega Collector 5 | KOF Paquito',tier:'epic',price:'1.850.000',img:'https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202657/1tfi4m46hy9pzyyh5eom8r.jpg',wr:72,sk:74,hr:70,stock:0,chips:[['Legend Valir','l'],['Collector Xavier','c'],['KOF Paquito','e']]},
+];
+const bars=p=>p.yt?'':`<div class="specs">
+  <div class="spec-row"><span class="spec-l">Winrate</span><div class="track"><div class="fill w" style="width:${p.wr}%"></div></div><span class="spec-v">${p.wr}%</span></div>
+  <div class="spec-row"><span class="spec-l">Skin</span><div class="track"><div class="fill s" style="width:${p.sk}%"></div></div><span class="spec-v">${p.sk}</span></div>
+  <div class="spec-row"><span class="spec-l">Hero</span><div class="track"><div class="fill h" style="width:${p.hr}%"></div></div><span class="spec-v">${p.hr}</span></div>
+</div>`;
+const tierName={mythic:'★ Mythic',legend:'◆ Legend',epic:'● Epic'};
+document.getElementById('grid').innerHTML=P.map(p=>`
+  <div class="card">
+    <div class="thumb">
+      <img src="${p.img}" alt="" loading="lazy" onerror="this.style.display='none'">
+      <span class="tier ${p.tier}">${tierName[p.tier]}</span>
+      ${p.stock>0?`<span class="stockb">Tersisa ${p.stock}</span>`:'<span class="stockb" style="background:rgba(226,75,74,.15);color:#F09595;border-color:rgba(226,75,74,.4)">Habis</span>'}
+    </div>
+    <div class="body">
+      <div class="cat">${p.cat}</div>
+      <div class="name">${p.name}</div>
+      ${bars(p)}
+      <div class="chips">${p.chips.map(c=>`<span class="ch ${c[1]}">${c[0]}</span>`).join('')}</div>
+      <div class="foot">
+        <div class="price">Rp ${p.price}<small>harga termurah</small></div>
+        <button class="buy">${p.stock>0?'Beli →':'Habis'}</button>
+      </div>
+    </div>
+  </div>`).join('');
+</script>
+</body>
+</html>
