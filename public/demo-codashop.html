@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jago Game — Demo Tema Codashop</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --red:#ED1B4A;--red2:#C9143C;--redbg:#FDE7EC;
+  --bg:#F4F5F7;--white:#FFFFFF;--ink:#1B1B2F;--ink2:#5A5A72;--ink3:#9A9AB0;
+  --line:#E8E9EE;--line2:#DADBE2;--green:#1BA35A;--gold:#F5A623;
+}
+body{font-family:'Poppins',sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+.wrap{max-width:1080px;margin:0 auto;padding:0 18px}
+
+/* NAV */
+nav{background:var(--white);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:40}
+.nav-in{max-width:1080px;margin:0 auto;padding:0 18px;height:60px;display:flex;align-items:center;gap:16px}
+.logo{display:flex;align-items:center;gap:9px;font-weight:800;font-size:18px;white-space:nowrap}
+.logo .m{width:34px;height:34px;border-radius:9px;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px}
+.logo b{color:var(--red)}
+.nav-search{flex:1;max-width:420px;position:relative}
+.nav-search input{width:100%;height:40px;border:1px solid var(--line2);border-radius:22px;padding:0 16px 0 40px;font-family:inherit;font-size:14px;outline:none;background:var(--bg)}
+.nav-search input:focus{border-color:var(--red);background:#fff}
+.nav-search i{position:absolute;left:15px;top:11px;color:var(--ink3)}
+.nav-r{margin-left:auto;display:flex;gap:10px;align-items:center}
+.nav-link{font-size:13px;color:var(--ink2);font-weight:500;text-decoration:none}
+.nav-btn{padding:9px 20px;border-radius:22px;background:var(--red);color:#fff;font-weight:600;font-size:13px;text-decoration:none}
+
+/* BANNER */
+.banner{margin:20px 0;border-radius:18px;overflow:hidden;background:linear-gradient(115deg,#ED1B4A,#7A0EBE);position:relative;padding:34px 36px;color:#fff;min-height:170px;display:flex;flex-direction:column;justify-content:center}
+.banner::after{content:'🎮';position:absolute;right:30px;top:50%;transform:translateY(-50%);font-size:120px;opacity:.18}
+.banner .tag{display:inline-block;background:rgba(255,255,255,.2);padding:5px 14px;border-radius:20px;font-size:12px;font-weight:600;margin-bottom:12px;width:fit-content}
+.banner h1{font-size:32px;font-weight:800;line-height:1.1;margin-bottom:8px}
+.banner p{font-size:14px;opacity:.9;max-width:440px}
+
+/* GAME TILES */
+.sec-t{font-size:18px;font-weight:700;margin:26px 0 14px;display:flex;align-items:center;gap:8px}
+.sec-t .b{width:4px;height:20px;background:var(--red);border-radius:3px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:12px}
+.tile{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:12px 8px;text-align:center;cursor:pointer;transition:.15s}
+.tile.on{border-color:var(--red);box-shadow:0 0 0 2px var(--redbg)}
+.tile:hover{transform:translateY(-3px);box-shadow:0 8px 20px -10px rgba(0,0,0,.2)}
+.tile .ic{width:52px;height:52px;border-radius:13px;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-size:26px;background:linear-gradient(135deg,#FDE7EC,#F3E8FF)}
+.tile span{font-size:11px;font-weight:600;line-height:1.3;display:block}
+
+/* BUY FLOW */
+.flow{display:grid;grid-template-columns:1fr;gap:16px;margin:28px 0}
+.step{background:var(--white);border:1px solid var(--line);border-radius:18px;padding:20px 22px}
+.step-h{display:flex;align-items:center;gap:11px;margin-bottom:16px}
+.step-n{width:28px;height:28px;border-radius:50%;background:var(--red);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.step-h h3{font-size:15px;font-weight:700}
+.step-h small{display:block;font-size:11px;color:var(--ink3);font-weight:400}
+
+/* DENOM GRID (akun) */
+.denoms{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.denom{position:relative;border:1.5px solid var(--line2);border-radius:14px;padding:14px;cursor:pointer;transition:.15s;background:var(--white)}
+.denom:hover{border-color:var(--red)}
+.denom.on{border-color:var(--red);background:var(--redbg)}
+.denom.on::after{content:'✓';position:absolute;top:-9px;right:-9px;width:24px;height:24px;border-radius:50%;background:var(--red);color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.denom .badge{display:inline-block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:3px 8px;border-radius:6px;margin-bottom:9px}
+.badge.mythic{background:#FCE7F0;color:#C9145F}.badge.legend{background:#FEF3D7;color:#B47C0A}.badge.epic{background:#EFE7FE;color:#6B3FD4}
+.denom .dn{font-size:13px;font-weight:700;line-height:1.35;margin-bottom:5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:36px}
+.denom .meta{font-size:10px;color:var(--ink3);margin-bottom:9px}
+.denom .dp{font-size:15px;font-weight:800;color:var(--red)}
+.denom .stk{position:absolute;top:12px;right:12px;font-size:9px;font-weight:700;color:var(--green)}
+
+/* PAYMENTS */
+.pays{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.pay{display:flex;align-items:center;gap:9px;border:1.5px solid var(--line2);border-radius:12px;padding:11px 13px;cursor:pointer;font-size:12px;font-weight:600;transition:.15s}
+.pay.on{border-color:var(--red);background:var(--redbg)}
+.pay .pic{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:15px;color:#fff;flex-shrink:0}
+
+/* CHECKOUT BAR */
+.bar{position:sticky;bottom:0;background:var(--white);border:1px solid var(--line);border-radius:16px;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;margin:8px 0 36px;box-shadow:0 -4px 20px -8px rgba(0,0,0,.12)}
+.bar .lbl{font-size:11px;color:var(--ink3)}
+.bar .tot{font-size:22px;font-weight:800;color:var(--red)}
+.bar button{padding:13px 34px;border-radius:26px;border:none;background:var(--red);color:#fff;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer}
+.bar button:hover{background:var(--red2)}
+.bar button:disabled{background:var(--line2);cursor:not-allowed}
+@media(max-width:560px){.banner h1{font-size:24px}.bar .tot{font-size:18px}.bar button{padding:12px 22px;font-size:13px}}
+</style>
+</head>
+<body>
+<nav><div class="nav-in">
+  <div class="logo"><div class="m">🎮</div>Jago<b>Game</b></div>
+  <div class="nav-search"><i>🔍</i><input placeholder="Cari akun, game, produk…"></div>
+  <div class="nav-r"><a class="nav-link" href="#">Lacak Pesanan</a><a class="nav-btn" href="#">Masuk</a></div>
+</div></nav>
+
+<div class="wrap">
+  <div class="banner">
+    <span class="tag">🔥 PROMO HARI INI</span>
+    <h1>Akun Mobile Legends Sultan</h1>
+    <p>Skin penuh, anti-hackback, kirim otomatis. Diskon s/d 30% pakai voucher HEMAT.</p>
+  </div>
+
+  <div class="sec-t"><span class="b"></span>Pilih Kategori</div>
+  <div class="tiles">
+    <div class="tile on"><div class="ic">🎮</div><span>Mobile Legends</span></div>
+    <div class="tile"><div class="ic">▶️</div><span>YouTube Premium</span></div>
+    <div class="tile"><div class="ic">✨</div><span>Gemini Pro</span></div>
+    <div class="tile"><div class="ic">🔵</div><span>Google</span></div>
+    <div class="tile"><div class="ic">🎯</div><span>Lainnya</span></div>
+  </div>
+
+  <div class="flow">
+    <div class="step">
+      <div class="step-h"><div class="step-n">1</div><div><h3>Pilih Akun</h3><small>Klik akun yang ingin dibeli</small></div></div>
+      <div class="denoms" id="denoms"></div>
+    </div>
+
+    <div class="step">
+      <div class="step-h"><div class="step-n">2</div><div><h3>Data Pembeli</h3><small>Akun dikirim ke WhatsApp ini</small></div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <input placeholder="Nama kamu" style="height:44px;border:1px solid var(--line2);border-radius:11px;padding:0 14px;font-family:inherit;font-size:14px;outline:none">
+        <input placeholder="No. WhatsApp" style="height:44px;border:1px solid var(--line2);border-radius:11px;padding:0 14px;font-family:inherit;font-size:14px;outline:none">
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-h"><div class="step-n">3</div><div><h3>Metode Pembayaran</h3><small>Bayar aman via Midtrans</small></div></div>
+      <div class="pays" id="pays"></div>
+    </div>
+  </div>
+
+  <div class="bar">
+    <div><div class="lbl">Total Bayar</div><div class="tot" id="tot">Rp 0</div></div>
+    <button id="buy" disabled>Pilih akun dulu</button>
+  </div>
+</div>
+
+<script>
+const A=[
+  {n:'ML #447 | Skin 633 | World Collector | 4 Legend',t:'mythic',p:5200000,sk:633,stock:3},
+  {n:'ML #435 | Skin 566 | Mega Collector 2 | 4 Legend',t:'legend',p:2950000,sk:566,stock:1},
+  {n:'ML #454 | Skin 605 | Mega Collector 2 | 3 Legend',t:'legend',p:2850000,sk:605,stock:2},
+  {n:'ML #479 | Skin 503 | Mega Collector 3 | 2 Legend',t:'legend',p:2450000,sk:503,stock:4},
+  {n:'ML #438 | Skin 529 | Mega Collector 4 | Soul Benedetta',t:'epic',p:2150000,sk:529,stock:5},
+  {n:'ML #461 | Skin 544 | Mega Collector 5 | KOF Paquito',t:'epic',p:1850000,sk:544,stock:6},
+];
+const PAY=[['QRIS','#1BA35A','📱'],['BCA VA','#0066AE','🏦'],['GoPay','#00AED6','💚'],['Dana','#108EE9','💳'],['OVO','#4B2A86','🟣'],['ShopeePay','#EE4D2D','🛒']];
+const tierName={mythic:'★ Mythic',legend:'◆ Legend',epic:'● Epic'};
+let sel=null, pay=null;
+const rp=n=>'Rp '+n.toLocaleString('id-ID');
+
+document.getElementById('denoms').innerHTML=A.map((a,i)=>`
+  <div class="denom" data-i="${i}">
+    ${a.stock>0?`<span class="stk">Stok ${a.stock}</span>`:'<span class="stk" style="color:#C9143C">Habis</span>'}
+    <span class="badge ${a.t}">${tierName[a.t]}</span>
+    <div class="dn">${a.n}</div>
+    <div class="meta">${a.sk} skin · anti-hackback</div>
+    <div class="dp">${rp(a.p)}</div>
+  </div>`).join('');
+document.getElementById('pays').innerHTML=PAY.map((p,i)=>`
+  <div class="pay" data-p="${i}"><div class="pic" style="background:${p[1]}">${p[2]}</div>${p[0]}</div>`).join('');
+
+function refresh(){
+  document.querySelectorAll('.denom').forEach((d,i)=>d.classList.toggle('on',i===sel));
+  document.querySelectorAll('.pay').forEach((d,i)=>d.classList.toggle('on',i===pay));
+  const t=sel!=null?A[sel].p:0;
+  document.getElementById('tot').textContent=rp(t);
+  const btn=document.getElementById('buy');
+  if(sel==null){btn.disabled=true;btn.textContent='Pilih akun dulu';}
+  else if(pay==null){btn.disabled=true;btn.textContent='Pilih pembayaran';}
+  else{btn.disabled=false;btn.textContent='Beli Sekarang →';}
+}
+document.getElementById('denoms').onclick=e=>{const d=e.target.closest('.denom');if(d){sel=+d.dataset.i;refresh()}};
+document.getElementById('pays').onclick=e=>{const d=e.target.closest('.pay');if(d){pay=+d.dataset.p;refresh()}};
+refresh();
+</script>
+</body>
+</html>
