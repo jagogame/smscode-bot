@@ -30,6 +30,31 @@ nav{background:var(--white);border-bottom:1px solid var(--line);position:sticky;
 .nav-link{font-size:13px;color:var(--ink2);font-weight:500;text-decoration:none;padding:8px 10px;white-space:nowrap}
 .nav-btn{padding:9px 20px;border-radius:22px;background:var(--red);color:#fff;font-weight:600;font-size:13px;text-decoration:none;white-space:nowrap}
 .nav-ico{display:none;width:42px;height:42px;border:1px solid var(--line2);border-radius:50%;align-items:center;justify-content:center;font-size:16px;color:var(--ink2);background:var(--bg)}
+.hamb{width:40px;height:40px;border:1px solid var(--line2);border-radius:11px;background:var(--white);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;flex-shrink:0}
+.hamb span{width:18px;height:2px;border-radius:2px;background:var(--ink);transition:.2s}
+
+/* DRAWER */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:60;opacity:0;visibility:hidden;transition:.2s}
+.ov.on{opacity:1;visibility:visible}
+.drawer{position:fixed;top:0;left:0;bottom:0;width:280px;max-width:84vw;background:var(--white);z-index:70;transform:translateX(-100%);transition:transform .25s;display:flex;flex-direction:column;overflow-y:auto}
+.drawer.on{transform:translateX(0)}
+.dr-hd{display:flex;align-items:center;justify-content:space-between;padding:18px 18px;border-bottom:1px solid var(--line)}
+.dr-hd .logo{font-size:16px}
+.dr-x{width:34px;height:34px;border:none;background:var(--bg);border-radius:9px;font-size:17px;cursor:pointer;color:var(--ink2)}
+.dr-sec{font-size:10px;font-weight:700;letter-spacing:1px;color:var(--ink3);text-transform:uppercase;padding:18px 20px 8px}
+.dr-item{display:flex;align-items:center;gap:13px;padding:13px 20px;font-size:14px;font-weight:600;color:var(--ink);cursor:pointer;text-decoration:none;border:none;background:none;width:100%;text-align:left;font-family:inherit}
+.dr-item:hover,.dr-item.on{background:var(--redbg);color:var(--red)}
+.dr-item .di{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#FDE7EC,#F3E8FF);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.dr-item .ct{margin-left:auto;font-size:11px;color:var(--ink3);font-weight:500}
+.dr-ft{margin-top:auto;padding:18px;border-top:1px solid var(--line)}
+.dr-wa{display:flex;align-items:center;justify-content:center;gap:9px;padding:13px;border-radius:12px;background:#22C35E;color:#fff;font-weight:700;font-size:14px;text-decoration:none}
+
+/* FLOATING SUPPORT */
+.fab{position:fixed;right:18px;bottom:94px;z-index:55;display:flex;align-items:center;gap:9px;padding:13px 18px;border-radius:30px;background:#22C35E;color:#fff;font-weight:700;font-size:14px;text-decoration:none;box-shadow:0 8px 24px -6px rgba(34,195,94,.6)}
+.fab .wi{font-size:20px}
+.fab .ft{white-space:nowrap}
+@media(min-width:900px){.fab{bottom:24px}}
+@media(max-width:600px){.fab .ft{display:none}.fab{padding:15px;border-radius:50%}}
 
 /* BANNER */
 .banner{margin:18px 0;border-radius:20px;overflow:hidden;background:linear-gradient(115deg,#ED1B4A,#7A0EBE);position:relative;padding:32px;color:#fff;min-height:160px;display:flex;flex-direction:column;justify-content:center}
@@ -130,6 +155,7 @@ nav{background:var(--white);border-bottom:1px solid var(--line);position:sticky;
 </head>
 <body>
 <nav><div class="nav-in">
+  <button class="hamb" id="hamb" aria-label="Menu"><span></span><span></span><span></span></button>
   <div class="logo"><div class="m">🎮</div>Jago<b>Game</b></div>
   <div class="nav-search"><span class="si">🔍</span><input placeholder="Cari akun, game, produk…"></div>
   <div class="nav-r">
@@ -193,6 +219,33 @@ nav{background:var(--white);border-bottom:1px solid var(--line);position:sticky;
   <button id="buy" disabled>Pilih akun</button>
 </div>
 
+<!-- DRAWER MENU -->
+<div class="ov" id="ov"></div>
+<aside class="drawer" id="drawer">
+  <div class="dr-hd">
+    <div class="logo"><div class="m">🎮</div>Jago<b>Game</b></div>
+    <button class="dr-x" id="drx">✕</button>
+  </div>
+  <div class="dr-sec">Daftar Akun & Kategori</div>
+  <button class="dr-item on"><span class="di">🎮</span>Mobile Legends<span class="ct">6 akun</span></button>
+  <button class="dr-item"><span class="di">▶️</span>YouTube Premium<span class="ct">2</span></button>
+  <button class="dr-item"><span class="di">✨</span>Gemini Pro<span class="ct">1</span></button>
+  <button class="dr-item"><span class="di">🔵</span>Google<span class="ct">3</span></button>
+  <button class="dr-item"><span class="di">🎯</span>Produk Lainnya</button>
+  <div class="dr-sec">Akun Saya</div>
+  <a class="dr-item" href="#"><span class="di">📦</span>Lacak Pesanan</a>
+  <a class="dr-item" href="#"><span class="di">🔐</span>Masuk / Daftar</a>
+  <a class="dr-item" href="#"><span class="di">📄</span>Syarat & Kebijakan</a>
+  <div class="dr-ft">
+    <a class="dr-wa" href="https://wa.me/6281317784126" target="_blank">💬 Chat Admin via WhatsApp</a>
+  </div>
+</aside>
+
+<!-- FLOATING SUPPORT -->
+<a class="fab" href="https://wa.me/6281317784126?text=Halo%20kak%20Jago%20Game%2C%20saya%20mau%20tanya" target="_blank" aria-label="Support WhatsApp">
+  <span class="wi">💬</span><span class="ft">Butuh bantuan?</span>
+</a>
+
 <script>
 const A=[
   {n:'ML #447 | Skin 633 | World Collector | 4 Legend',t:'mythic',p:5200000,sk:633,stock:3},
@@ -237,6 +290,15 @@ function refresh(){
 document.getElementById('denoms').onclick=e=>{const d=e.target.closest('.denom');if(d){sel=+d.dataset.i;refresh()}};
 document.getElementById('pays').onclick=e=>{const d=e.target.closest('.pay');if(d){pay=+d.dataset.p;refresh()}};
 refresh();
+
+// Drawer
+const dr=document.getElementById('drawer'),ov=document.getElementById('ov');
+const openDr=()=>{dr.classList.add('on');ov.classList.add('on')};
+const closeDr=()=>{dr.classList.remove('on');ov.classList.remove('on')};
+document.getElementById('hamb').onclick=openDr;
+document.getElementById('drx').onclick=closeDr;
+ov.onclick=closeDr;
+document.querySelectorAll('.dr-item').forEach(b=>b.addEventListener('click',()=>{if(b.tagName==='BUTTON')closeDr()}));
 </script>
 </body>
 </html>
