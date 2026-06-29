@@ -7,3 +7,4 @@ data/store-orders.json
 data/store-vouchers.json
 data/backups/
 data/sessions.json
+data/audit-log.json

@@ -1,6 +1,8 @@
 const express = require('express');
 const path = require('path');
-const { login, getSession, logout } = require('./auth');
+const auth = require('./auth');
+const { login, getSession, logout } = auth;
+const audit = require('./audit');
 const sms = require('./smscode');
 const { submitForm, getRekapHariIni, getRekapSemua, getRekapByKasir } = require('./sales');
 const store = require('./store');
@@ -142,13 +144,34 @@ router.get('/api/store/structured-data', (req, res) => {
     res.json(data);
 });
 
-// Login (maks 8 percobaan / 5 menit)
-router.post('/api/login', rateLimiter({ windowMs: 5 * 60 * 1000, max: 8, message: 'Terlalu banyak percobaan login. Tunggu 5 menit.' }), (req, res) => {
+// Login (maks 8 percobaan / 5 menit). 2FA via WhatsApp bila ADMIN_2FA=true
+const loginLimiter = rateLimiter({ windowMs: 5 * 60 * 1000, max: 8, message: 'Terlalu banyak percobaan login. Tunggu 5 menit.' });
+router.post('/api/login', loginLimiter, async (req, res) => {
     const { username, password } = req.body;
-    const token = login(username, password);
-    if (!token) return res.status(401).json({ error: 'Username atau password salah' });
-    const session = getSession(token);
-    res.json({ token, role: session.role, name: session.name });
+    const user = auth.checkCredentials(username, password);
+    if (!user) { audit.log({ headers: req.headers, session: { username } }, 'LOGIN_GAGAL', String(username || '')); return res.status(401).json({ error: 'Username atau password salah' }); }
+    // 2FA: kirim OTP ke WhatsApp admin (dari settings)
+    const adminWA = store.getSettings().whatsapp;
+    if (auth.twoFAEnabled() && wa.isReady() && adminWA) {
+        try { await otp.send(adminWA); } catch (e) { return res.status(500).json({ error: 'Gagal kirim OTP: ' + e.message }); }
+        return res.json({ twofa: true });
+    }
+    const token = auth.issueToken(user);
+    audit.log({ headers: req.headers, session: user }, 'LOGIN', '');
+    res.json({ token, role: user.role, name: user.name });
+});
+
+// Verifikasi OTP 2FA admin -> terbitkan token
+router.post('/api/login/2fa', loginLimiter, (req, res) => {
+    const { username, password, code } = req.body;
+    const user = auth.checkCredentials(username, password);
+    if (!user) return res.status(401).json({ error: 'Sesi tidak valid, ulangi login' });
+    const adminWA = store.getSettings().whatsapp;
+    const v = otp.verify(adminWA, code);
+    if (!v.ok) return res.status(400).json({ error: v.message });
+    const token = auth.issueToken(user);
+    audit.log({ headers: req.headers, session: user }, 'LOGIN_2FA', '');
+    res.json({ token, role: user.role, name: user.name });
 });
 
 // Logout
@@ -374,17 +397,18 @@ router.get('/api/admin/products', requireAuth, (req, res) => {
 });
 
 router.post('/api/admin/products', requireAuth, (req, res) => {
-    try { res.json(store.addProduct(req.body)); }
+    try { const p = store.addProduct(req.body); audit.log(req, 'PRODUK_TAMBAH', p.name); res.json(p); }
     catch (e) { res.status(400).json({ error: e.message }); }
 });
 
 router.put('/api/admin/products/:id', requireAuth, (req, res) => {
-    try { res.json(store.updateProduct(req.params.id, req.body)); }
+    try { const p = store.updateProduct(req.params.id, req.body); audit.log(req, 'PRODUK_UBAH', p.name); res.json(p); }
     catch (e) { res.status(400).json({ error: e.message }); }
 });
 
 router.delete('/api/admin/products/:id', requireAuth, (req, res) => {
     store.deleteProduct(req.params.id);
+    audit.log(req, 'PRODUK_HAPUS', req.params.id);
     res.json({ ok: true });
 });
 
@@ -395,6 +419,7 @@ router.get('/api/admin/stock/:productId', requireAuth, (req, res) => {
 });
 router.put('/api/admin/stock/:productId', requireAuth, (req, res) => {
     const count = store.setStock(req.params.productId, req.body.items || []);
+    audit.log(req, 'STOK_UBAH', `${req.params.productId} -> ${count} akun`);
     res.json({ ok: true, count });
 });
 // Ringkasan jumlah stok semua produk
@@ -408,19 +433,24 @@ router.get('/api/admin/stock', requireAuth, (req, res) => {
 // Voucher (admin)
 router.get('/api/admin/vouchers', requireAuth, (req, res) => res.json(store.getVouchers()));
 router.post('/api/admin/vouchers', requireAuth, (req, res) => {
-    try { res.json(store.addVoucher(req.body)); }
+    try { const v = store.addVoucher(req.body); audit.log(req, 'VOUCHER_TAMBAH', v.code); res.json(v); }
     catch (e) { res.status(400).json({ error: e.message }); }
 });
 router.put('/api/admin/vouchers/:code', requireAuth, (req, res) => {
+    audit.log(req, 'VOUCHER_TOGGLE', req.params.code);
     res.json(store.toggleVoucher(req.params.code, req.body.active));
 });
 router.delete('/api/admin/vouchers/:code', requireAuth, (req, res) => {
     store.deleteVoucher(req.params.code);
+    audit.log(req, 'VOUCHER_HAPUS', req.params.code);
     res.json({ ok: true });
 });
 
+// Audit log (admin)
+router.get('/api/admin/audit', requireAuth, (req, res) => res.json(audit.recent(150)));
+
 // Backup (admin)
-router.get('/api/admin/backup/now', requireAuth, (req, res) => res.json(backup.runBackup()));
+router.get('/api/admin/backup/now', requireAuth, (req, res) => { audit.log(req, 'BACKUP_MANUAL', ''); res.json(backup.runBackup()); });
 router.get('/api/admin/backup/download', requireAuth, (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename="jagogame-backup-${Date.now()}.json"`);
     res.json(backup.currentSnapshot());
@@ -494,6 +524,7 @@ router.get('/api/admin/settings', requireAuth, (req, res) => {
 
 router.put('/api/admin/settings', requireAuth, (req, res) => {
     store.saveSettings(req.body);
+    audit.log(req, 'PENGATURAN_UBAH', '');
     res.json({ ok: true });
 });
 

@@ -32,14 +32,29 @@ function safeEqual(a, b) {
     return crypto.timingSafeEqual(ba, bb);
 }
 
-function login(username, password) {
-    const user = USERS[String(username || '').toLowerCase()];
+// Cek kredensial saja (untuk alur 2FA). Return objek user atau null.
+function checkCredentials(username, password) {
+    const u = String(username || '').toLowerCase();
+    const user = USERS[u];
     if (!user || !safeEqual(user.password, password)) return null;
+    return { username: u, role: user.role, name: user.name };
+}
+
+// Terbitkan token sesi untuk user yang sudah lolos verifikasi.
+function issueToken(user) {
     const token = generateToken();
-    sessions[token] = { username: username.toLowerCase(), role: user.role, name: user.name, exp: Date.now() + SESSION_TTL };
+    sessions[token] = { username: user.username, role: user.role, name: user.name, exp: Date.now() + SESSION_TTL };
     persist();
     return token;
 }
+
+function login(username, password) {
+    const user = checkCredentials(username, password);
+    if (!user) return null;
+    return issueToken(user);
+}
+
+function twoFAEnabled() { return String(process.env.ADMIN_2FA || 'false') === 'true'; }
 
 function getSession(token) {
     const s = sessions[token];
@@ -53,4 +68,4 @@ function logout(token) {
     persist();
 }
 
-module.exports = { login, getSession, logout };
+module.exports = { login, checkCredentials, issueToken, twoFAEnabled, getSession, logout };

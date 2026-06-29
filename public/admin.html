@@ -157,6 +157,7 @@ code{font-family:'SF Mono',monospace;font-size:11px;background:var(--bg2);color:
     <p>Khusus pengelola toko Jago Game</p>
     <div class="fld"><label>Username</label><input id="un" type="text" placeholder="Username" autocomplete="off"></div>
     <div class="fld"><label>Password</label><input id="pw" type="password" placeholder="••••••••"></div>
+    <div class="fld" id="twofa-fld" style="display:none"><label>Kode OTP (dikirim ke WhatsApp admin)</label><input id="tf" type="tel" inputmode="numeric" placeholder="6 digit kode"></div>
     <button class="btn-login" onclick="doLogin()">Masuk →</button>
     <div class="login-err" id="l-err"></div>
   </div>
@@ -333,6 +334,13 @@ code{font-family:'SF Mono',monospace;font-size:11px;background:var(--bg2);color:
         </div>
         <div class="form-msg" id="bk-msg" style="margin-top:8px"></div>
       </div>
+
+      <div class="form-card">
+        <h3>Log Aktivitas Admin</h3>
+        <p style="font-size:12.5px;color:var(--text2,#6B6560);margin-bottom:10px">Catatan aksi admin terakhir (login, ubah produk/stok/voucher, dll).</p>
+        <button class="btn" onclick="loadAudit()">↻ Muat Log</button>
+        <table style="margin-top:12px"><thead><tr><th>Waktu</th><th>User</th><th>Aksi</th><th>Detail</th></tr></thead><tbody id="t-audit"><tr><td colspan="4" class="empty-td">Klik "Muat Log"</td></tr></tbody></table>
+      </div>
     </div>
 
   </div>
@@ -407,16 +415,35 @@ async function api(method,path,body){
   }catch(e){return{error:e.message}}
 }
 
+let twofaPending=false;
 async function doLogin(){
   const u=document.getElementById('un').value.trim(),p=document.getElementById('pw').value;
-  document.getElementById('l-err').textContent='';
+  const err=document.getElementById('l-err');err.textContent='';
+  // Tahap 2FA: kirim kode OTP
+  if(twofaPending){
+    const code=document.getElementById('tf').value.trim();
+    if(!code){err.textContent='Masukkan kode OTP';return}
+    const v=await fetch('/api/login/2fa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p,code})}).then(r=>r.json());
+    if(v.error){err.textContent=v.error;return}
+    finishLogin(v);return;
+  }
   const res=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})}).then(r=>r.json());
-  if(res.error){document.getElementById('l-err').textContent=res.error;return}
+  if(res.error){err.textContent=res.error;return}
+  if(res.twofa){twofaPending=true;document.getElementById('twofa-fld').style.display='block';err.style.color='var(--green,#1BA35A)';err.textContent='Kode OTP dikirim ke WhatsApp admin. Masukkan & klik Masuk lagi.';return}
+  finishLogin(res);
+}
+function finishLogin(res){
   TOKEN=res.token;NAME=res.name;ROLE=res.role;
   localStorage.setItem('adm-token',TOKEN);localStorage.setItem('adm-name',NAME);localStorage.setItem('adm-role',ROLE);
   document.getElementById('pg-login').style.display='none';
   document.getElementById('pg-dash').style.display='block';
   initDash();
+}
+async function loadAudit(){
+  const data=await api('GET','/api/admin/audit').catch(()=>[]);
+  const tb=document.getElementById('t-audit');
+  if(!Array.isArray(data)||!data.length){tb.innerHTML='<tr><td colspan="4" class="empty-td">Belum ada log</td></tr>';return}
+  tb.innerHTML=data.map(e=>`<tr><td style="white-space:nowrap">${new Date(e.at).toLocaleString('id-ID')}</td><td>${e.user||'-'}</td><td><span class="badge o">${e.action}</span></td><td style="font-size:12px;color:var(--text2,#6B6560)">${(e.detail||'').toString().slice(0,60)}</td></tr>`).join('');
 }
 
 function initDash(){
