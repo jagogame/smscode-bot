@@ -151,9 +151,21 @@ function useVoucher(code) {
     if (v) { v.used = (v.used || 0) + 1; saveVouchers(vouchers); }
 }
 
+// FLASH SALE (dari settings)
+function getFlashSale() {
+    const s = getSettings();
+    const f = s.flashSale || {};
+    const active = !!f.enabled && f.endsAt && new Date(f.endsAt).getTime() > Date.now();
+    return { active, endsAt: f.endsAt || null, percent: Number(f.percent) || 0, text: f.text || 'Flash Sale' };
+}
+
 // ORDERS
 function getOrders() { return readJSON(ORDERS_FILE, []); }
 function saveOrders(o) { writeJSON(ORDERS_FILE, o); }
+function countDeliveredByWA(wa) {
+    const n = String(wa || '').replace(/\D/g, '').replace(/^0/, '62');
+    return getOrders().filter(o => o.status === 'DELIVERED' && String(o.customerWA || '').replace(/\D/g, '').replace(/^0/, '62') === n).length;
+}
 
 function createOrder(data) {
     const products = getProducts();
@@ -161,13 +173,29 @@ function createOrder(data) {
     if (!product) throw new Error('Produk tidak ditemukan');
     if (!product.active) throw new Error('Produk tidak tersedia');
 
-    // Voucher (opsional)
-    let discount = 0, voucherCode = null, finalPrice = product.price;
+    // Diskon: ambil yang TERBAIK antara voucher / flash sale / loyalty
+    const base = product.price;
+    let discount = 0, voucherCode = null, discountType = null;
+    // Voucher
     if (data.voucherCode) {
-        const vr = validateVoucher(data.voucherCode, product.price);
+        const vr = validateVoucher(data.voucherCode, base);
         if (!vr.valid) throw new Error('Voucher: ' + vr.message);
-        discount = vr.discount; voucherCode = vr.code; finalPrice = vr.finalPrice;
+        if (vr.discount > discount) { discount = vr.discount; voucherCode = vr.code; discountType = 'voucher'; }
     }
+    // Flash sale (store-wide, dari settings)
+    const fs = getFlashSale();
+    if (fs.active && fs.percent > 0) {
+        const d = Math.round(base * fs.percent / 100);
+        if (d > discount) { discount = d; voucherCode = null; discountType = 'flashsale'; }
+    }
+    // Loyalty: pembeli berulang (WA pernah order DELIVERED)
+    const settings = getSettings();
+    const loyP = Number(settings.loyaltyPercent) || 0;
+    if (loyP > 0 && data.customerWA && countDeliveredByWA(data.customerWA) > 0) {
+        const d = Math.round(base * loyP / 100);
+        if (d > discount) { discount = d; voucherCode = null; discountType = 'loyalty'; }
+    }
+    const finalPrice = base - discount;
 
     const orders = getOrders();
     const order = {
@@ -178,6 +206,7 @@ function createOrder(data) {
         productPrice: product.price,
         voucherCode,
         discount,
+        discountType,
         finalPrice,
         category: product.category,
         customerName: data.customerName,
@@ -241,5 +270,6 @@ module.exports = {
     getOrders, createOrder, updateOrderStatus, getOrderById, patchOrder,
     getStock, getStockCount, setStock, getStockItems, popStock,
     getVouchers, addVoucher, deleteVoucher, toggleVoucher, validateVoucher, useVoucher,
+    getFlashSale, countDeliveredByWA,
     getSettings, saveSettings,
 };

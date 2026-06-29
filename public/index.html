@@ -250,6 +250,28 @@ details[open] .faq-q::after{content:'−'}
 .pol h4{font-size:14px;font-weight:700;margin-bottom:6px}
 .pol p{font-size:12.5px;color:var(--text2);line-height:1.6}
 
+/* FLASH SALE BAR */
+.flashbar{display:none;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;background:linear-gradient(90deg,#ED1B4A,#FF7A00);color:#fff;padding:9px 16px;font-size:13px;font-weight:600;text-align:center}
+.flashbar.on{display:flex}
+.flashbar .cd{display:flex;gap:5px}
+.flashbar .cd b{background:rgba(255,255,255,.22);border-radius:6px;padding:2px 7px;font-weight:800;font-variant-numeric:tabular-nums;min-width:30px;text-align:center}
+/* GALLERY */
+.gal{position:relative;height:200px;background:var(--bg2)}
+.gal-track{display:flex;height:100%;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth}
+.gal-track::-webkit-scrollbar{display:none}
+.gal-track img{width:100%;height:100%;object-fit:cover;flex:0 0 100%;scroll-snap-align:center}
+.gal-dots{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:3}
+.gal-dots span{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.5)}
+.gal-dots span.on{background:#fff;width:18px;border-radius:4px}
+.gal-nav{position:absolute;top:50%;transform:translateY(-50%);width:34px;height:34px;border:none;border-radius:50%;background:rgba(20,18,30,.5);color:#fff;font-size:18px;cursor:pointer;z-index:3;display:flex;align-items:center;justify-content:center}
+.gal-nav.prev{left:8px}.gal-nav.next{right:8px}
+/* OTP */
+.otp-row{display:flex;gap:8px}
+.otp-row input{flex:1}
+.btn-otp{padding:0 16px;background:var(--green);color:#fff;border:none;border-radius:11px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.btn-otp:disabled{opacity:.5;cursor:not-allowed}
+.otp-msg{font-size:12px;margin-top:6px;font-weight:600}
+
 /* FLOATING SUPPORT */
 .fab{position:fixed;right:18px;bottom:20px;z-index:180;display:flex;align-items:center;gap:9px;padding:13px 18px;border-radius:30px;background:#22C35E;color:#fff;font-weight:700;font-size:14px;text-decoration:none;box-shadow:0 8px 24px -6px rgba(34,195,94,.55)}
 .fab .wi{font-size:20px}
@@ -308,6 +330,12 @@ footer a:hover{color:#fff}
     </div>
   </div>
 </nav>
+
+<!-- FLASH SALE BAR -->
+<div class="flashbar" id="flashbar">
+  <span id="flash-text">⚡ Flash Sale</span>
+  <span class="cd" id="flash-cd"></span>
+</div>
 
 <!-- DRAWER -->
 <div class="ov" id="ov"></div>
@@ -461,6 +489,14 @@ footer a:hover{color:#fff}
           </div>
           <div class="fld"><label>Nama lengkap kamu *</label><input id="f-name" type="text" placeholder="Masukkan nama kamu"></div>
           <div class="fld"><label>Nomor WhatsApp *</label><input id="f-wa" type="tel" inputmode="numeric" placeholder="08xxxxxxxxxx"></div>
+          <div class="fld" id="otp-block" style="display:none">
+            <label>Verifikasi WhatsApp (OTP) *</label>
+            <div class="otp-row">
+              <input id="f-otp" type="tel" inputmode="numeric" placeholder="6 digit kode">
+              <button type="button" class="btn-otp" id="btn-otp" onclick="sendOtp()">Kirim Kode</button>
+            </div>
+            <div class="otp-msg" id="otp-msg"></div>
+          </div>
           <div class="fld"><label>Catatan (opsional)</label><textarea id="f-note" placeholder="Misal: permintaan khusus, pertanyaan, dll."></textarea></div>
           <div class="fld">
             <label>Kode Voucher (opsional)</label>
@@ -576,6 +612,9 @@ async function init(){
     document.querySelectorAll('.js-wa').forEach(a=>a.href=`https://wa.me/${waN}?text=Halo+kak+Jago+Game%2C+saya+mau+tanya`);
   }
   injectAnalytics();
+  startFlashSale();
+  injectJsonLd();
+  if(payConfig.otpRequired)document.getElementById('otp-block').style.display='block';
   if(payConfig.midtransEnabled&&payConfig.clientKey){
     const sc=document.createElement('script');
     sc.src=payConfig.isProduction?'https://app.midtrans.com/snap/snap.js':'https://app.sandbox.midtrans.com/snap/snap.js';
@@ -587,6 +626,50 @@ async function init(){
 }
 function onSearch(v){searchQuery=v.toLowerCase().trim();applyView()}
 function onSort(v){sortBy=v;applyView()}
+
+// FLASH SALE countdown
+let flashTimer=null;
+function startFlashSale(){
+  const fs=settings.flashSale;
+  if(!fs||!fs.enabled||!fs.endsAt)return;
+  const end=new Date(fs.endsAt).getTime();
+  if(end<=Date.now())return;
+  const bar=document.getElementById('flashbar');
+  document.getElementById('flash-text').textContent=`⚡ ${fs.text||'Flash Sale'} ${fs.percent?('— Diskon '+fs.percent+'%'):''}`;
+  bar.classList.add('on');
+  const cd=document.getElementById('flash-cd');
+  const tick=()=>{
+    let s=Math.floor((end-Date.now())/1000);
+    if(s<=0){clearInterval(flashTimer);bar.classList.remove('on');return}
+    const h=Math.floor(s/3600),m=Math.floor(s%3600/60),sec=s%60;
+    const pad=n=>String(n).padStart(2,'0');
+    cd.innerHTML=`<b>${pad(h)}</b>:<b>${pad(m)}</b>:<b>${pad(sec)}</b>`;
+  };
+  tick();flashTimer=setInterval(tick,1000);
+}
+
+// JSON-LD structured data untuk SEO
+async function injectJsonLd(){
+  try{
+    const data=await fetch('/api/store/structured-data').then(r=>r.json());
+    const s=document.createElement('script');s.type='application/ld+json';s.textContent=JSON.stringify(data);
+    document.head.appendChild(s);
+  }catch(e){}
+}
+
+// OTP
+let otpVerified=false;
+async function sendOtp(){
+  const wa=document.getElementById('f-wa').value.trim();
+  const msg=document.getElementById('otp-msg'),btn=document.getElementById('btn-otp');
+  if(!wa){msg.className='otp-msg no';msg.style.color='var(--brand)';msg.textContent='Isi nomor WhatsApp dulu';return}
+  btn.disabled=true;btn.textContent='Mengirim...';
+  const r=await fetch('/api/store/otp/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wa})}).then(r=>r.json()).catch(e=>({error:e.message}));
+  if(r.error){msg.style.color='var(--brand)';msg.textContent='✕ '+r.error;btn.disabled=false;btn.textContent='Kirim Kode';return}
+  msg.style.color='var(--green)';msg.textContent='✓ Kode dikirim ke WhatsApp kamu';
+  let s=60;btn.textContent=`Kirim ulang (${s})`;
+  const iv=setInterval(()=>{s--;btn.textContent=s>0?`Kirim ulang (${s})`:'Kirim Kode';if(s<=0){clearInterval(iv);btn.disabled=false}},1000);
+}
 
 function injectAnalytics(){
   if(settings.gaId){
@@ -669,7 +752,19 @@ function openModal(id){
   if(!selectedProduct)return;
   const p=selectedProduct;
 
-  document.getElementById('det-img').outerHTML=`<div id="det-img">${p.image?`<img src="${esc(p.image)}" alt="${esc(p.name)}" loading="lazy" decoding="async" onerror="this.parentNode.outerHTML='<div id=det-img><div class=det-hero-ph>${icon(p.category)}</div></div>'">`:`<div class="det-hero-ph">${icon(p.category)}</div>`}</div>`;
+  const imgs=(Array.isArray(p.images)&&p.images.length?p.images:(p.image?[p.image]:[]));
+  let galHtml;
+  if(imgs.length>1){
+    galHtml=`<div id="det-img"><div class="gal-track" id="gal-track">${imgs.map(u=>`<img src="${esc(u)}" alt="${esc(p.name)}" loading="lazy" onerror="this.style.display='none'">`).join('')}</div>`
+      +`<button class="gal-nav prev" onclick="galScroll(-1)">‹</button><button class="gal-nav next" onclick="galScroll(1)">›</button>`
+      +`<div class="gal-dots" id="gal-dots">${imgs.map((_,i)=>`<span class="${i===0?'on':''}"></span>`).join('')}</div></div>`;
+  }else if(imgs.length===1){
+    galHtml=`<div id="det-img"><img src="${esc(imgs[0])}" alt="${esc(p.name)}" loading="lazy" decoding="async" onerror="this.parentNode.outerHTML='<div id=det-img><div class=det-hero-ph>${icon(p.category)}</div></div>'"></div>`;
+  }else{
+    galHtml=`<div id="det-img"><div class="det-hero-ph">${icon(p.category)}</div></div>`;
+  }
+  document.getElementById('det-img').outerHTML=galHtml;
+  setTimeout(()=>{const t=document.getElementById('gal-track');if(t)t.onscroll=()=>{const i=Math.round(t.scrollLeft/t.clientWidth);document.querySelectorAll('#gal-dots span').forEach((d,j)=>d.classList.toggle('on',j===i))}},50);
   document.getElementById('det-cat').textContent=p.category;
   document.getElementById('det-name').textContent=p.name;
   document.getElementById('det-price').innerHTML='Rp '+Number(p.price).toLocaleString('id-ID')+'<small>harga termurah</small>';
@@ -704,6 +799,8 @@ function openModal(id){
   document.getElementById('f-err').textContent='';
   document.getElementById('f-voucher').value='';
   document.getElementById('f-vmsg').textContent='';
+  const otpF=document.getElementById('f-otp'); if(otpF){otpF.value='';document.getElementById('otp-msg').textContent='';}
+  otpVerified=false;
   appliedVoucher=null;
   updateSummary();
 
@@ -711,6 +808,7 @@ function openModal(id){
   document.getElementById('modal').classList.add('open');
 }
 
+function galScroll(dir){const t=document.getElementById('gal-track');if(t)t.scrollBy({left:dir*t.clientWidth,behavior:'smooth'})}
 function closeModal(){document.getElementById('modal').classList.remove('open');if(pollTimer)clearInterval(pollTimer)}
 
 function rupiah(n){return 'Rp '+Number(n).toLocaleString('id-ID')}
@@ -741,6 +839,15 @@ async function submitOrder(){
   err.textContent='';
   const btn=document.getElementById('btn-cta');
   btn.disabled=true;btn.textContent='Memproses...';
+
+  // Verifikasi OTP bila wajib
+  if(payConfig.otpRequired && !otpVerified){
+    const code=document.getElementById('f-otp').value.trim();
+    if(!code){err.textContent='Masukkan kode OTP yang dikirim ke WhatsApp';btn.disabled=false;btn.textContent='Bayar Sekarang →';return}
+    const vr=await fetch('/api/store/otp/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wa,code})}).then(r=>r.json()).catch(e=>({error:e.message}));
+    if(vr.error){err.textContent='OTP: '+vr.error;btn.disabled=false;btn.textContent='Bayar Sekarang →';return}
+    otpVerified=true;
+  }
 
   const res=await fetch('/api/store/orders',{
     method:'POST',headers:{'Content-Type':'application/json'},

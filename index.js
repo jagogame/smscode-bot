@@ -13,9 +13,24 @@ const { handleMessage } = require('./src/handler');
 const apiRouter = require('./src/api');
 const wa = require('./src/wa');
 const backup = require('./src/backup');
+const store = require('./src/store');
 require('dotenv').config();
 
 backup.startSchedule();
+
+// Follow-up otomatis: ingatkan pesanan PENDING yang belum dibayar (>15 menit, sekali saja)
+setInterval(() => {
+    if (!wa.isReady()) return;
+    const now = Date.now();
+    for (const o of store.getOrders()) {
+        if (o.status !== 'PENDING' || o.reminded || !o.createdAt) continue;
+        const age = now - new Date(o.createdAt).getTime();
+        if (age > 15 * 60 * 1000 && age < 24 * 60 * 60 * 1000) {
+            wa.sendText(o.customerWA, `Halo ${o.customerName} 👋\n\nPesanan *${o.productName}* (${o.id}) masih menunggu pembayaran. Yuk selesaikan biar akunnya langsung dikirim otomatis 🚀\n\nAda kendala? Balas chat ini ya. 🙏`).catch(() => {});
+            try { store.patchOrder(o.id, { reminded: true }); } catch {}
+        }
+    }
+}, 5 * 60 * 1000);
 
 
 // Web server untuk tampilkan QR di Railway

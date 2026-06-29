@@ -289,6 +289,22 @@ code{font-family:'SF Mono',monospace;font-size:11px;background:var(--bg2);color:
           <div class="fld"><label>Meta Pixel ID</label><input id="st-fb" placeholder="1234567890"></div>
         </div>
       </div>
+      <div class="form-card">
+        <h3>Flash Sale & Promo</h3>
+        <div class="form-grid">
+          <div class="fld"><label><input id="st-fs-on" type="checkbox" style="width:16px;height:16px;vertical-align:-2px"> Aktifkan Flash Sale</label></div>
+          <div class="fld"><label>Diskon (%)</label><input id="st-fs-pct" type="number" placeholder="10"></div>
+          <div class="fld"><label>Berakhir pada</label><input id="st-fs-end" type="datetime-local"></div>
+          <div class="fld"><label>Teks banner</label><input id="st-fs-text" placeholder="Flash Sale Akhir Pekan"></div>
+        </div>
+      </div>
+      <div class="form-card">
+        <h3>Loyalty & Verifikasi</h3>
+        <div class="form-grid">
+          <div class="fld"><label>Diskon pelanggan setia (%)</label><input id="st-loy" type="number" placeholder="0 = nonaktif"></div>
+          <div class="fld"><label style="margin-top:24px"><input id="st-otp" type="checkbox" style="width:16px;height:16px;vertical-align:-2px"> Wajib verifikasi OTP WhatsApp sebelum order</label></div>
+        </div>
+      </div>
       <div class="form-actions">
         <button class="btn btn-dark" onclick="saveSetting()">Simpan Pengaturan</button>
         <div class="form-msg" id="setting-msg"></div>
@@ -585,6 +601,13 @@ async function loadSetting(){
   document.getElementById('st-qris').value=s.qrisImage||'';
   document.getElementById('st-ga').value=s.gaId||'';
   document.getElementById('st-fb').value=s.fbPixel||'';
+  const fs=s.flashSale||{};
+  document.getElementById('st-fs-on').checked=!!fs.enabled;
+  document.getElementById('st-fs-pct').value=fs.percent||'';
+  document.getElementById('st-fs-end').value=fs.endsAt?fs.endsAt.slice(0,16):'';
+  document.getElementById('st-fs-text').value=fs.text||'';
+  document.getElementById('st-loy').value=s.loyaltyPercent||'';
+  document.getElementById('st-otp').checked=!!s.otpRequired;
   if(s.qrisImage)document.getElementById('qris-prev').innerHTML=`<img src="${s.qrisImage}" style="max-width:150px;border-radius:8px;border:1px solid var(--border2)" onerror="this.remove()">`;
   loadVouchers();
 }
@@ -598,6 +621,14 @@ async function saveSetting(){
     bankAccount:document.getElementById('st-bacc').value,bankHolder:document.getElementById('st-bholder').value,
     qrisImage:document.getElementById('st-qris').value,
     gaId:document.getElementById('st-ga').value.trim(),fbPixel:document.getElementById('st-fb').value.trim(),
+    flashSale:{
+      enabled:document.getElementById('st-fs-on').checked,
+      percent:Number(document.getElementById('st-fs-pct').value)||0,
+      endsAt:document.getElementById('st-fs-end').value?new Date(document.getElementById('st-fs-end').value).toISOString():'',
+      text:document.getElementById('st-fs-text').value.trim()||'Flash Sale',
+    },
+    loyaltyPercent:Number(document.getElementById('st-loy').value)||0,
+    otpRequired:document.getElementById('st-otp').checked,
   });
   if(r.error){msg.innerHTML=`<span style="color:var(--red)">${r.error}</span>`;return}
   msg.innerHTML='<span style="color:var(--green)">✓ Tersimpan</span>';

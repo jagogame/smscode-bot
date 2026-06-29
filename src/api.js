@@ -7,6 +7,7 @@ const store = require('./store');
 const midtrans = require('./midtrans');
 const wa = require('./wa');
 const backup = require('./backup');
+const otp = require('./otp');
 const { encrypt, decrypt } = require('./crypto');
 
 const router = express.Router();
@@ -37,10 +38,13 @@ async function deliverOrder(order) {
         credential: encrypt(cred), paidAt: new Date().toISOString(), deliveredAt: new Date().toISOString(),
     });
     if (order.voucherCode) store.useVoucher(order.voucherCode);
-    // Kirim ke WhatsApp pembeli
+    // Kirim invoice + akun ke WhatsApp pembeli
     if (wa.isReady()) {
-        const msg = `✅ *Pembayaran Berhasil — Jago Game*\n\nTerima kasih ${order.customerName}! 🎉\nPesanan: *${order.productName}*\nID: ${order.id}\n\n━━━━━━━━━━━━━━\n📦 *DETAIL AKUN KAMU:*\n\n${cred}\n━━━━━━━━━━━━━━\n\nSimpan baik-baik & segera ganti password. Ada kendala? Balas chat ini. 🙏`;
-        wa.sendText(order.customerWA, msg).catch(() => {});
+        const rp = n => 'Rp ' + Number(n || 0).toLocaleString('id-ID');
+        let inv = `✅ *PEMBAYARAN BERHASIL — Jago Game*\n\nTerima kasih ${order.customerName}! 🎉\n\n🧾 *INVOICE*\nID: ${order.id}\nProduk: ${order.productName}\nHarga: ${rp(order.productPrice)}`;
+        if (order.discount > 0) inv += `\nDiskon${order.voucherCode ? ' (' + order.voucherCode + ')' : ''}: -${rp(order.discount)}`;
+        inv += `\n*Total Bayar: ${rp(order.finalPrice != null ? order.finalPrice : order.productPrice)}*\nStatus: LUNAS ✅\n\n━━━━━━━━━━━━━━\n📦 *DETAIL AKUN KAMU:*\n\n${cred}\n━━━━━━━━━━━━━━\n\nSimpan baik-baik & segera ganti email/password. Ada kendala? Balas chat ini. 🙏`;
+        wa.sendText(order.customerWA, inv).catch(() => {});
     }
     // Beritahu admin
     if (settings.whatsapp && wa.isReady()) {
@@ -93,6 +97,40 @@ router.get('/lacak', (req, res) => {
 // Halaman kebijakan & syarat
 router.get('/kebijakan', (req, res) => {
     res.sendFile(path.join(__dirname, '../public/kebijakan.html'));
+});
+
+// SEO: robots.txt & sitemap.xml
+const SITE = 'https://www.jagogame.store';
+router.get('/robots.txt', (req, res) => {
+    res.type('text/plain').send(`User-agent: *\nAllow: /\nDisallow: /admin\nSitemap: ${SITE}/sitemap.xml\n`);
+});
+router.get('/sitemap.xml', (req, res) => {
+    const urls = [`${SITE}/`, `${SITE}/lacak`, `${SITE}/kebijakan`];
+    const today = new Date().toISOString().slice(0, 10);
+    const body = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
+        urls.map(u => `  <url><loc>${u}</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq></url>`).join('\n') +
+        `\n</urlset>`;
+    res.type('application/xml').send(body);
+});
+// Data terstruktur produk (JSON-LD) untuk Google
+router.get('/api/store/structured-data', (req, res) => {
+    const products = store.getActiveProducts();
+    const data = {
+        '@context': 'https://schema.org', '@type': 'ItemList',
+        itemListElement: products.map((p, i) => ({
+            '@type': 'ListItem', position: i + 1,
+            item: {
+                '@type': 'Product', name: p.name,
+                description: (p.description || '').slice(0, 200),
+                image: p.image || undefined,
+                offers: {
+                    '@type': 'Offer', price: p.price, priceCurrency: 'IDR',
+                    availability: (!p.autoDeliver || (p.stockCount || 0) > 0) ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+                },
+            },
+        })),
+    };
+    res.json(data);
 });
 
 // Login (maks 8 percobaan / 5 menit)
@@ -213,9 +251,27 @@ router.post('/api/store/orders', rateLimiter({ windowMs: 60 * 1000, max: 10, mes
         if (product && product.autoDeliver && store.getStockCount(product.id) <= 0) {
             return res.status(400).json({ error: 'Stok produk ini sedang habis. Silakan chat WhatsApp kami.' });
         }
+        // Verifikasi OTP WhatsApp bila diaktifkan
+        if (store.getSettings().otpRequired && wa.isReady() && !otp.isVerified(req.body.customerWA)) {
+            return res.status(400).json({ error: 'Nomor WhatsApp belum diverifikasi. Minta & masukkan kode OTP dulu.', needOtp: true });
+        }
         const order = store.createOrder(req.body);
         res.json(order);
     } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+// OTP WhatsApp (verifikasi nomor sebelum order)
+router.post('/api/store/otp/send', rateLimiter({ windowMs: 60 * 1000, max: 5 }), async (req, res) => {
+    try {
+        if (!wa.isReady()) return res.status(503).json({ error: 'Verifikasi OTP sedang tidak tersedia' });
+        await otp.send(req.body.wa);
+        res.json({ ok: true });
+    } catch (e) { res.status(400).json({ error: e.message }); }
+});
+router.post('/api/store/otp/verify', rateLimiter({ windowMs: 60 * 1000, max: 10 }), (req, res) => {
+    const r = otp.verify(req.body.wa, req.body.code);
+    if (!r.ok) return res.status(400).json({ error: r.message });
+    res.json({ ok: true });
 });
 
 router.get('/api/store/settings', (req, res) => {
@@ -228,6 +284,7 @@ router.get('/api/store/config', (req, res) => {
         midtransEnabled: midtrans.isConfigured(),
         clientKey: midtrans.getClientKey(),
         isProduction: midtrans.isProduction(),
+        otpRequired: !!store.getSettings().otpRequired && wa.isReady(),
     });
 });
 
