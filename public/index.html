@@ -32,8 +32,8 @@
   --gold:#B47C0A;--gold-bg:#FEF3D7;
   --brand:#ED1B4A;--brand2:#C9143C;--radius:16px;
 }
-html{scroll-behavior:smooth}
-body{font-family:'Poppins',sans-serif;background:var(--bg);color:var(--dark);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+html{scroll-behavior:smooth;overflow-x:hidden}
+body{font-family:'Poppins',sans-serif;background:var(--bg);color:var(--dark);-webkit-font-smoothing:antialiased;overflow-x:hidden;max-width:100%}
 
 /* NAV */
 nav{position:sticky;top:0;z-index:200;background:var(--white);border-bottom:1px solid var(--border)}
@@ -268,6 +268,10 @@ footer a:hover{color:#fff}
 @keyframes tI{from{opacity:0;transform:translateY(8px)}}
 @keyframes tO{to{opacity:0;transform:translateY(8px)}}
 
+@media(max-width:760px){
+  .nav-admin{display:none}
+  .nav-inner{gap:10px}
+}
 @media(max-width:640px){
   .banner{padding:26px;min-height:150px}
   .banner h1{font-size:27px}
@@ -276,6 +280,8 @@ footer a:hover{color:#fff}
   .grid{grid-template-columns:1fr 1fr;gap:10px}
   .card-body{padding:13px}
   .ti{padding:12px 18px}
+  .nav-wa{padding:8px 14px;font-size:12px}
+  .nav-name{font-size:16px}
 }
 @media(max-width:420px){.grid{grid-template-columns:1fr}}
 </style>
