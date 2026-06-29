@@ -30,7 +30,13 @@
     "stock": -1,
     "image": "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026412/glj4w2xf7klrd1skrkhk.jpg",
     "active": true,
-    "createdAt": "2026-06-26T11:05:22.447Z"
+    "createdAt": "2026-06-26T11:05:22.447Z",
+    "images": [
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026412/glj4w2xf7klrd1skrkhk.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026412/8ae3l9gosj41u13g4ucmka.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026412/d3u5769zukl8gfuq05jwqj.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026412/6dws3glvuqe9eu0ni74ghv.jpg"
+    ]
   },
   {
     "id": "1782471922451",
@@ -41,7 +47,13 @@
     "stock": -1,
     "image": "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026420/2l8zf6od35con32fpzag0l.jpg",
     "active": true,
-    "createdAt": "2026-06-26T11:05:22.451Z"
+    "createdAt": "2026-06-26T11:05:22.451Z",
+    "images": [
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026420/2l8zf6od35con32fpzag0l.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026420/4osf6o9z6kjpob53pqmyzf.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026420/bbip4cv8747s05co5hwj9.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026420/m2lcrnrrhku6yc9pgc308.jpg"
+    ]
   },
   {
     "id": "1782471922457",
@@ -52,7 +64,17 @@
     "stock": -1,
     "image": "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026428/gi5ww0t2n6kmsm3hgywyml.jpg",
     "active": true,
-    "createdAt": "2026-06-26T11:05:22.457Z"
+    "createdAt": "2026-06-26T11:05:22.457Z",
+    "images": [
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026428/gi5ww0t2n6kmsm3hgywyml.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026428/j64c5gthzoe0dnf018ftn.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026428/t4afu8rseky21wb93m0oi.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026428/6esznn73jwfogt7jzlyl4.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026428/wqudzevdsvh7h2sm3v2gj.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026428/ko5bcqcrgniadp3wypo8k.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026428/osc3y6tvoskkqkazu6tvwl.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026428/nefhvjnwcdhbu03bqq074q.jpg"
+    ]
   },
   {
     "id": "1782471922459",
@@ -63,7 +85,13 @@
     "stock": -1,
     "image": "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202657/1tfi4m46hy9pzyyh5eom8r.jpg",
     "active": true,
-    "createdAt": "2026-06-26T11:05:22.459Z"
+    "createdAt": "2026-06-26T11:05:22.459Z",
+    "images": [
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202657/1tfi4m46hy9pzyyh5eom8r.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202657/3143z43opqke0bw4le22vf.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202657/w1v3kg57xu8su0xizcp2t9.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202657/cpscljrm6nbkz3b4asztze.jpg"
+    ]
   },
   {
     "id": "1782471922462",
@@ -74,7 +102,13 @@
     "stock": -1,
     "image": "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026512/7hqogo8bct5hh5z7gfpei.jpg",
     "active": true,
-    "createdAt": "2026-06-26T11:05:22.462Z"
+    "createdAt": "2026-06-26T11:05:22.462Z",
+    "images": [
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026512/7hqogo8bct5hh5z7gfpei.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026512/uuk2vvuy9aqrad2feanh8.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026512/qcx4etb8t4yknr8qi4ww.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026512/cechl9pvbxjwmuru7qqcp.jpg"
+    ]
   },
   {
     "id": "1782471922464",
@@ -85,7 +119,13 @@
     "stock": -1,
     "image": "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026512/he982oiv4w79mynob08pu.jpg",
     "active": true,
-    "createdAt": "2026-06-26T11:05:22.465Z"
+    "createdAt": "2026-06-26T11:05:22.465Z",
+    "images": [
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026512/he982oiv4w79mynob08pu.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026512/izpw7v6ysnn0b3cusumhpgj.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026512/j86ze2e5xb9sbak5b2mpp.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026512/tv09os01d3kkegs22a6km.jpg"
+    ]
   },
   {
     "id": "1782471922471",
@@ -96,7 +136,13 @@
     "stock": -1,
     "image": "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026528/nhhoth2z321p8x5puhx02.jpg",
     "active": true,
-    "createdAt": "2026-06-26T11:05:22.471Z"
+    "createdAt": "2026-06-26T11:05:22.471Z",
+    "images": [
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026528/nhhoth2z321p8x5puhx02.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026528/j16xsn5wb79huttzvcqx9.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026528/cpt25jzzy9meea3tu2io24.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026528/iv1t7llk3v5pmtwkvl5k7.jpg"
+    ]
   },
   {
     "id": "1782471922474",
@@ -107,7 +153,13 @@
     "stock": -1,
     "image": "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026528/wrqvcdid3r6o87zaqc5l3.jpg",
     "active": true,
-    "createdAt": "2026-06-26T11:05:22.474Z"
+    "createdAt": "2026-06-26T11:05:22.474Z",
+    "images": [
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026528/wrqvcdid3r6o87zaqc5l3.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026528/81x6dbhqmiiwro7ku4wdtk.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026528/xyurablv53k1ld5hlwg785.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026528/rzv7igjn5mqb2q4bd8g3l.jpg"
+    ]
   },
   {
     "id": "1782471922477",
@@ -118,7 +170,13 @@
     "stock": -1,
     "image": "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026528/0gmc3yckwaldtdpvkkdjb9.jpg",
     "active": true,
-    "createdAt": "2026-06-26T11:05:22.477Z"
+    "createdAt": "2026-06-26T11:05:22.477Z",
+    "images": [
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026528/0gmc3yckwaldtdpvkkdjb9.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026528/ls8elgi3x2fl8zhhucdy0f.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026528/izjg93amprvi97avlgq8.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026528/y1mjrjctclprv6ygwvm3uh.jpg"
+    ]
   },
   {
     "id": "1782471922479",
@@ -129,7 +187,13 @@
     "stock": -1,
     "image": "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026528/ts3pelh91qhy3s2avv8wo.jpg",
     "active": true,
-    "createdAt": "2026-06-26T11:05:22.479Z"
+    "createdAt": "2026-06-26T11:05:22.479Z",
+    "images": [
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026528/ts3pelh91qhy3s2avv8wo.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026528/k2v7h3t4y4vev4qo1aboc.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026528/0husqpfwtb18n0fvfpdi5h.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026528/tn5tk5jr8snwfdu4cgymmm.jpg"
+    ]
   },
   {
     "id": "1782471922483",
@@ -140,7 +204,11 @@
     "stock": -1,
     "image": "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202662/q08he7lt1dys0u1divpu.jpg",
     "active": true,
-    "createdAt": "2026-06-26T11:05:22.483Z"
+    "createdAt": "2026-06-26T11:05:22.483Z",
+    "images": [
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202662/q08he7lt1dys0u1divpu.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202662/i0o6pemxqghualllslaw08.jpg"
+    ]
   },
   {
     "id": "1782471922489",
@@ -151,7 +219,12 @@
     "stock": -1,
     "image": "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/x56bf2245ckhq7y7vcflr.jpg",
     "active": true,
-    "createdAt": "2026-06-26T11:05:22.489Z"
+    "createdAt": "2026-06-26T11:05:22.489Z",
+    "images": [
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/x56bf2245ckhq7y7vcflr.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/3pj72rdgi320mb1mad0b1y.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/25a8dgtmn432mkh9d9mhpn.jpg"
+    ]
   },
   {
     "id": "1782471922492",
@@ -162,7 +235,13 @@
     "stock": -1,
     "image": "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/9ldg0nuoekklb0n6x6ylhh.jpg",
     "active": true,
-    "createdAt": "2026-06-26T11:05:22.492Z"
+    "createdAt": "2026-06-26T11:05:22.492Z",
+    "images": [
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/9ldg0nuoekklb0n6x6ylhh.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/acw8tmkoo3837d7hcst6ht.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/cn9jhp0e9nlr7rbq0krw9.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/2vp5tahihrd7litahruwk6.jpg"
+    ]
   },
   {
     "id": "1782471922494",
@@ -173,7 +252,13 @@
     "stock": -1,
     "image": "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/lzax8o3gs2kqq6t9iae6n.jpg",
     "active": true,
-    "createdAt": "2026-06-26T11:05:22.494Z"
+    "createdAt": "2026-06-26T11:05:22.494Z",
+    "images": [
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/lzax8o3gs2kqq6t9iae6n.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/slqte2a08hrsqt0kdfnwy.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/hp9on15bmx6mwl6bte1gvp.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/4cm4lnpheyof2ih8oqk1p6.jpg"
+    ]
   },
   {
     "id": "1782471922496",
@@ -184,7 +269,13 @@
     "stock": -1,
     "image": "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/bu06xzfmeafb6ff8kdb6z9.jpg",
     "active": true,
-    "createdAt": "2026-06-26T11:05:22.496Z"
+    "createdAt": "2026-06-26T11:05:22.496Z",
+    "images": [
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/bu06xzfmeafb6ff8kdb6z9.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/bqarqrpq9bsbccfw68sm8p.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/geqb2ijafdln5j5mcnuw.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/jm2owoqz4xppeq3sdqljg.jpg"
+    ]
   },
   {
     "id": "1782471922499",
@@ -195,7 +286,13 @@
     "stock": -1,
     "image": "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/bdil3k86x9e6xtcl9dkzub.jpg",
     "active": true,
-    "createdAt": "2026-06-26T11:05:22.499Z"
+    "createdAt": "2026-06-26T11:05:22.499Z",
+    "images": [
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/bdil3k86x9e6xtcl9dkzub.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/g24lkuqqa6mw50694rjak.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/tncvgjdt8oewie4ko40jm.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/xja4kab62b8fba2udodnln.jpg"
+    ]
   },
   {
     "id": "1782471922504",
@@ -206,7 +303,13 @@
     "stock": -1,
     "image": "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/jgxggthceb8a1nioazfoh.jpg",
     "active": true,
-    "createdAt": "2026-06-26T11:05:22.504Z"
+    "createdAt": "2026-06-26T11:05:22.504Z",
+    "images": [
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/jgxggthceb8a1nioazfoh.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/p3t1f2o23gmt6r6s314gxr.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/rig7lkx6inwiaulmabl8j.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/nsp884bvqjfdm4azv2hgw.jpg"
+    ]
   },
   {
     "id": "1782471922507",
@@ -217,7 +320,13 @@
     "stock": -1,
     "image": "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/yjwsznn9yjek3ihxzt0rf.jpg",
     "active": true,
-    "createdAt": "2026-06-26T11:05:22.507Z"
+    "createdAt": "2026-06-26T11:05:22.507Z",
+    "images": [
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/yjwsznn9yjek3ihxzt0rf.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/jz19pyxo3qks2zyrpk12kr.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/ktlmcg6wwie52jp2vs1e.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/6fzs56wt4mccoxm0p2miai.jpg"
+    ]
   },
   {
     "id": "1782471922510",
