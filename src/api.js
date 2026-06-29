@@ -80,9 +80,18 @@ function requireAuth(req, res, next) {
     next();
 }
 
+// Security headers dasar
+router.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+    next();
+});
+
 // Static files
 router.use(express.static(path.join(__dirname, '../public')));
-router.use(express.json());
+router.use(express.json({ limit: '256kb' }));
 
 // Admin panel
 router.get('/admin', (req, res) => {
@@ -314,6 +323,7 @@ router.post('/api/store/voucher/check', rateLimiter({ windowMs: 60 * 1000, max: 
 // Webhook notifikasi dari Midtrans
 router.post('/api/store/midtrans/notification', async (req, res) => {
     try {
+        if (!midtrans.isConfigured()) return res.status(503).json({ error: 'Payment not configured' });
         const n = req.body;
         if (!midtrans.verifySignature(n)) return res.status(403).json({ error: 'Invalid signature' });
         const order = store.getOrderById(n.order_id);

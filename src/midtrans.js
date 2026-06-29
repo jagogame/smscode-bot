@@ -39,11 +39,15 @@ async function createTransaction({ orderId, amount, customerName, productName })
 
 // Verifikasi signature notifikasi Midtrans
 function verifySignature({ order_id, status_code, gross_amount, signature_key }) {
+    // Tanpa SERVER_KEY, signature TIDAK boleh dianggap valid (cegah pemalsuan webhook)
+    if (!SERVER_KEY || !signature_key) return false;
     const expected = crypto
         .createHash('sha512')
-        .update(order_id + status_code + gross_amount + SERVER_KEY)
+        .update(String(order_id) + String(status_code) + String(gross_amount) + SERVER_KEY)
         .digest('hex');
-    return expected === signature_key;
+    // bandingkan tahan timing-attack
+    const a = Buffer.from(expected), b = Buffer.from(String(signature_key));
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
 // Apakah status notifikasi berarti pembayaran LUNAS?
