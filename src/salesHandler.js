@@ -100,8 +100,8 @@ function detectKasir(jid) {
     const num = jid.replace('@s.whatsapp.net', '').replace(/\D/g, '');
     for (const name of KASIR_LIST) {
         const envKey = `KASIR_${name.toUpperCase()}_WA`;
-        const envNum = (process.env[envKey] || '').replace(/\D/g, '');
-        if (envNum && envNum === num) return name;
+        const nums = (process.env[envKey] || '').split(',').map(n => n.trim().replace(/\D/g, '')).filter(Boolean);
+        if (nums.includes(num)) return name;
     }
     return null;
 }
