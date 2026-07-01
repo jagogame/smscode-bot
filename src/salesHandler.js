@@ -68,13 +68,24 @@ async function handleSalesImage(sock, msg) {
 
         try {
             await submitForm(data);
+            const now = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', hour12: false });
             await reply(
-                `✅ *Laporan YT G2G Berhasil Disimpan!*\n\n` +
+                `╔══════════════════════╗\n` +
+                `║  ✅ LAPORAN BERHASIL  ║\n` +
+                `╚══════════════════════╝\n\n` +
                 formatRecordYT(data) +
-                `\n\n💬 Bukti chat diteruskan ke admin.`
+                `\n📅 Waktu: ${now}\n` +
+                `💬 Bukti chat → admin ✓\n` +
+                `📋 Google Form → tersimpan ✓`
             );
         } catch (e) {
-            await reply(`❌ Gagal submit: ${e.message}`);
+            await reply(
+                `╔══════════════════════╗\n` +
+                `║  ❌ LAPORAN GAGAL    ║\n` +
+                `╚══════════════════════╝\n\n` +
+                `Alasan: ${e.message}\n\n` +
+                `Coba kirim ulang gambar + caption, atau ketik *laporan yt* untuk mulai ulang.`
+            );
         }
         return true;
     }
@@ -273,15 +284,26 @@ async function handleSales(sock, msg, text) {
                 try {
                     await reply('⏳ Menyimpan laporan...');
                     await submitForm(state.data);
+                    const now = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', hour12: false });
                     delete salesState[jid];
                     return reply(
-                        `✅ *Laporan YT G2G Berhasil Disimpan!*\n\n` +
+                        `╔══════════════════════╗\n` +
+                        `║  ✅ LAPORAN BERHASIL  ║\n` +
+                        `╚══════════════════════╝\n\n` +
                         formatRecordYT(state.data) +
-                        `\n\n💬 Bukti chat G2G sudah diteruskan ke admin.\nData masuk ke Google Form.`
+                        `\n📅 Waktu: ${now}\n` +
+                        `💬 Bukti chat → admin ✓\n` +
+                        `📋 Google Form → tersimpan ✓`
                     );
                 } catch (e) {
                     delete salesState[jid];
-                    return reply(`❌ Gagal submit: ${e.message}`);
+                    return reply(
+                        `╔══════════════════════╗\n` +
+                        `║  ❌ LAPORAN GAGAL    ║\n` +
+                        `╚══════════════════════╝\n\n` +
+                        `Alasan: ${e.message}\n\n` +
+                        `Ketik *laporan yt* untuk coba ulang.`
+                    );
                 }
             }
         }
