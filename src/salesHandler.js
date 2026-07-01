@@ -1,4 +1,4 @@
-const { submitForm, getRekapHariIni, getRekapSemua, getRekapByKasir } = require('./sales');
+const { submitForm, submitLocalOnly, getRekapHariIni, getRekapSemua, getRekapByKasir } = require('./sales');
 const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
 const wa = require('./wa');
 const fs = require('fs');
@@ -72,7 +72,7 @@ async function handleSalesImage(sock, msg) {
         }
 
         try {
-            await submitForm(data);
+            submitLocalOnly(data);
             const now = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', hour12: false });
             await reply(
                 `╔══════════════════════╗\n` +
@@ -304,7 +304,7 @@ async function handleSales(sock, msg, text) {
                 }
                 try {
                     await reply('⏳ Menyimpan laporan...');
-                    await submitForm(state.data);
+                    submitLocalOnly(state.data);
                     const now = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', hour12: false });
                     delete salesState[jid];
                     return reply(

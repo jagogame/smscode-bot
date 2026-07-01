@@ -64,6 +64,13 @@ async function submitForm(record) {
     saveDB(db);
 }
 
+// Simpan laporan YT G2G ke DB lokal saja (tanpa Google Form)
+function submitLocalOnly(record) {
+    const db = loadDB();
+    db.push({ ...record, submittedAt: new Date().toISOString(), source: 'yt_g2g' });
+    saveDB(db);
+}
+
 function getRekapHariIni() {
     const db = loadDB();
     const today = new Date().toISOString().slice(0, 10);
@@ -79,4 +86,4 @@ function getRekapByKasir(nama) {
     return db.filter(r => r.namaKasir.toLowerCase() === nama.toLowerCase());
 }
 
-module.exports = { submitForm, getRekapHariIni, getRekapSemua, getRekapByKasir };
+module.exports = { submitForm, submitLocalOnly, getRekapHariIni, getRekapSemua, getRekapByKasir };
