@@ -51,7 +51,10 @@ async function handleSalesImage(sock, msg) {
     if (!state && caption) {
         const autoKasir = detectKasir(jid);
         console.log(`[laporan-yt] img dari ${jid}, caption="${caption}", kasir=${autoKasir||'tidak dikenal'}`);
-        if (!autoKasir) return false;
+        if (!autoKasir) {
+            await reply(`⚠️ Nomormu belum terdaftar sebagai kasir.\n\nKetik dulu:\n*daftar kasir Arshil*\n*daftar kasir Arinal*\n*daftar kasir Dewo*`);
+            return true;
+        }
 
         const filePath = await saveScreenshot(msg, `${autoKasir}_chat_g2g`).catch(() => null);
         if (!filePath) { await reply('⚠️ Gagal menyimpan gambar.'); return true; }
