@@ -94,6 +94,18 @@ async function handleSalesImage(sock, msg) {
     return true;
 }
 
+// Deteksi kasir dari nomor WA pengirim
+// Daftarkan nomor via env: KASIR_ARSHIL_WA=628xxx, KASIR_ARINAL_WA=628xxx, KASIR_DEWO_WA=628xxx
+function detectKasir(jid) {
+    const num = jid.replace('@s.whatsapp.net', '').replace(/\D/g, '');
+    for (const name of KASIR_LIST) {
+        const envKey = `KASIR_${name.toUpperCase()}_WA`;
+        const envNum = (process.env[envKey] || '').replace(/\D/g, '');
+        if (envNum && envNum === num) return name;
+    }
+    return null;
+}
+
 function numMenu(list) {
     return list.map((x, i) => `*${i + 1}.* ${x}`).join('\n');
 }
@@ -176,6 +188,16 @@ async function handleSales(sock, msg, text) {
 
     // ── Laporan YT G2G ────────────────────────────────────────────────────────
     if (lower === 'laporan yt') {
+        const autoKasir = detectKasir(jid);
+        if (autoKasir) {
+            salesState[jid] = { step: 'pembeli_yt', data: { namaKasir: autoKasir, platform: 'G2G', detailAkun: 'Youtube Premium' }, type: 'yt_g2g' };
+            return reply(
+                `📝 *Form Laporan YT Premium G2G*\n\n` +
+                `Kasir: *${autoKasir}* ✅\n\n` +
+                `Kirim *screenshot chat G2G* dengan caption = username pembeli\n` +
+                `_(atau ketik username dulu, lalu kirim gambar)_\n\nKetik *batal* untuk keluar.`
+            );
+        }
         salesState[jid] = { step: 'kasir_yt', data: {}, type: 'yt_g2g' };
         return reply(
             `📝 *Form Laporan YT Premium G2G*\n\n` +
