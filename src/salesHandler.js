@@ -108,13 +108,7 @@ function pickFromList(list, input) {
 function formatRecordYT(r) {
     return (
         `👤 Kasir: ${r.namaKasir}\n` +
-        `🛒 Username G2G: ${r.usernamePembeli}\n` +
-        `⏳ Durasi: ${r.durasi}\n` +
-        `📧 Email Admin: ${r.emailAdmin || '-'}\n` +
-        `📧 Email Buyer: ${r.emailBuyer || '-'}\n` +
-        `📅 Tgl Habis: ${r.tanggalHabis}\n` +
-        `💰 Harga Jual: ${r.hargaJual || '-'}\n` +
-        `📊 Status: ${r.keterangan}`
+        `🛒 Username G2G: ${r.usernamePembeli}`
     );
 }
 
@@ -179,12 +173,12 @@ async function handleSales(sock, msg, text) {
     // ── Input laporan ─────────────────────────────────────────────────
     const state = salesState[jid];
 
-    // ── Laporan YT G2G (dengan 3 screenshot) ─────────────────────────────────
+    // ── Laporan YT G2G ────────────────────────────────────────────────────────
     if (lower === 'laporan yt') {
         salesState[jid] = { step: 'kasir_yt', data: {}, type: 'yt_g2g' };
         return reply(
             `📝 *Form Laporan YT Premium G2G*\n\n` +
-            `Alur: data penjualan → 2 screenshot bukti → 1 chat G2G\n\n` +
+            `Alur: kasir → username G2G → 2 screenshot bukti → 1 chat G2G\n\n` +
             `Pilih nama kasir:\n\n${numMenu(KASIR_LIST)}\n\nKetik *batal* untuk keluar.`
         );
     }
@@ -201,50 +195,13 @@ async function handleSales(sock, msg, text) {
             }
             case 'pembeli_yt': {
                 state.data.usernamePembeli = text;
-                state.step = 'durasi_yt';
-                return reply(`✅ Pembeli: *${text}*\n\nPilih *durasi premium*:\n\n${numMenu(DURASI_LIST)}`);
-            }
-            case 'durasi_yt': {
-                const val = pickFromList(DURASI_LIST, text);
-                if (!val) return reply(`Pilihan tidak valid:\n\n${numMenu(DURASI_LIST)}`);
-                state.data.durasi = val;
-                state.step = 'harga_yt';
-                return reply(`✅ Durasi: *${val}*\n\nMasukkan *harga jual* (contoh: \`USD 3.50\` atau \`Rp 55.000\`):`);
-            }
-            case 'harga_yt': {
-                state.data.hargaJual = text;
-                state.step = 'emailAdmin_yt';
-                return reply(`✅ Harga: *${text}*\n\nMasukkan *email admin plan* (yang menginvite):\n_(ketik \`-\` jika tidak ada)_`);
-            }
-            case 'emailAdmin_yt': {
-                state.data.emailAdmin = text === '-' ? '' : text;
-                state.step = 'emailBuyer_yt';
-                return reply(`✅ Email Admin: *${text}*\n\nMasukkan *email buyer*:\n_(ketik \`-\` jika tidak ada)_`);
-            }
-            case 'emailBuyer_yt': {
-                state.data.emailBuyer = text === '-' ? '' : text;
-                state.step = 'tanggal_yt';
-                return reply(`✅ Email Buyer: *${text}*\n\nMasukkan *tanggal habis premium*:\nFormat: DD/MM/YYYY\nContoh: \`31/12/2025\``);
-            }
-            case 'tanggal_yt': {
-                if (!/^\d{2}\/\d{2}\/\d{4}$/.test(text)) {
-                    return reply(`⚠️ Format salah. Gunakan DD/MM/YYYY\nContoh: \`31/12/2025\``);
-                }
-                state.data.tanggalHabis = text;
-                state.step = 'status_yt';
-                return reply(`✅ Tanggal Habis: *${text}*\n\nPilih *keterangan status*:\n\n${numMenu(STATUS_LIST)}`);
-            }
-            case 'status_yt': {
-                const val = pickFromList(STATUS_LIST, text);
-                if (!val) return reply(`Pilihan tidak valid:\n\n${numMenu(STATUS_LIST)}`);
-                state.data.keterangan = val;
                 state.data.platform = 'G2G';
                 state.data.detailAkun = 'Youtube Premium';
                 state.step = 'ss1';
                 return reply(
-                    `✅ Status: *${val}*\n\n` +
-                    `📸 Sekarang kirim *screenshot bukti ke-1*\n` +
-                    `_(misal: halaman order G2G atau akun sudah masuk)_`
+                    `✅ Pembeli G2G: *${text}*\n\n` +
+                    `📸 Kirim *screenshot bukti ke-1*\n` +
+                    `_(misal: halaman order G2G terkonfirmasi)_`
                 );
             }
             case 'konfirmasi_yt': {
