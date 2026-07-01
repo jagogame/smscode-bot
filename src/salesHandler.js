@@ -39,10 +39,46 @@ async function saveScreenshot(msg, label) {
 async function handleSalesImage(sock, msg) {
     const jid = msg.key.remoteJid;
     const state = salesState[jid];
-    if (!state || !['pembeli_yt', 'chat_g2g'].includes(state.step)) return false;
-
-    const reply = (content) => sock.sendMessage(jid, { text: content }, { quoted: msg });
     const caption = msg.message?.imageMessage?.caption || '';
+    const reply = (content) => sock.sendMessage(jid, { text: content }, { quoted: msg });
+
+    // Kirim gambar + caption langsung tanpa state → auto laporan yt
+    if (!state && caption.trim()) {
+        const autoKasir = detectKasir(jid);
+        if (!autoKasir) return false;
+
+        const filePath = await saveScreenshot(msg, `${autoKasir}_chat_g2g`).catch(() => null);
+        if (!filePath) { await reply('⚠️ Gagal menyimpan gambar.'); return true; }
+
+        const data = {
+            namaKasir: autoKasir,
+            usernamePembeli: caption.trim(),
+            platform: 'G2G',
+            detailAkun: 'Youtube Premium',
+            chatG2G: filePath,
+        };
+
+        const settings = require('./store').getSettings();
+        const adminJid = settings.whatsapp ? `${settings.whatsapp.replace(/\D/g,'')}@s.whatsapp.net` : null;
+        if (adminJid) {
+            const imgBuf = require('fs').readFileSync(filePath);
+            sock.sendMessage(adminJid, { image: imgBuf, caption: `💬 *Bukti Chat G2G*\nKasir: ${autoKasir}\nPembeli G2G: ${data.usernamePembeli}` }).catch(() => {});
+        }
+
+        try {
+            await submitForm(data);
+            await reply(
+                `✅ *Laporan YT G2G Berhasil Disimpan!*\n\n` +
+                formatRecordYT(data) +
+                `\n\n💬 Bukti chat diteruskan ke admin.`
+            );
+        } catch (e) {
+            await reply(`❌ Gagal submit: ${e.message}`);
+        }
+        return true;
+    }
+
+    if (!state || !['pembeli_yt', 'chat_g2g'].includes(state.step)) return false;
 
     const stepLabel = {
         ss1: 'bukti1',
