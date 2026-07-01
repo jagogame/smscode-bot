@@ -310,6 +310,11 @@ router.get('/api/store/settings', (req, res) => {
     res.json(store.getSettings());
 });
 
+// Flash sale publik (untuk countdown bar di frontend)
+router.get('/api/store/flash-sale', (req, res) => {
+    res.json(store.getFlashSale());
+});
+
 // Konfigurasi pembayaran untuk frontend
 router.get('/api/store/config', (req, res) => {
     res.json({

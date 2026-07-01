@@ -8,7 +8,11 @@
     "stock": -1,
     "image": "https://id-live-01.slatic.net/p/bf14722996cd13e1c9fedad8a775368c.jpg",
     "active": true,
-    "createdAt": "2026-06-26T11:00:31.492Z"
+    "createdAt": "2026-06-26T11:00:31.492Z",
+    "images": [
+      "https://id-live-01.slatic.net/p/bf14722996cd13e1c9fedad8a775368c.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/20251129/ddl4p1ia69qyc7i4q61uq.jpg"
+    ]
   },
   {
     "id": "1782471804526",
@@ -19,7 +23,11 @@
     "stock": -1,
     "image": "https://id-live-01.slatic.net/p/bf14722996cd13e1c9fedad8a775368c.jpg",
     "active": true,
-    "createdAt": "2026-06-26T11:03:24.526Z"
+    "createdAt": "2026-06-26T11:03:24.526Z",
+    "images": [
+      "https://id-live-01.slatic.net/p/bf14722996cd13e1c9fedad8a775368c.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/20251129/ddl4p1ia69qyc7i4q61uq.jpg"
+    ]
   },
   {
     "id": "1782471922447",
@@ -337,6 +345,15 @@
     "stock": -1,
     "image": "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/zhgt82zut6mjw6w7fy9urs.jpg",
     "active": true,
-    "createdAt": "2026-06-26T11:05:22.510Z"
+    "createdAt": "2026-06-26T11:05:22.510Z",
+    "images": [
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/zhgt82zut6mjw6w7fy9urs.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/jgxggthceb8a1nioazfoh.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/lzax8o3gs2kqq6t9iae6n.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/ts1pv7x7ruk77574eca0nl.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/bdil3k86x9e6xtcl9dkzub.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/bu06xzfmeafb6ff8kdb6z9.jpg",
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/9ldg0nuoekklb0n6x6ylhh.jpg"
+    ]
   }
 ]
