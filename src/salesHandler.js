@@ -10,6 +10,11 @@ const salesState = {};
 const BUKTI_DIR = path.join(__dirname, '../data/bukti_yt');
 if (!fs.existsSync(BUKTI_DIR)) fs.mkdirSync(BUKTI_DIR, { recursive: true });
 
+// File mapping JID → nama kasir (daftar via perintah "daftar kasir <nama>")
+const KASIR_JID_FILE = path.join(__dirname, '../data/kasir-jid.json');
+function loadKasirJid() { try { return JSON.parse(fs.readFileSync(KASIR_JID_FILE,'utf8')); } catch { return {}; } }
+function saveKasirJid(map) { fs.writeFileSync(KASIR_JID_FILE, JSON.stringify(map, null, 2)); }
+
 const KASIR_LIST    = ['Arshil', 'Arinal', 'Dewo'];
 const PRODUK_LIST   = ['Gemini Pro + 5 TB', 'Youtube Premium'];
 const DURASI_LIST   = ['1 Bulan', '2 Bulan', '3 Bulan', '4 Bulan', '5 Bulan', '6 Bulan', '1 Tahun', '18 Bulan'];
@@ -145,7 +150,12 @@ async function handleSalesImage(sock, msg) {
 // Deteksi kasir dari nomor WA pengirim
 // Daftarkan nomor via env: KASIR_ARSHIL_WA=628xxx, KASIR_ARINAL_WA=628xxx, KASIR_DEWO_WA=628xxx
 function detectKasir(jid) {
-    const num = jid.replace('@s.whatsapp.net', '').replace(/\D/g, '');
+    // 1. Cek file registrasi JID (support @lid dan @s.whatsapp.net)
+    const map = loadKasirJid();
+    if (map[jid]) return map[jid];
+
+    // 2. Fallback: cocokkan nomor HP dari env var (untuk @s.whatsapp.net lama)
+    const num = jid.replace(/@.*/, '').replace(/\D/g, '');
     for (const name of KASIR_LIST) {
         const envKey = `KASIR_${name.toUpperCase()}_WA`;
         const nums = (process.env[envKey] || '').split(',').map(n => n.trim().replace(/\D/g, '')).filter(Boolean);
@@ -229,6 +239,17 @@ async function handleSales(sock, msg, text) {
             `*${i + 1}.* ${r.namaPembeli} — ${r.detailAkun} (${r.durasi}) — ${r.submittedAt?.slice(0, 10)}`
         ).join('\n');
         return reply(`📊 *Rekap Kasir ${nama}* (${data.length} transaksi)\n\n${list}`);
+    }
+
+    // ── Daftar kasir (simpan JID → nama) ─────────────────────────────────────
+    if (lower.startsWith('daftar kasir ')) {
+        const nama = text.slice(13).trim();
+        const valid = KASIR_LIST.find(k => k.toLowerCase() === nama.toLowerCase());
+        if (!valid) return reply(`❌ Nama tidak valid. Pilih: ${KASIR_LIST.join(', ')}`);
+        const map = loadKasirJid();
+        map[jid] = valid;
+        saveKasirJid(map);
+        return reply(`✅ Berhasil daftar sebagai kasir *${valid}*!\n\nSekarang kamu bisa langsung kirim foto + caption username pembeli untuk laporan YT G2G.`);
     }
 
     // ── Input laporan ─────────────────────────────────────────────────

@@ -61,7 +61,8 @@ const MENU = `╔═════════════════════
 ╠══════════════════════════╣
 ║ 📝 *Laporan Penjualan*   ║
 ║ *laporan*    - Form umum ║
-║ *laporan yt* - YT G2G+SS ║
+║ *laporan yt* - YT G2G    ║
+║ *daftar kasir <nama>*    ║
 ║ *rekap*      - Lihat rekap║
 ╚══════════════════════════╝`;
 
