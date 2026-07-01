@@ -39,7 +39,7 @@ async function saveScreenshot(msg, label) {
 async function handleSalesImage(sock, msg) {
     const jid = msg.key.remoteJid;
     const state = salesState[jid];
-    if (!state || !['ss1', 'ss2', 'chat_g2g'].includes(state.step)) return false;
+    if (!state || state.step !== 'chat_g2g') return false;
 
     const reply = (content) => sock.sendMessage(jid, { text: content }, { quoted: msg });
     const caption = msg.message?.imageMessage?.caption || '';
@@ -71,25 +71,15 @@ async function handleSalesImage(sock, msg) {
         sock.sendMessage(adminJid, { image: imgBuf, caption: captions }).catch(() => {});
     }
 
-    if (state.step === 'ss1') {
-        state.data.ss1 = filePath;
-        state.step = 'ss2';
-        await reply('✅ Screenshot 1 diterima!\n\n📸 Kirim *screenshot bukti ke-2* (misal: akun aktif / member berhasil)');
-    } else if (state.step === 'ss2') {
-        state.data.ss2 = filePath;
-        state.step = 'chat_g2g';
-        await reply('✅ Screenshot 2 diterima!\n\n💬 Terakhir, kirim *screenshot bukti chat dengan pembeli di G2G*');
-    } else if (state.step === 'chat_g2g') {
-        state.data.chatG2G = filePath;
-        state.step = 'konfirmasi_yt';
-        await reply(
-            `✅ Semua bukti diterima!\n\n` +
-            `📋 *Konfirmasi Laporan YT G2G*\n\n` +
-            formatRecordYT(state.data) +
-            `\n\n📸 Bukti: 2 screenshot + 1 chat G2G ✅\n\n` +
-            `Ketik *ya* untuk submit atau *batal* untuk membatalkan.`
-        );
-    }
+    state.data.chatG2G = filePath;
+    state.step = 'konfirmasi_yt';
+    await reply(
+        `✅ Bukti chat diterima!\n\n` +
+        `📋 *Konfirmasi Laporan YT G2G*\n\n` +
+        formatRecordYT(state.data) +
+        `\n\n💬 Bukti chat G2G ✅\n\n` +
+        `Ketik *ya* untuk submit atau *batal* untuk membatalkan.`
+    );
     return true;
 }
 
@@ -178,7 +168,7 @@ async function handleSales(sock, msg, text) {
         salesState[jid] = { step: 'kasir_yt', data: {}, type: 'yt_g2g' };
         return reply(
             `📝 *Form Laporan YT Premium G2G*\n\n` +
-            `Alur: kasir → username G2G → 2 screenshot bukti → 1 chat G2G\n\n` +
+            `Alur: kasir → username G2G → screenshot chat G2G\n\n` +
             `Pilih nama kasir:\n\n${numMenu(KASIR_LIST)}\n\nKetik *batal* untuk keluar.`
         );
     }
@@ -197,11 +187,10 @@ async function handleSales(sock, msg, text) {
                 state.data.usernamePembeli = text;
                 state.data.platform = 'G2G';
                 state.data.detailAkun = 'Youtube Premium';
-                state.step = 'ss1';
+                state.step = 'chat_g2g';
                 return reply(
                     `✅ Pembeli G2G: *${text}*\n\n` +
-                    `📸 Kirim *screenshot bukti ke-1*\n` +
-                    `_(misal: halaman order G2G terkonfirmasi)_`
+                    `💬 Kirim *screenshot bukti chat dengan pembeli di G2G*`
                 );
             }
             case 'konfirmasi_yt': {
@@ -216,7 +205,7 @@ async function handleSales(sock, msg, text) {
                     return reply(
                         `✅ *Laporan YT G2G Berhasil Disimpan!*\n\n` +
                         formatRecordYT(state.data) +
-                        `\n\n📸 3 bukti screenshot sudah diteruskan ke admin.\nData masuk ke Google Form.`
+                        `\n\n💬 Bukti chat G2G sudah diteruskan ke admin.\nData masuk ke Google Form.`
                     );
                 } catch (e) {
                     delete salesState[jid];
