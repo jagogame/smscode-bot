@@ -63,7 +63,8 @@ const MENU = `╔═════════════════════
 ║ *laporan*    - Form umum ║
 ║ *laporan yt* - YT G2G    ║
 ║ *daftar kasir <nama>*    ║
-║ *rekap*      - Lihat rekap║
+║ *rekap yt*   - Rekap YT   ║
+║ *rekap*      - Rekap umum ║
 ╚══════════════════════════╝`;
 
 async function handleMessage(sock, msg) {

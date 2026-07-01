@@ -213,6 +213,37 @@ async function handleSales(sock, msg, text) {
         );
     }
 
+    if (lower === 'rekap yt' || lower === 'rekap yt semua') {
+        const data = getRekapSemua().filter(r => r.source === 'yt_g2g' || r.platform === 'G2G');
+        if (!data.length) return reply('📋 Belum ada laporan YT G2G.');
+        const byKasir = {};
+        data.forEach(r => { const k = r.namaKasir || 'Unknown'; if (!byKasir[k]) byKasir[k] = []; byKasir[k].push(r); });
+        let txt = `📊 *Rekap Laporan YT G2G* (${data.length} total)\n${'─'.repeat(28)}\n`;
+        for (const [kasir, rows] of Object.entries(byKasir)) {
+            txt += `\n👤 *${kasir}* (${rows.length} transaksi)\n`;
+            rows.slice(-5).forEach((r, i) => {
+                const tgl = r.submittedAt?.slice(0, 10) || '-';
+                txt += `  ${i + 1}. ${r.usernamePembeli || r.namaPembeli || '-'} — ${tgl}\n`;
+            });
+            if (rows.length > 5) txt += `  _...dan ${rows.length - 5} lainnya_\n`;
+        }
+        return reply(txt.trim());
+    }
+
+    if (lower.startsWith('rekap yt kasir ')) {
+        const nama = text.slice(15).trim();
+        const data = getRekapSemua().filter(r =>
+            (r.source === 'yt_g2g' || r.platform === 'G2G') &&
+            r.namaKasir?.toLowerCase() === nama.toLowerCase()
+        );
+        if (!data.length) return reply(`📋 Tidak ada laporan YT untuk kasir *${nama}*.`);
+        const list = data.map((r, i) => {
+            const tgl = r.submittedAt?.slice(0, 10) || '-';
+            return `*${i + 1}.* ${r.usernamePembeli || r.namaPembeli || '-'} — ${tgl}`;
+        }).join('\n');
+        return reply(`📊 *Rekap YT G2G — ${nama}* (${data.length} transaksi)\n\n${list}`);
+    }
+
     if (lower === 'rekap hari ini') {
         const data = getRekapHariIni();
         if (!data.length) return reply('📋 Belum ada transaksi hari ini.');
