@@ -29,21 +29,21 @@ function saveDB(data) {
 }
 
 async function submitForm(record) {
-    // Parse tanggal DD/MM/YYYY → year, month, day
-    const [day, month, year] = record.tanggalHabis.split('/');
+    const tgl = record.tanggalHabis || '';
+    const [day='', month='', year=''] = tgl ? tgl.split('/') : [];
 
     const params = new URLSearchParams({
-        [ENTRY.namaKasir]:              record.namaKasir,
-        [ENTRY.namaPembeli]:            record.namaPembeli,
-        [ENTRY.detailAkun]:             record.detailAkun,
-        [ENTRY.durasi]:                 record.durasi,
+        [ENTRY.namaKasir]:              record.namaKasir || '',
+        [ENTRY.namaPembeli]:            record.namaPembeli || record.usernamePembeli || '',
+        [ENTRY.detailAkun]:             record.detailAkun || '',
+        [ENTRY.durasi]:                 record.durasi || '',
         [ENTRY.emailAdmin]:             record.emailAdmin || '',
         [ENTRY.emailBuyer]:             record.emailBuyer || '',
         [`${ENTRY.tanggalHabis}_year`]:  year,
         [`${ENTRY.tanggalHabis}_month`]: month,
         [`${ENTRY.tanggalHabis}_day`]:   day,
-        [ENTRY.platform]:               record.platform,
-        [ENTRY.keterangan]:             record.keterangan,
+        [ENTRY.platform]:               record.platform || '',
+        [ENTRY.keterangan]:             record.keterangan || '',
     });
     const res = await axios.post(FORM_URL, params.toString(), {
         headers: {
