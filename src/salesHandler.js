@@ -39,7 +39,7 @@ async function saveScreenshot(msg, label) {
 async function handleSalesImage(sock, msg) {
     const jid = msg.key.remoteJid;
     const state = salesState[jid];
-    if (!state || state.step !== 'chat_g2g') return false;
+    if (!state || !['pembeli_yt', 'chat_g2g'].includes(state.step)) return false;
 
     const reply = (content) => sock.sendMessage(jid, { text: content }, { quoted: msg });
     const caption = msg.message?.imageMessage?.caption || '';
@@ -69,6 +69,17 @@ async function handleSalesImage(sock, msg) {
 
     if (adminJid) {
         sock.sendMessage(adminJid, { image: imgBuf, caption: captions }).catch(() => {});
+    }
+
+    // Kalau masih di step pembeli_yt: ambil caption sebagai username
+    if (state.step === 'pembeli_yt') {
+        if (!caption.trim()) {
+            await reply('⚠️ Tambahkan *username pembeli G2G* sebagai caption gambar, lalu kirim ulang.');
+            return true;
+        }
+        state.data.usernamePembeli = caption.trim();
+        state.data.platform = 'G2G';
+        state.data.detailAkun = 'Youtube Premium';
     }
 
     state.data.chatG2G = filePath;
@@ -168,7 +179,7 @@ async function handleSales(sock, msg, text) {
         salesState[jid] = { step: 'kasir_yt', data: {}, type: 'yt_g2g' };
         return reply(
             `📝 *Form Laporan YT Premium G2G*\n\n` +
-            `Alur: kasir → username G2G → screenshot chat G2G\n\n` +
+            `Alur: kasir → kirim screenshot chat (caption = username G2G)\n\n` +
             `Pilih nama kasir:\n\n${numMenu(KASIR_LIST)}\n\nKetik *batal* untuk keluar.`
         );
     }
@@ -184,13 +195,15 @@ async function handleSales(sock, msg, text) {
                 return reply(`✅ Kasir: *${val}*\n\nMasukkan *username pembeli di G2G*:`);
             }
             case 'pembeli_yt': {
+                // Kalau teks saja → simpan username, minta screenshot terpisah
                 state.data.usernamePembeli = text;
                 state.data.platform = 'G2G';
                 state.data.detailAkun = 'Youtube Premium';
                 state.step = 'chat_g2g';
                 return reply(
                     `✅ Pembeli G2G: *${text}*\n\n` +
-                    `💬 Kirim *screenshot bukti chat dengan pembeli di G2G*`
+                    `💬 Kirim *screenshot chat G2G*\n` +
+                    `_(atau kirim gambar sekaligus dengan caption username pembeli dari awal)_`
                 );
             }
             case 'konfirmasi_yt': {
