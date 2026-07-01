@@ -39,12 +39,13 @@ async function saveScreenshot(msg, label) {
 async function handleSalesImage(sock, msg) {
     const jid = msg.key.remoteJid;
     const state = salesState[jid];
-    const caption = msg.message?.imageMessage?.caption || '';
+    const caption = (msg.message?.imageMessage?.caption || '').trim();
     const reply = (content) => sock.sendMessage(jid, { text: content }, { quoted: msg });
 
     // Kirim gambar + caption langsung tanpa state → auto laporan yt
-    if (!state && caption.trim()) {
+    if (!state && caption) {
         const autoKasir = detectKasir(jid);
+        console.log(`[laporan-yt] img dari ${jid}, caption="${caption}", kasir=${autoKasir||'tidak dikenal'}`);
         if (!autoKasir) return false;
 
         const filePath = await saveScreenshot(msg, `${autoKasir}_chat_g2g`).catch(() => null);

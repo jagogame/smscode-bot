@@ -67,14 +67,23 @@ const MENU = `╔═════════════════════
 
 async function handleMessage(sock, msg) {
     const jid = msg.key.remoteJid;
+
+    // Ekstrak image message dari berbagai wrapper Baileys
+    const imgMsg = msg.message?.imageMessage
+        || msg.message?.ephemeralMessage?.message?.imageMessage
+        || msg.message?.viewOnceMessage?.message?.imageMessage
+        || msg.message?.viewOnceMessageV2?.message?.imageMessage;
+
     const text = (msg.message?.conversation || msg.message?.extendedTextMessage?.text || '').trim();
 
-    // Teruskan pesan gambar ke salesHandler jika sedang dalam sesi laporan yt
-    if (!text && msg.message?.imageMessage) {
+    // Teruskan pesan gambar ke salesHandler
+    if (imgMsg) {
+        // Normalisasi: pastikan msg.message.imageMessage selalu ada untuk handler
+        if (!msg.message.imageMessage) msg.message.imageMessage = imgMsg;
         const { handleSalesImage } = require('./salesHandler');
         const handled = await handleSalesImage(sock, msg);
         if (handled) return;
-        return;
+        if (!text) return;
     }
 
     if (!text) return;
