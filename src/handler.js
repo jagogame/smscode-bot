@@ -60,13 +60,23 @@ const MENU = `╔═════════════════════
 ║ *selesai <id>*- Finish   ║
 ╠══════════════════════════╣
 ║ 📝 *Laporan Penjualan*   ║
-║ *laporan* - Input data   ║
-║ *rekap*   - Lihat rekap  ║
+║ *laporan*    - Form umum ║
+║ *laporan yt* - YT G2G+SS ║
+║ *rekap*      - Lihat rekap║
 ╚══════════════════════════╝`;
 
 async function handleMessage(sock, msg) {
     const jid = msg.key.remoteJid;
     const text = (msg.message?.conversation || msg.message?.extendedTextMessage?.text || '').trim();
+
+    // Teruskan pesan gambar ke salesHandler jika sedang dalam sesi laporan yt
+    if (!text && msg.message?.imageMessage) {
+        const { handleSalesImage } = require('./salesHandler');
+        const handled = await handleSalesImage(sock, msg);
+        if (handled) return;
+        return;
+    }
+
     if (!text) return;
 
     const lower = text.toLowerCase();

@@ -1,12 +1,97 @@
 const { submitForm, getRekapHariIni, getRekapSemua, getRekapByKasir } = require('./sales');
+const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
+const wa = require('./wa');
+const fs = require('fs');
+const path = require('path');
 
 const salesState = {};
 
-const KASIR_LIST   = ['Arshil', 'Arinal', 'Dewo'];
-const PRODUK_LIST  = ['Gemini Pro + 5 TB', 'Youtube Premium'];
-const DURASI_LIST  = ['1 Bulan', '2 Bulan', '3 Bulan', '4 Bulan', '5 Bulan', '6 Bulan', '1 Tahun', '18 Bulan'];
+// Folder simpan screenshot bukti
+const BUKTI_DIR = path.join(__dirname, '../data/bukti_yt');
+if (!fs.existsSync(BUKTI_DIR)) fs.mkdirSync(BUKTI_DIR, { recursive: true });
+
+const KASIR_LIST    = ['Arshil', 'Arinal', 'Dewo'];
+const PRODUK_LIST   = ['Gemini Pro + 5 TB', 'Youtube Premium'];
+const DURASI_LIST   = ['1 Bulan', '2 Bulan', '3 Bulan', '4 Bulan', '5 Bulan', '6 Bulan', '1 Tahun', '18 Bulan'];
 const PLATFORM_LIST = ['G2G', 'ITEMKU', 'KONTAK WA'];
-const STATUS_LIST  = ['BERJALAN', 'HAMPIR HABIS', 'HABIS'];
+const STATUS_LIST   = ['BERJALAN', 'HAMPIR HABIS', 'HABIS'];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helper: download gambar dari pesan WA lalu simpan ke disk
+// ─────────────────────────────────────────────────────────────────────────────
+async function saveScreenshot(msg, label) {
+    const imgMsg = msg.message?.imageMessage;
+    if (!imgMsg) return null;
+    const stream = await downloadContentFromMessage(imgMsg, 'image');
+    const chunks = [];
+    for await (const chunk of stream) chunks.push(chunk);
+    const buf = Buffer.concat(chunks);
+    const ts = Date.now();
+    const fname = `${label}_${ts}.jpg`;
+    const fpath = path.join(BUKTI_DIR, fname);
+    fs.writeFileSync(fpath, buf);
+    return fpath;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Handler pesan GAMBAR — dipanggil dari handler.js
+// ─────────────────────────────────────────────────────────────────────────────
+async function handleSalesImage(sock, msg) {
+    const jid = msg.key.remoteJid;
+    const state = salesState[jid];
+    if (!state || !['ss1', 'ss2', 'chat_g2g'].includes(state.step)) return false;
+
+    const reply = (content) => sock.sendMessage(jid, { text: content }, { quoted: msg });
+    const caption = msg.message?.imageMessage?.caption || '';
+
+    const stepLabel = {
+        ss1: 'bukti1',
+        ss2: 'bukti2',
+        chat_g2g: 'chat_g2g',
+    }[state.step];
+
+    const filePath = await saveScreenshot(msg, `${state.data.namaKasir || 'kasir'}_${stepLabel}`).catch(() => null);
+
+    if (!filePath) {
+        await reply('⚠️ Gagal menyimpan gambar. Coba kirim ulang.');
+        return true;
+    }
+
+    // Forward screenshot ke nomor admin dengan label
+    const settings = require('./store').getSettings();
+    const adminJid = settings.whatsapp ? `${settings.whatsapp.replace(/\D/g,'')}@s.whatsapp.net` : null;
+    const imgBuf = fs.readFileSync(filePath);
+    const captions = {
+        ss1: `📸 *Bukti Screenshot 1*\nKasir: ${state.data.namaKasir}\nPembeli G2G: ${state.data.usernamePembeli || '-'}`,
+        ss2: `📸 *Bukti Screenshot 2*\nKasir: ${state.data.namaKasir}\nPembeli G2G: ${state.data.usernamePembeli || '-'}`,
+        chat_g2g: `💬 *Bukti Chat G2G*\nKasir: ${state.data.namaKasir}\nPembeli G2G: ${state.data.usernamePembeli || '-'}`,
+    }[stepLabel];
+
+    if (adminJid) {
+        sock.sendMessage(adminJid, { image: imgBuf, caption: captions }).catch(() => {});
+    }
+
+    if (state.step === 'ss1') {
+        state.data.ss1 = filePath;
+        state.step = 'ss2';
+        await reply('✅ Screenshot 1 diterima!\n\n📸 Kirim *screenshot bukti ke-2* (misal: akun aktif / member berhasil)');
+    } else if (state.step === 'ss2') {
+        state.data.ss2 = filePath;
+        state.step = 'chat_g2g';
+        await reply('✅ Screenshot 2 diterima!\n\n💬 Terakhir, kirim *screenshot bukti chat dengan pembeli di G2G*');
+    } else if (state.step === 'chat_g2g') {
+        state.data.chatG2G = filePath;
+        state.step = 'konfirmasi_yt';
+        await reply(
+            `✅ Semua bukti diterima!\n\n` +
+            `📋 *Konfirmasi Laporan YT G2G*\n\n` +
+            formatRecordYT(state.data) +
+            `\n\n📸 Bukti: 2 screenshot + 1 chat G2G ✅\n\n` +
+            `Ketik *ya* untuk submit atau *batal* untuk membatalkan.`
+        );
+    }
+    return true;
+}
 
 function numMenu(list) {
     return list.map((x, i) => `*${i + 1}.* ${x}`).join('\n');
@@ -18,6 +103,19 @@ function pickFromList(list, input) {
     // Coba match teks langsung
     const match = list.find(x => x.toLowerCase() === input.toLowerCase());
     return match || null;
+}
+
+function formatRecordYT(r) {
+    return (
+        `👤 Kasir: ${r.namaKasir}\n` +
+        `🛒 Username G2G: ${r.usernamePembeli}\n` +
+        `⏳ Durasi: ${r.durasi}\n` +
+        `📧 Email Admin: ${r.emailAdmin || '-'}\n` +
+        `📧 Email Buyer: ${r.emailBuyer || '-'}\n` +
+        `📅 Tgl Habis: ${r.tanggalHabis}\n` +
+        `💰 Harga Jual: ${r.hargaJual || '-'}\n` +
+        `📊 Status: ${r.keterangan}`
+    );
 }
 
 function formatRecord(r) {
@@ -80,6 +178,96 @@ async function handleSales(sock, msg, text) {
 
     // ── Input laporan ─────────────────────────────────────────────────
     const state = salesState[jid];
+
+    // ── Laporan YT G2G (dengan 3 screenshot) ─────────────────────────────────
+    if (lower === 'laporan yt') {
+        salesState[jid] = { step: 'kasir_yt', data: {}, type: 'yt_g2g' };
+        return reply(
+            `📝 *Form Laporan YT Premium G2G*\n\n` +
+            `Alur: data penjualan → 2 screenshot bukti → 1 chat G2G\n\n` +
+            `Pilih nama kasir:\n\n${numMenu(KASIR_LIST)}\n\nKetik *batal* untuk keluar.`
+        );
+    }
+
+    // ── Step-step form laporan YT G2G ─────────────────────────────────────────
+    if (state?.type === 'yt_g2g') {
+        switch (state.step) {
+            case 'kasir_yt': {
+                const val = pickFromList(KASIR_LIST, text);
+                if (!val) return reply(`Pilihan tidak valid:\n\n${numMenu(KASIR_LIST)}`);
+                state.data.namaKasir = val;
+                state.step = 'pembeli_yt';
+                return reply(`✅ Kasir: *${val}*\n\nMasukkan *username pembeli di G2G*:`);
+            }
+            case 'pembeli_yt': {
+                state.data.usernamePembeli = text;
+                state.step = 'durasi_yt';
+                return reply(`✅ Pembeli: *${text}*\n\nPilih *durasi premium*:\n\n${numMenu(DURASI_LIST)}`);
+            }
+            case 'durasi_yt': {
+                const val = pickFromList(DURASI_LIST, text);
+                if (!val) return reply(`Pilihan tidak valid:\n\n${numMenu(DURASI_LIST)}`);
+                state.data.durasi = val;
+                state.step = 'harga_yt';
+                return reply(`✅ Durasi: *${val}*\n\nMasukkan *harga jual* (contoh: \`USD 3.50\` atau \`Rp 55.000\`):`);
+            }
+            case 'harga_yt': {
+                state.data.hargaJual = text;
+                state.step = 'emailAdmin_yt';
+                return reply(`✅ Harga: *${text}*\n\nMasukkan *email admin plan* (yang menginvite):\n_(ketik \`-\` jika tidak ada)_`);
+            }
+            case 'emailAdmin_yt': {
+                state.data.emailAdmin = text === '-' ? '' : text;
+                state.step = 'emailBuyer_yt';
+                return reply(`✅ Email Admin: *${text}*\n\nMasukkan *email buyer*:\n_(ketik \`-\` jika tidak ada)_`);
+            }
+            case 'emailBuyer_yt': {
+                state.data.emailBuyer = text === '-' ? '' : text;
+                state.step = 'tanggal_yt';
+                return reply(`✅ Email Buyer: *${text}*\n\nMasukkan *tanggal habis premium*:\nFormat: DD/MM/YYYY\nContoh: \`31/12/2025\``);
+            }
+            case 'tanggal_yt': {
+                if (!/^\d{2}\/\d{2}\/\d{4}$/.test(text)) {
+                    return reply(`⚠️ Format salah. Gunakan DD/MM/YYYY\nContoh: \`31/12/2025\``);
+                }
+                state.data.tanggalHabis = text;
+                state.step = 'status_yt';
+                return reply(`✅ Tanggal Habis: *${text}*\n\nPilih *keterangan status*:\n\n${numMenu(STATUS_LIST)}`);
+            }
+            case 'status_yt': {
+                const val = pickFromList(STATUS_LIST, text);
+                if (!val) return reply(`Pilihan tidak valid:\n\n${numMenu(STATUS_LIST)}`);
+                state.data.keterangan = val;
+                state.data.platform = 'G2G';
+                state.data.detailAkun = 'Youtube Premium';
+                state.step = 'ss1';
+                return reply(
+                    `✅ Status: *${val}*\n\n` +
+                    `📸 Sekarang kirim *screenshot bukti ke-1*\n` +
+                    `_(misal: halaman order G2G atau akun sudah masuk)_`
+                );
+            }
+            case 'konfirmasi_yt': {
+                if (lower !== 'ya') {
+                    delete salesState[jid];
+                    return reply('↩️ Laporan dibatalkan. Ketik *laporan yt* untuk mengulang.');
+                }
+                try {
+                    await reply('⏳ Menyimpan laporan...');
+                    await submitForm(state.data);
+                    delete salesState[jid];
+                    return reply(
+                        `✅ *Laporan YT G2G Berhasil Disimpan!*\n\n` +
+                        formatRecordYT(state.data) +
+                        `\n\n📸 3 bukti screenshot sudah diteruskan ke admin.\nData masuk ke Google Form.`
+                    );
+                } catch (e) {
+                    delete salesState[jid];
+                    return reply(`❌ Gagal submit: ${e.message}`);
+                }
+            }
+        }
+    }
 
     if (lower === 'laporan') {
         salesState[jid] = { step: 'kasir', data: {} };
@@ -189,4 +377,4 @@ async function handleSales(sock, msg, text) {
     return null;
 }
 
-module.exports = { handleSales };
+module.exports = { handleSales, handleSalesImage };
