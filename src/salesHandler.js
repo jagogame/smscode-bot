@@ -251,7 +251,11 @@ async function handleSales(sock, msg, text) {
         const data = getRekapHariIni();
         if (!data.length) return reply('📋 Belum ada transaksi hari ini.');
         const total = data.length;
-        const list = data.map((r, i) => `*${i + 1}.* ${r.namaPembeli} — ${r.detailAkun} (${r.durasi}) — ${r.platform}`).join('\n');
+        const list = data.map((r, i) => {
+            const pembeli = r.namaPembeli || r.usernamePembeli || '-';
+            const durasi = r.durasi || '-';
+            return `*${i + 1}.* ${pembeli} — ${r.detailAkun} (${durasi}) — ${r.platform}`;
+        }).join('\n');
         return reply(`📊 *Rekap Hari Ini* (${total} transaksi)\n\n${list}`);
     }
 
@@ -269,9 +273,12 @@ async function handleSales(sock, msg, text) {
         const nama = text.slice(12).trim();
         const data = getRekapByKasir(nama);
         if (!data.length) return reply(`📋 Tidak ada transaksi untuk kasir *${nama}*.`);
-        const list = data.map((r, i) =>
-            `*${i + 1}.* ${r.namaPembeli} — ${r.detailAkun} (${r.durasi}) — ${r.submittedAt?.slice(0, 10)}`
-        ).join('\n');
+        const list = data.map((r, i) => {
+            const pembeli = r.namaPembeli || r.usernamePembeli || '-';
+            const durasi = r.durasi || '-';
+            const tgl = r.submittedAt?.slice(0, 10) || '-';
+            return `*${i + 1}.* ${pembeli} — ${r.detailAkun} (${durasi}) — ${tgl}`;
+        }).join('\n');
         return reply(`📊 *Rekap Kasir ${nama}* (${data.length} transaksi)\n\n${list}`);
     }
 

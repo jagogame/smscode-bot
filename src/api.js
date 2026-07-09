@@ -82,6 +82,14 @@ function requireAuth(req, res, next) {
     next();
 }
 
+// Middleware khusus admin — dipakai SETELAH requireAuth, cek role di atas sesi yang sudah diverifikasi
+function requireAdmin(req, res, next) {
+    if (!req.session || req.session.role !== 'admin') {
+        return res.status(403).json({ error: 'Khusus admin' });
+    }
+    next();
+}
+
 // Security headers dasar
 router.use((req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -182,7 +190,7 @@ router.post('/api/logout', requireAuth, (req, res) => {
 });
 
 // Saldo
-router.get('/api/saldo', requireAuth, async (req, res) => {
+router.get('/api/saldo', requireAuth, requireAdmin, async (req, res) => {
     try {
         const bal = await sms.getBalance();
         res.json(bal);
@@ -192,7 +200,7 @@ router.get('/api/saldo', requireAuth, async (req, res) => {
 });
 
 // Order aktif
-router.get('/api/orders/active', requireAuth, async (req, res) => {
+router.get('/api/orders/active', requireAuth, requireAdmin, async (req, res) => {
     try {
         const orders = await sms.getActiveOrders();
         res.json(orders || []);
@@ -202,7 +210,7 @@ router.get('/api/orders/active', requireAuth, async (req, res) => {
 });
 
 // Cek order
-router.get('/api/orders/:id', requireAuth, async (req, res) => {
+router.get('/api/orders/:id', requireAuth, requireAdmin, async (req, res) => {
     try {
         const order = await sms.getOrder(req.params.id);
         res.json(order);
@@ -212,7 +220,7 @@ router.get('/api/orders/:id', requireAuth, async (req, res) => {
 });
 
 // Beli nomor
-router.post('/api/orders/buy', requireAuth, async (req, res) => {
+router.post('/api/orders/buy', requireAuth, requireAdmin, async (req, res) => {
     try {
         const order = await sms.createOrder(6220);
         res.json(order);
@@ -222,7 +230,7 @@ router.post('/api/orders/buy', requireAuth, async (req, res) => {
 });
 
 // Cancel order
-router.post('/api/orders/cancel', requireAuth, async (req, res) => {
+router.post('/api/orders/cancel', requireAuth, requireAdmin, async (req, res) => {
     try {
         const result = await sms.cancelOrder(req.body.id);
         res.json(result);
@@ -232,7 +240,7 @@ router.post('/api/orders/cancel', requireAuth, async (req, res) => {
 });
 
 // Finish order
-router.post('/api/orders/finish', requireAuth, async (req, res) => {
+router.post('/api/orders/finish', requireAuth, requireAdmin, async (req, res) => {
     try {
         const result = await sms.finishOrder(req.body.id);
         res.json(result);
@@ -242,7 +250,7 @@ router.post('/api/orders/finish', requireAuth, async (req, res) => {
 });
 
 // Resend SMS
-router.post('/api/orders/resend', requireAuth, async (req, res) => {
+router.post('/api/orders/resend', requireAuth, requireAdmin, async (req, res) => {
     try {
         const result = await sms.resendSMS(req.body.id);
         res.json(result || { ok: true });
@@ -326,7 +334,7 @@ router.get('/api/store/config', (req, res) => {
 });
 
 // Buat transaksi Midtrans untuk sebuah order -> kembalikan snap token
-router.post('/api/store/pay', async (req, res) => {
+router.post('/api/store/pay', rateLimiter({ windowMs: 60 * 1000, max: 15, message: 'Terlalu banyak percobaan pembayaran. Tunggu sebentar.' }), async (req, res) => {
     try {
         const order = store.getOrderById(req.body.orderId);
         if (!order) return res.status(404).json({ error: 'Order tidak ditemukan' });
@@ -397,38 +405,38 @@ router.post('/api/store/track', rateLimiter({ windowMs: 60 * 1000, max: 15 }), (
 });
 
 // ── STORE: ADMIN ───────────────────────────────────────────
-router.get('/api/admin/products', requireAuth, (req, res) => {
+router.get('/api/admin/products', requireAuth, requireAdmin, (req, res) => {
     res.json(store.getProducts());
 });
 
-router.post('/api/admin/products', requireAuth, (req, res) => {
+router.post('/api/admin/products', requireAuth, requireAdmin, (req, res) => {
     try { const p = store.addProduct(req.body); audit.log(req, 'PRODUK_TAMBAH', p.name); res.json(p); }
     catch (e) { res.status(400).json({ error: e.message }); }
 });
 
-router.put('/api/admin/products/:id', requireAuth, (req, res) => {
+router.put('/api/admin/products/:id', requireAuth, requireAdmin, (req, res) => {
     try { const p = store.updateProduct(req.params.id, req.body); audit.log(req, 'PRODUK_UBAH', p.name); res.json(p); }
     catch (e) { res.status(400).json({ error: e.message }); }
 });
 
-router.delete('/api/admin/products/:id', requireAuth, (req, res) => {
+router.delete('/api/admin/products/:id', requireAuth, requireAdmin, (req, res) => {
     store.deleteProduct(req.params.id);
     audit.log(req, 'PRODUK_HAPUS', req.params.id);
     res.json({ ok: true });
 });
 
 // Stok kredensial per produk
-router.get('/api/admin/stock/:productId', requireAuth, (req, res) => {
+router.get('/api/admin/stock/:productId', requireAuth, requireAdmin, (req, res) => {
     const items = store.getStockItems(req.params.productId);
     res.json({ count: items.length, items });
 });
-router.put('/api/admin/stock/:productId', requireAuth, (req, res) => {
+router.put('/api/admin/stock/:productId', requireAuth, requireAdmin, (req, res) => {
     const count = store.setStock(req.params.productId, req.body.items || []);
     audit.log(req, 'STOK_UBAH', `${req.params.productId} -> ${count} akun`);
     res.json({ ok: true, count });
 });
 // Ringkasan jumlah stok semua produk
-router.get('/api/admin/stock', requireAuth, (req, res) => {
+router.get('/api/admin/stock', requireAuth, requireAdmin, (req, res) => {
     const stock = store.getStock();
     const out = {};
     for (const k in stock) out[k] = (stock[k] || []).length;
@@ -436,37 +444,37 @@ router.get('/api/admin/stock', requireAuth, (req, res) => {
 });
 
 // Voucher (admin)
-router.get('/api/admin/vouchers', requireAuth, (req, res) => res.json(store.getVouchers()));
-router.post('/api/admin/vouchers', requireAuth, (req, res) => {
+router.get('/api/admin/vouchers', requireAuth, requireAdmin, (req, res) => res.json(store.getVouchers()));
+router.post('/api/admin/vouchers', requireAuth, requireAdmin, (req, res) => {
     try { const v = store.addVoucher(req.body); audit.log(req, 'VOUCHER_TAMBAH', v.code); res.json(v); }
     catch (e) { res.status(400).json({ error: e.message }); }
 });
-router.put('/api/admin/vouchers/:code', requireAuth, (req, res) => {
+router.put('/api/admin/vouchers/:code', requireAuth, requireAdmin, (req, res) => {
     audit.log(req, 'VOUCHER_TOGGLE', req.params.code);
     res.json(store.toggleVoucher(req.params.code, req.body.active));
 });
-router.delete('/api/admin/vouchers/:code', requireAuth, (req, res) => {
+router.delete('/api/admin/vouchers/:code', requireAuth, requireAdmin, (req, res) => {
     store.deleteVoucher(req.params.code);
     audit.log(req, 'VOUCHER_HAPUS', req.params.code);
     res.json({ ok: true });
 });
 
 // Audit log (admin)
-router.get('/api/admin/audit', requireAuth, (req, res) => res.json(audit.recent(150)));
+router.get('/api/admin/audit', requireAuth, requireAdmin, (req, res) => res.json(audit.recent(150)));
 
 // Backup (admin)
-router.get('/api/admin/backup/now', requireAuth, (req, res) => { audit.log(req, 'BACKUP_MANUAL', ''); res.json(backup.runBackup()); });
-router.get('/api/admin/backup/download', requireAuth, (req, res) => {
+router.get('/api/admin/backup/now', requireAuth, requireAdmin, (req, res) => { audit.log(req, 'BACKUP_MANUAL', ''); res.json(backup.runBackup()); });
+router.get('/api/admin/backup/download', requireAuth, requireAdmin, (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename="jagogame-backup-${Date.now()}.json"`);
     res.json(backup.currentSnapshot());
 });
-router.get('/api/admin/backup/list', requireAuth, (req, res) => res.json(backup.listBackups()));
+router.get('/api/admin/backup/list', requireAuth, requireAdmin, (req, res) => res.json(backup.listBackups()));
 
 // Status koneksi WhatsApp
-router.get('/api/admin/wa-status', requireAuth, (req, res) => res.json(wa.getStatus()));
+router.get('/api/admin/wa-status', requireAuth, requireAdmin, (req, res) => res.json(wa.getStatus()));
 
 // Laporan penjualan
-router.get('/api/admin/report', requireAuth, (req, res) => {
+router.get('/api/admin/report', requireAuth, requireAdmin, (req, res) => {
     const orders = store.getOrders();
     const paid = orders.filter(o => ['DELIVERED', 'PAID', 'PAID_NO_STOCK'].includes(o.status));
     const rev = o => (o.finalPrice != null ? o.finalPrice : o.productPrice) || 0;
@@ -489,7 +497,7 @@ router.get('/api/admin/report', requireAuth, (req, res) => {
 });
 
 // Export pesanan ke CSV
-router.get('/api/admin/orders/export.csv', requireAuth, (req, res) => {
+router.get('/api/admin/orders/export.csv', requireAuth, requireAdmin, (req, res) => {
     const orders = store.getOrders();
     const esc = v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
     const head = ['ID', 'Tanggal', 'Produk', 'Harga', 'Diskon', 'Total', 'Voucher', 'Customer', 'WhatsApp', 'Status', 'Pembayaran'];
@@ -505,7 +513,7 @@ router.get('/api/admin/orders/export.csv', requireAuth, (req, res) => {
 });
 
 // Kirim ulang / kirim manual sebuah order (mis. setelah isi stok)
-router.post('/api/admin/orders/:id/deliver', requireAuth, async (req, res) => {
+router.post('/api/admin/orders/:id/deliver', requireAuth, requireAdmin, async (req, res) => {
     try {
         const order = store.getOrderById(req.params.id);
         if (!order) return res.status(404).json({ error: 'Order tidak ditemukan' });
@@ -514,20 +522,20 @@ router.post('/api/admin/orders/:id/deliver', requireAuth, async (req, res) => {
     } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
-router.get('/api/admin/orders', requireAuth, (req, res) => {
+router.get('/api/admin/orders', requireAuth, requireAdmin, (req, res) => {
     res.json(store.getOrders());
 });
 
-router.put('/api/admin/orders/:id', requireAuth, (req, res) => {
+router.put('/api/admin/orders/:id', requireAuth, requireAdmin, (req, res) => {
     try { res.json(store.updateOrderStatus(req.params.id, req.body.status)); }
     catch (e) { res.status(400).json({ error: e.message }); }
 });
 
-router.get('/api/admin/settings', requireAuth, (req, res) => {
+router.get('/api/admin/settings', requireAuth, requireAdmin, (req, res) => {
     res.json(store.getSettings());
 });
 
-router.put('/api/admin/settings', requireAuth, (req, res) => {
+router.put('/api/admin/settings', requireAuth, requireAdmin, (req, res) => {
     store.saveSettings(req.body);
     audit.log(req, 'PENGATURAN_UBAH', '');
     res.json({ ok: true });

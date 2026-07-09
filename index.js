@@ -16,6 +16,29 @@ const backup = require('./src/backup');
 const store = require('./src/store');
 require('dotenv').config();
 
+// ── Peringatan konfigurasi keamanan ──────────────────────────────────────────
+// Cek env var penting yang kalau kosong bikin sistem jatuh ke default lemah
+// atau nyimpen data sensitif tanpa enkripsi.
+(function checkSecurityConfig() {
+    const isProd = String(process.env.NODE_ENV || '').toLowerCase() === 'production';
+    const warnings = [];
+
+    if (!process.env.ADMIN_PASSWORD) warnings.push('ADMIN_PASSWORD belum di-set → login admin pakai password default (admin123)');
+    if (!process.env.KASIR_ARSHIL_PASSWORD) warnings.push('KASIR_ARSHIL_PASSWORD belum di-set → password default (arshil123)');
+    if (!process.env.KASIR_ARINAL_PASSWORD) warnings.push('KASIR_ARINAL_PASSWORD belum di-set → password default (arinal123)');
+    if (!process.env.KASIR_DEWO_PASSWORD) warnings.push('KASIR_DEWO_PASSWORD belum di-set → password default (dewo123)');
+    if (!process.env.ENCRYPTION_KEY) warnings.push('ENCRYPTION_KEY belum di-set → kredensial akun customer DISIMPAN TANPA ENKRIPSI di data/store-orders.json');
+    if (String(process.env.ADMIN_2FA || 'false') !== 'true') warnings.push('ADMIN_2FA belum aktif → login admin tanpa verifikasi OTP WhatsApp kedua');
+
+    if (warnings.length) {
+        console.warn('\n⚠️  PERINGATAN KEAMANAN' + (isProd ? ' (PRODUCTION)' : '') + ':');
+        warnings.forEach(w => console.warn('   - ' + w));
+        console.warn(isProd
+            ? '   → Set env var di atas di Railway secepatnya, ini production!\n'
+            : '   → Set env var di atas sebelum deploy ke production.\n');
+    }
+})();
+
 backup.startSchedule();
 
 // Follow-up otomatis: ingatkan pesanan PENDING yang belum dibayar (>15 menit, sekali saja)
