@@ -11,6 +11,7 @@ const wa = require('./wa');
 const backup = require('./backup');
 const otp = require('./otp');
 const { encrypt, decrypt } = require('./crypto');
+const mlbb = require('./mlbbContent');
 
 const router = express.Router();
 
@@ -423,6 +424,58 @@ router.delete('/api/admin/products/:id', requireAuth, requireAdmin, (req, res) =
     store.deleteProduct(req.params.id);
     audit.log(req, 'PRODUK_HAPUS', req.params.id);
     res.json({ ok: true });
+});
+
+// ── KONTEN ML: generator konten jualan akun MLBB ─────────────
+// Preview konten (tanpa efek samping)
+router.post('/api/admin/mlbb/generate', requireAuth, requireAdmin, (req, res) => {
+    try {
+        const content = mlbb.generateContent(req.body, store.getProducts(), store.getSettings());
+        res.json(content);
+    } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+// Generate + langsung publish sebagai produk toko (opsional kirim promo WA ke admin)
+router.post('/api/admin/mlbb/publish', requireAuth, requireAdmin, async (req, res) => {
+    try {
+        const content = mlbb.generateContent(req.body, store.getProducts(), store.getSettings());
+        let product = store.addProduct({
+            name: content.title,
+            description: content.description,
+            category: mlbb.ML_CATEGORY,
+            price: content.price,
+            image: (req.body.images || [])[0] || req.body.image || '',
+            autoDeliver: req.body.autoDeliver,
+        });
+        const images = (req.body.images || []).map(s => String(s).trim()).filter(Boolean);
+        if (images.length) product = store.updateProduct(product.id, { images, image: images[0] });
+        audit.log(req, 'ML_PUBLISH', content.title);
+        // Kirim promo ke WA admin agar tinggal forward ke grup/status
+        let promoSent = false;
+        const settings = store.getSettings();
+        if (req.body.sendPromo && settings.whatsapp && wa.isReady()) {
+            await wa.sendText(settings.whatsapp, content.waPromo).then(() => { promoSent = true; }).catch(() => {});
+        }
+        res.json({ product, content, promoSent });
+    } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+// Buat ulang promo WA + caption untuk produk ML yang sudah ada
+router.get('/api/admin/mlbb/promo/:productId', requireAuth, requireAdmin, (req, res) => {
+    const p = store.getProducts().find(x => x.id === req.params.productId);
+    if (!p) return res.status(404).json({ error: 'Produk tidak ditemukan' });
+    const m = /ML\s*#(\d+)(?:\s*\|\s*Skin\s*(\d+))?/i.exec(p.name || '');
+    try {
+        const content = mlbb.generateContent({
+            title: p.name,
+            number: m ? m[1] : undefined,
+            totalSkins: (m && m[2]) || 1,
+            highlights: p.name.split('|').slice(2).map(s => s.trim()).filter(x => !/^Skin \d+$/i.test(x)),
+            skinList: p.description,
+            price: p.price,
+        }, store.getProducts(), store.getSettings());
+        res.json({ waPromo: content.waPromo, caption: content.caption });
+    } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
 // Stok kredensial per produk
