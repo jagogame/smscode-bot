@@ -71,7 +71,7 @@
     "price": 2850000,
     "stock": -1,
     "image": "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026428/gi5ww0t2n6kmsm3hgywyml.jpg",
-    "active": true,
+    "active": false,
     "createdAt": "2026-06-26T11:05:22.457Z",
     "images": [
       "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026428/gi5ww0t2n6kmsm3hgywyml.jpg",
@@ -92,7 +92,7 @@
     "price": 1850000,
     "stock": -1,
     "image": "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202657/1tfi4m46hy9pzyyh5eom8r.jpg",
-    "active": true,
+    "active": false,
     "createdAt": "2026-06-26T11:05:22.459Z",
     "images": [
       "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202657/1tfi4m46hy9pzyyh5eom8r.jpg",
@@ -109,7 +109,7 @@
     "price": 1850000,
     "stock": -1,
     "image": "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026512/7hqogo8bct5hh5z7gfpei.jpg",
-    "active": true,
+    "active": false,
     "createdAt": "2026-06-26T11:05:22.462Z",
     "images": [
       "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026512/7hqogo8bct5hh5z7gfpei.jpg",
@@ -143,7 +143,7 @@
     "price": 2150000,
     "stock": -1,
     "image": "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026528/nhhoth2z321p8x5puhx02.jpg",
-    "active": true,
+    "active": false,
     "createdAt": "2026-06-26T11:05:22.471Z",
     "images": [
       "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026528/nhhoth2z321p8x5puhx02.jpg",
@@ -177,7 +177,7 @@
     "price": 1850000,
     "stock": -1,
     "image": "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026528/0gmc3yckwaldtdpvkkdjb9.jpg",
-    "active": true,
+    "active": false,
     "createdAt": "2026-06-26T11:05:22.477Z",
     "images": [
       "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026528/0gmc3yckwaldtdpvkkdjb9.jpg",
@@ -211,7 +211,7 @@
     "price": 1850000,
     "stock": -1,
     "image": "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202662/q08he7lt1dys0u1divpu.jpg",
-    "active": true,
+    "active": false,
     "createdAt": "2026-06-26T11:05:22.483Z",
     "images": [
       "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202662/q08he7lt1dys0u1divpu.jpg",
@@ -259,7 +259,7 @@
     "price": 2450000,
     "stock": -1,
     "image": "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/lzax8o3gs2kqq6t9iae6n.jpg",
-    "active": true,
+    "active": false,
     "createdAt": "2026-06-26T11:05:22.494Z",
     "images": [
       "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/lzax8o3gs2kqq6t9iae6n.jpg",
@@ -344,7 +344,7 @@
     "price": 5200000,
     "stock": -1,
     "image": "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/zhgt82zut6mjw6w7fy9urs.jpg",
-    "active": true,
+    "active": false,
     "createdAt": "2026-06-26T11:05:22.510Z",
     "images": [
       "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/zhgt82zut6mjw6w7fy9urs.jpg",
@@ -354,6 +354,132 @@
       "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/bdil3k86x9e6xtcl9dkzub.jpg",
       "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/bu06xzfmeafb6ff8kdb6z9.jpg",
       "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202663/9ldg0nuoekklb0n6x6ylhh.jpg"
+    ]
+  },
+  {
+    "id": "1782471922513",
+    "name": "ML #494 | Skin 573 | Mega Collector 3 | 3 Legend | JJK Xavier Gojo | AOT Martis Levi | Ducati Irithel | KOF Masha | Collector Ling",
+    "description": "Legend Alucard, Legend Gusion, Legend Valir, Star Wars Alucard, KOF Karina, KOF Masha, Aspirants Layla, Aspirants Vexana, Transformers Roger, Ducati Irithel, Sanrio Angela, Sanrio Floryn, 11.11 Gusion, AoT Martis, Prime Granger, JJK Xavier, Luckybox Alucard, Luckybox Karina, Luckybox Fanny, Luckybox Freya, Luckybox Roger, Luckybox Odette, Luckybox Selena, Luckybox Claude, Luckybox Kimmy, Luckybox Guinevere, Star Hayabusa, Star Kagura, Collector Granger, Collector Ling, Collector Wanwan, Collector Natalia, Collector Pharsa, Clouds Xavier",
+    "category": "Mobile Legend",
+    "price": 2450000,
+    "stock": -1,
+    "image": "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026616/pt8x68t9jwi2sg0oqeyaa.jpg",
+    "active": true,
+    "createdAt": "2026-07-16T10:00:00.513Z",
+    "images": [
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026616/pt8x68t9jwi2sg0oqeyaa.jpg"
+    ]
+  },
+  {
+    "id": "1782471922516",
+    "name": "ML #501 | Skin 564 | Mega Collector 2 | 4 Legend | Aspirants Fanny | JJK Gojo Xavier | Soul Vessel Benedetta | Sanrio Claude",
+    "description": "Legend Franco, Legend Freya, Legend Lesley, Legend Lunox, KOF Karina, KOF Masha, Aspirants Fanny, Aspirants Lesley, Aspirants Angela, Transformers Roger, Prime Claude, Prime Granger, Prime Yu Zhong, Prime Beatrix, Ducati Leomord, 11.11 Wanwan, Sanrio Floryn, Naruto Suyou, Naruto Lukas, Luckybox Eudora, Luckybox Roger, Luckybox Irithel, Luckybox Lancelot, Luckybox Zhask, Luckybox Uranus, Star Hayabusa, Star Gord, Star Kagura, Star Lesley, Star Angela, Collector Natalia, Collector Brody",
+    "category": "Mobile Legend",
+    "price": 2950000,
+    "stock": -1,
+    "image": "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026624/rdopwkqkf59ezitjcqm2a.jpg",
+    "active": true,
+    "createdAt": "2026-07-16T10:00:00.516Z",
+    "images": [
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026624/rdopwkqkf59ezitjcqm2a.jpg"
+    ]
+  },
+  {
+    "id": "1782471922519",
+    "name": "ML #504 | Skin 537 | Mega Collector 4 | 3 Legend | Itachi Julian | Aspirants Vexana | Collector YSS | 2 KOF | 3 Prime",
+    "description": "Legend Alucard, Legend Freya, Legend Gusion, KOF Karina, KOF Aurora, Aspirants Vexana, Transformers Roger, Prime Claude, Prime Granger, Prime Yu Zhong, KungfuPanda Thamuz, Sanrio Floryn, Naruto Julian, Luckybox Karina, Luckybox Eudora, Luckybox Zilong, Luckybox Fanny, Luckybox Selena, Luckybox Kimmy, Luckybox Guinevere, Star Hayabusa, Star Kagura, Star Karrie, Star Lesley, Star Angela, Collector Natalia, Collector Yss, Clouds Kagura",
+    "category": "Mobile Legend",
+    "price": 2200000,
+    "stock": -1,
+    "image": "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026624/g7w0izlwstvr3fuh50z2z.jpg",
+    "active": true,
+    "createdAt": "2026-07-16T10:00:00.519Z",
+    "images": [
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026624/g7w0izlwstvr3fuh50z2z.jpg"
+    ]
+  },
+  {
+    "id": "1782471922522",
+    "name": "ML #507 | Skin 486 | Mega Collector 5 | 2 Legend | Dawning Chou | 11.11 Hayabusa Shura | Sanrio Claude | KOF Gusion",
+    "description": "Legend Johnson, Legend Gusion, KOF Karina, KOF Aurora, KOF Gusion, KOF Guinevere, KOF Dyrroth, 11.11 Hayabusa, Dawning Chou, Transformers Roger, Transformers Aldous, Aspirants Chang'e, Sanrio Claude, Sanrio Floryn, Prime Beatrix, Luckybox Saber, Luckybox Akai, Luckybox Franco, Luckybox Zilong, Luckybox Fanny, Luckybox Alpha, Luckybox Ruby, Luckybox Estes, Luckybox Zhask, Luckybox Uranus, Star Hayabusa, Star Karrie, Star Lesley, Collector Gusion, Collector Wanwan, Collector Benedetta",
+    "category": "Mobile Legend",
+    "price": 1850000,
+    "stock": -1,
+    "image": "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026629/m28bg2cwg7dvc4fy7wl8o.jpg",
+    "active": true,
+    "createdAt": "2026-07-16T10:00:00.522Z",
+    "images": [
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026629/m28bg2cwg7dvc4fy7wl8o.jpg"
+    ]
+  },
+  {
+    "id": "1782471922525",
+    "name": "ML #508 | Skin 514 | Mega Collector 5 | 1 Legend | Ducati Benedetta | Aspirants Fanny | Libra Chou | Collector Ling | Allstar Moskov",
+    "description": "Legend Gusion, KOF Karina, Aspirants Fanny, Aspirants Ruby, Saint Seiya Chou, Allstar Moskov, Transformers Roger, Prime Claude, Prime Yu Zhong, Prime Beatrix, Sanrio Floryn, Sanrio Angela, Ducati Benedetta, Luckybox Eudora, Luckybox Hayabusa, Luckybox Roger, Luckybox Zhask, Luckybox Guinevere, Collector Natalia, Collector Valir, Collector Ling, Star Hayabusa, Star Kagura, Star Lesley, Star Angela, Clouds Kagura",
+    "category": "Mobile Legend",
+    "price": 1850000,
+    "stock": -1,
+    "image": "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026629/bdw6h8y83ekbzj6iknpc0i.jpg",
+    "active": true,
+    "createdAt": "2026-07-16T10:00:00.525Z",
+    "images": [
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/2026629/bdw6h8y83ekbzj6iknpc0i.jpg"
+    ]
+  },
+  {
+    "id": "1782471922528",
+    "name": "ML #512 | Skin 531 | Mega Collector 3 | 2 Legend | 11.11 Gusion | KOF Valir | Sanrio Claude | Collector YSS | Collector Gusion",
+    "description": "Legend Miya, Legend Lunox, KOF Karina, KOF Aurora, KOF Valir, KOF Guinevere, Transformers Johnson, Transformers Roger, Aspirants Layla, Aspirants Angela, Aspirants Chang'e, 11.11 Gusion, Sanrio Claude, Sanrio Floryn, Prime Claude, Prime Granger, Prime Yu Zhong, Ducati Benedetta, Luckybox Saber, Luckybox Franco, Luckybox Eudora, Luckybox Fanny, Luckybox Kagura, Luckybox Ruby, Luckybox Moskov, Luckybox Odette, Luckybox Lancelot, Luckybox Zhask, Luckybox Uranus, Luckybox Hanabi, Luckybox Kaja, Luckybox Guinevere, Star Hayabusa, Star Gord, Star Karrie, Star Lesley, Collector Jawhead, Collector Gusion, Collector Natalia, Collector Yss, Collector Khufra, Collector Benedetta",
+    "category": "Mobile Legend",
+    "price": 2450000,
+    "stock": -1,
+    "image": "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202672/sdcvt635ig1ptclav157rj.jpg",
+    "active": true,
+    "createdAt": "2026-07-16T10:00:00.528Z",
+    "images": [
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202672/sdcvt635ig1ptclav157rj.jpg"
+    ]
+  },
+  {
+    "id": "1782471922531",
+    "name": "ML #493 | Skin 531 | Mega Collector 3 | 3 Legend | Dawning Chou | Dawning Bruno | KOF Gusion | HXH Cecilion Hisoka | Exorcist Yu Zhong",
+    "description": "Legend Alucard, Legend Johnson, Legend Valir, KOF Karina, KOF Gusion, KOF Guinevere, KOF Dyrroth, Dawning Bruno, Dawning Chou, Saint Seiya Chou, Transformers Johnson, Transformers Roger, 11.11 Gusion, 11.11 X.Borg, KungfuPanda Thamuz, KungfuPanda Ling, HxH Cecilion, Exorcist Yu Zhong, Sanrio Floryn, Christmas Miya, Luckybox Zilong, Luckybox Freya, Luckybox Alpha, Luckybox Ruby, Luckybox Estes, Luckybox Irithel, Luckybox Martis, Luckybox Selena, Luckybox Claude, Luckybox Leomord, Luckybox Kimmy, Star Karrie, Star Hayabusa, Star Gord, Star Lesley, Star Vale, Collector Valir, Collector Benedetta",
+    "category": "Mobile Legend",
+    "price": 2600000,
+    "stock": -1,
+    "image": "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202672/6ljaykomujfbcnuyg8m7or.jpg",
+    "active": true,
+    "createdAt": "2026-07-16T10:00:00.531Z",
+    "images": [
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202672/6ljaykomujfbcnuyg8m7or.jpg"
+    ]
+  },
+  {
+    "id": "1782471922534",
+    "name": "ML #487 | Skin 471 | Mega Collector 3 | 3 Legend | Kishin Lancelot | Kakashi Hayabusa | HXH Harith Killua | JJK Xavier Gojo",
+    "description": "Legend Layla, Legend Valir, Legend Lunox, KOF Karina, KOF Aurora, KOF Valir, KOF Dyrroth, Naruto Hayabusa, Aspirants Ruby, Aspirants Vexana, Transformers Roger, Transformers Johnson, Ducati Irithel, Star Wars Argus, Kishin Lancelot, Prime Claude, Prime Granger, Prime Yu Zhong, Prime Beatrix, KungfuPanda Thamuz, KungfuPanda Ling, HxH Harith, JJK Xavier, Nexus Nolan, Collector Nana, Collector Natalia, Collector Vexana, Collector Gusion, Luckybox Kimmy, Luckybox Gatotkaca, Luckybox Akai, Luckybox Eudora, Luckybox Fanny, Star Gord, Star Kagura, Star Lesley, Star Angela",
+    "category": "Mobile Legend",
+    "price": 2450000,
+    "stock": -1,
+    "image": "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202672/r6wyiojxgif99cjxe8idq.jpg",
+    "active": true,
+    "createdAt": "2026-07-16T10:00:00.534Z",
+    "images": [
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202672/r6wyiojxgif99cjxe8idq.jpg"
+    ]
+  },
+  {
+    "id": "1782471922537",
+    "name": "ML #486 | Skin 571 | Mega Collector 2 | 6 Legend | Itachi Julian | JJK Xavier Gojo | Aspirants Fanny | Sanrio Claude",
+    "description": "Legend Alucard, Legend Layla, Legend Gusion, Legend Valir, Legend Lunox, Legend Granger, KOF Karina, KOF Aurora, Aspirants Vexana, Aspirants Fanny, Transformers Roger, Transformers Granger, Transformers Popol, Sanrio Chang'e, Sanrio Claude, Sanrio Floryn, Prime Claude, Prime Granger, Prime Yu Zhong, Prime Beatrix, 11.11 Wanwan, JJK Xavier, Naruto Julian, Luckybox Alice, Luckybox Alucard, Luckybox Karina, Luckybox Akai, Luckybox Franco, Luckybox Hayabusa, Luckybox Chou, Luckybox Moskov, Luckybox Johnson, Luckybox Lancelot, Luckybox Chang'e, Luckybox Kaja, Luckybox Leomord, Star Karrie, Star Hayabusa, Star Kagura, Star Lesley, Star Angela, Collector Natalia, Collector Pharsa, Collector Granger",
+    "category": "Mobile Legend",
+    "price": 3100000,
+    "stock": -1,
+    "image": "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202672/dspkb7ii5w4imptp4a5zv.jpg",
+    "active": true,
+    "createdAt": "2026-07-16T10:00:00.537Z",
+    "images": [
+      "https://d1x91p7vw3vuq8.cloudfront.net/itemku-upload/202672/dspkb7ii5w4imptp4a5zv.jpg"
     ]
   }
 ]
