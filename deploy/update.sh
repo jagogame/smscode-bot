@@ -2,23 +2,19 @@
 set -euo pipefail
 
 # ── Update smscode-bot di VPS ────────────────────────────────────────────────
-# Jalankan sebagai root: ./deploy/update.sh
+APP_DIR="/root/smscode-bot"
 
-APP_DIR="/opt/smscode-bot"
-
-echo "→ Pull update terbaru..."
+echo "→ Pull update..."
 cd "$APP_DIR"
 git pull origin main
 
 echo "→ Install dependencies..."
-npm ci --production
+npm install --production
 
 echo "→ Restart bot..."
-systemctl restart smscode-bot
+pm2 restart jagogame-bot
 
-echo "→ Cek status..."
-sleep 2
-systemctl status smscode-bot --no-pager
-
+echo "→ Status:"
+pm2 status
 echo ""
-echo "✅ Update selesai! Lihat log: journalctl -u smscode-bot -f"
+echo "✅ Update selesai! Log: pm2 logs jagogame-bot"
