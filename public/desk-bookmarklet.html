@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Install Bookmarklet — Deskripsi Skin</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: #0f0f14;
+        color: #e5e5e5;
+        min-height: 100vh;
+        padding: 24px;
+        display: flex;
+        justify-content: center;
+    }
+    .container { max-width: 640px; width: 100%; }
+    h1 { color: #fbbf24; font-size: 1.5em; margin-bottom: 8px; }
+    p.sub { color: #9ca3af; margin-bottom: 28px; line-height: 1.5; }
+
+    .step {
+        background: #1a1a22;
+        border: 1px solid #2a2a35;
+        border-radius: 12px;
+        padding: 18px 20px;
+        margin-bottom: 16px;
+    }
+    .step .num {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 24px; height: 24px; border-radius: 50%;
+        background: #fbbf24; color: #1a1a22; font-weight: 700; font-size: 0.85em;
+        margin-right: 10px;
+    }
+    .step h2 { display: inline; font-size: 1.05em; color: #f5f5f5; }
+    .step p { margin-top: 10px; color: #b0b0ba; font-size: 0.92em; line-height: 1.6; }
+    .step code {
+        background: #26262f; padding: 2px 6px; border-radius: 4px;
+        color: #fbbf24; font-size: 0.9em;
+    }
+
+    .bookmarklet-btn {
+        display: inline-block;
+        margin-top: 12px;
+        padding: 13px 26px;
+        background: linear-gradient(135deg, #fbbf24, #f59e0b);
+        color: #1a1a22 !important;
+        text-decoration: none;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 15px;
+        cursor: grab;
+        user-select: none;
+    }
+    .bookmarklet-btn:active { cursor: grabbing; }
+
+    .warn {
+        background: #2a2410; border: 1px solid #7a5f0e;
+        color: #fde68a; padding: 10px 14px; border-radius: 8px;
+        font-size: 0.85em; margin-top: 12px; line-height: 1.5;
+    }
+
+    .note {
+        margin-top: 28px; font-size: 0.85em; color: #6b6b76; line-height: 1.6;
+        border-top: 1px solid #2a2a35; padding-top: 16px;
+    }
+</style>
+</head>
+<body>
+<div class="container">
+    <h1>🔖 Install Bookmarklet — Deskripsi Skin</h1>
+    <p class="sub">Sekali install, dipakai berulang tanpa DevTools lagi. Klik saat sudah di halaman hasil cek skin cekskin.com.</p>
+
+    <div class="step">
+        <span class="num">1</span><h2>Tampilkan bookmarks bar</h2>
+        <p>Chrome/Edge: tekan <code>Ctrl+Shift+B</code> (Windows) atau <code>Cmd+Shift+B</code> (Mac) kalau belum kelihatan.</p>
+    </div>
+
+    <div class="step">
+        <span class="num">2</span><h2>Drag tombol ini ke bookmarks bar</h2>
+        <p>Klik-tahan tombol kuning di bawah ini, lalu seret ke bar bookmark di atas browser.</p>
+        <br>
+        <a class="bookmarklet-btn" id="bookmarkletLink" href="#">📋 Deskripsi Skin</a>
+        <div class="warn">⚠️ Kalau di-klik biasa (bukan di-drag) di halaman ini, tidak akan berfungsi apa-apa — dia harus jadi bookmark dulu, baru dipakai di tab cekskin.com.</div>
+    </div>
+
+    <div class="step">
+        <span class="num">3</span><h2>Pakai setiap kali cek skin</h2>
+        <p>
+            <b>Penting: klik bookmark DULU sebelum cari ID</b>, bukan sesudahnya — begini urutannya:<br><br>
+            1. Buka cekskin.com, di halaman mana saja (boleh homepage)<br>
+            2. Klik bookmark <code>📋 Deskripsi Skin</code> di bookmarks bar → muncul alert "Siap!"<br>
+            3. Masukkan Game ID & klik <code>Cari Skin</code> seperti biasa (pakai kredit kamu)<br>
+            4. Begitu hasil skin tampil, modal deskripsi otomatis muncul → klik <code>Copy Deskripsi</code><br><br>
+            Bookmark cuma perlu diklik ulang kalau kamu reload/buka tab baru cekskin.com.
+        </p>
+    </div>
+
+    <div class="note">
+        Bookmarklet ini cuma jalan di browser kamu sendiri, saat kamu klik manual, di tab yang lagi login cekskin.com.
+        Tidak ada data yang dikirim ke server lain — semua proses (ambil data & format teks) terjadi lokal di browser.
+    </div>
+</div>
+
+<script>
+    // Bookmarklet code — dibangun dari desk-bookmarklet-src.js (fetch interceptor, sudah teruji)
+    const code = "(function () {\n    const BASIC_TAGS = new Set(['Normal', 'Elite', 'Season Reward']);\n    const RARITY_WEIGHT = { Grand: 6, Supreme: 5, Exquisite: 4, Deluxe: 3, Exceptional: 2, Common: 1 };\n    function buildDesk(skins) {\n        let filtered = skins.filter(s => s.heroName && s.tag && !BASIC_TAGS.has(s.tag));\n        const groups = {};\n        const order = [];\n        for (const s of filtered) {\n            if (!groups[s.tag]) { groups[s.tag] = []; order.push(s.tag); }\n            groups[s.tag].push(s);\n        }\n        const weight = t => Math.max(...groups[t].map(s => RARITY_WEIGHT[s.rarity] || 0));\n        const tagOrder = [...order].sort((a, b) => weight(b) - weight(a));\n        return tagOrder.flatMap(tag => groups[tag].map(s => `${tag} ${s.heroName}`)).join('\\n');\n    }\n    function showModal(contentText, total) {\n        document.getElementById('__dgh__')?.remove();\n        const host = document.createElement('div');\n        host.id = '__dgh__';\n        host.style.cssText = 'position:fixed;inset:0;z-index:2147483647;';\n        document.body.appendChild(host);\n        const root = host.attachShadow({ mode: 'open' });\n        root.innerHTML = `\n        <style>\n            .overlay { position:fixed; inset:0; background:rgba(0,0,0,.6); display:flex; align-items:center; justify-content:center; font-family:'Segoe UI',sans-serif; }\n            .box { background:#1a1a22; border:1px solid #2a2a35; border-radius:14px; width:min(560px,92vw); max-height:82vh; display:flex; flex-direction:column; box-shadow:0 20px 60px rgba(0,0,0,.5); }\n            .head { padding:18px 20px 12px; border-bottom:1px solid #2a2a35; display:flex; justify-content:space-between; align-items:center; }\n            .head h3 { margin:0; color:#fbbf24; font-size:1.05em; }\n            .head button { background:none; border:none; color:#8b8b96; font-size:20px; cursor:pointer; line-height:1; }\n            .meta { padding:10px 20px 0; font-size:.82em; color:#9ca3af; }\n            .meta b { color:#fbbf24; }\n            pre { margin:12px 20px; padding:14px; background:#0f0f14; border:1px solid #2a2a35; border-radius:8px; color:#d4d4d8; font-size:13px; line-height:1.7; overflow:auto; white-space:pre-wrap; flex:1; }\n            .actions { padding:0 20px 18px; display:flex; gap:10px; }\n            button.primary { flex:1; padding:11px; border:none; border-radius:8px; background:linear-gradient(135deg,#fbbf24,#f59e0b); color:#1a1a22; font-weight:700; cursor:pointer; font-size:14px; }\n            button.primary:active { transform:scale(.98); }\n            .toast { position:absolute; bottom:14px; left:50%; transform:translateX(-50%); background:#22c55e; color:#04240f; padding:8px 16px; border-radius:8px; font-size:.85em; font-weight:600; opacity:0; transition:opacity .2s; }\n            .toast.show { opacity:1; }\n        </style>\n        <div class=\"overlay\">\n            <div class=\"box\">\n                <div class=\"head\"><h3>📋 Deskripsi Skin</h3><button id=\"close\">✕</button></div>\n                <div class=\"meta\">Total skin: <b>${total}</b></div>\n                <pre id=\"out\"></pre>\n                <div class=\"actions\"><button class=\"primary\" id=\"copy\">📋 Copy Deskripsi</button></div>\n            </div>\n            <div class=\"toast\" id=\"toast\">Ter-copy!</div>\n        </div>`;\n        root.getElementById('out').textContent = contentText;\n        root.getElementById('close').onclick = () => host.remove();\n        root.querySelector('.overlay').addEventListener('click', (e) => { if (e.target.classList.contains('overlay')) host.remove(); });\n        root.getElementById('copy').onclick = () => {\n            navigator.clipboard.writeText('Desk:\\n\\n' + contentText).then(() => {\n                const t = root.getElementById('toast');\n                t.classList.add('show');\n                setTimeout(() => t.classList.remove('show'), 1500);\n            });\n        };\n    }\n    if (window.__dgArmed) {\n        alert('✅ Sudah aktif dari tadi!\\n\\nLangsung cek Game ID seperti biasa — deskripsi bakal muncul otomatis.');\n        return;\n    }\n    window.__dgArmed = true;\n    const originalFetch = window.fetch;\n    window.fetch = function (...args) {\n        const promise = originalFetch.apply(this, args);\n        const url = typeof args[0] === 'string' ? args[0] : (args[0] && args[0].url) || '';\n        if (/\\/api\\/players\\/.+\\/skins/.test(url)) {\n            promise.then(res => {\n                if (!res.ok) return;\n                res.clone().json().then(data => {\n                    const skins = data.skins || data;\n                    if (Array.isArray(skins) && skins.length) {\n                        showModal(buildDesk(skins), data.total || skins.length);\n                    }\n                }).catch(() => {});\n            });\n        }\n        return promise;\n    };\n    alert('✅ Siap!\\n\\nSekarang cek Game ID seperti biasa di halaman ini — deskripsi bakal muncul otomatis begitu hasil skin tampil.');\n})();";
+
+    document.getElementById('bookmarkletLink').setAttribute('href', 'javascript:' + encodeURIComponent(code));
+</script>
+</body>
+</html>

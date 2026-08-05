@@ -99,6 +99,16 @@ router.use((req, res, next) => {
     next();
 });
 
+// Subdomain cekskin.jagogame.store: root diarahkan ke tool deskripsi skin,
+// bukan homepage toko akun ML. Domain lain tidak terpengaruh.
+router.get('/', (req, res, next) => {
+    const host = String(req.hostname || '').toLowerCase();
+    if (host === 'cekskin.jagogame.store') {
+        return res.sendFile(path.join(__dirname, '../public/desk-bookmarklet.html'));
+    }
+    next();
+});
+
 // Static files
 router.use(express.static(path.join(__dirname, '../public')));
 router.use(express.json({ limit: '256kb' }));

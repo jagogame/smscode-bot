@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deskripsi Skin Generator</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: #0f0f14;
+        color: #e5e5e5;
+        min-height: 100vh;
+        padding: 24px;
+    }
+    .container { max-width: 1000px; margin: 0 auto; }
+    header { margin-bottom: 24px; }
+    header h1 { font-size: 1.6em; color: #fbbf24; margin-bottom: 6px; }
+    header p { color: #9ca3af; font-size: 0.95em; }
+
+    .card {
+        background: #1a1a22;
+        border: 1px solid #2a2a35;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    .card h2 {
+        font-size: 1.05em;
+        margin-bottom: 12px;
+        color: #fbbf24;
+    }
+    .hint {
+        font-size: 0.85em;
+        color: #8b8b96;
+        margin-bottom: 12px;
+        line-height: 1.5;
+    }
+    .hint code {
+        background: #26262f;
+        padding: 2px 6px;
+        border-radius: 4px;
+        color: #fbbf24;
+        font-size: 0.9em;
+    }
+
+    textarea {
+        width: 100%;
+        min-height: 180px;
+        background: #0f0f14;
+        border: 1px solid #2a2a35;
+        border-radius: 8px;
+        color: #e5e5e5;
+        padding: 12px;
+        font-family: 'Consolas', 'Monaco', monospace;
+        font-size: 13px;
+        resize: vertical;
+    }
+    textarea:focus { outline: none; border-color: #fbbf24; }
+
+    .row { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; align-items: center; }
+
+    button {
+        padding: 11px 22px;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 14px;
+        transition: opacity 0.2s, transform 0.1s;
+    }
+    button:active { transform: scale(0.98); }
+    .btn-primary { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #1a1a22; }
+    .btn-secondary { background: #26262f; color: #e5e5e5; border: 1px solid #3a3a45; }
+    .btn-secondary:hover { background: #303039; }
+    button:hover { opacity: 0.92; }
+
+    label.opt {
+        display: flex; align-items: center; gap: 6px;
+        font-size: 0.85em; color: #b0b0ba; cursor: pointer;
+        background: #0f0f14; border: 1px solid #2a2a35;
+        padding: 8px 12px; border-radius: 8px;
+    }
+    label.opt input { cursor: pointer; }
+
+    .error {
+        background: #3a1a1a; border: 1px solid #7f1d1d;
+        color: #fca5a5; padding: 10px 14px; border-radius: 8px;
+        margin-top: 12px; font-size: 0.9em; display: none;
+    }
+    .error.show { display: block; }
+
+    .output-wrap { position: relative; }
+    #output {
+        white-space: pre-wrap;
+        background: #0f0f14;
+        border: 1px solid #2a2a35;
+        border-radius: 8px;
+        padding: 16px;
+        font-family: 'Consolas', 'Monaco', monospace;
+        font-size: 13.5px;
+        line-height: 1.7;
+        min-height: 120px;
+        color: #d4d4d8;
+    }
+    #output .tag-line { color: #fbbf24; font-weight: 700; margin-top: 10px; display: block; }
+    #output .tag-line:first-child { margin-top: 0; }
+
+    .summary {
+        display: flex; gap: 18px; flex-wrap: wrap;
+        margin-bottom: 14px; font-size: 0.88em; color: #9ca3af;
+    }
+    .summary b { color: #fbbf24; }
+
+    .copied-toast {
+        position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+        background: #22c55e; color: #04240f; padding: 10px 20px;
+        border-radius: 8px; font-weight: 600; font-size: 0.9em;
+        opacity: 0; pointer-events: none; transition: opacity 0.25s;
+    }
+    .copied-toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>📋 Deskripsi Skin Generator</h1>
+        <p>Paste data skin (hasil cek dari cekskin.com) → auto-jadi format "Desk:" siap pakai buat listing jual akun.</p>
+    </header>
+
+    <div class="card">
+        <h2>1. Paste Data Skin</h2>
+        <div class="hint">
+            Buka DevTools (F12) → tab <b>Network</b> saat cek skin di cekskin.com → cari request
+            <code>GET /api/players/{id}/skins</code> → klik kanan → Copy Response → paste di bawah ini.
+            Tool ini terima format JSON <code>{"skins":[...]}</code> atau langsung array <code>[...]</code>.
+        </div>
+        <textarea id="input" placeholder='{"total":526,"skins":[{"heroName":"Alucard","skinName":"Obsidian Blade","rarity":"Supreme","tag":"Legend"}, ...]}'></textarea>
+
+        <div class="row">
+            <label class="opt"><input type="checkbox" id="excludeBasic" checked> Sembunyikan skin standar (Normal/Elite/Season Reward)</label>
+            <label class="opt"><input type="checkbox" id="sortByValue" checked> Urutkan grup by kelangkaan</label>
+        </div>
+
+        <div class="row">
+            <button class="btn-primary" onclick="generate()">✨ Generate Deskripsi</button>
+            <button class="btn-secondary" onclick="loadSample()">Coba dengan Contoh Data</button>
+            <button class="btn-secondary" onclick="clearAll()">Bersihkan</button>
+        </div>
+        <div class="error" id="err"></div>
+    </div>
+
+    <div class="card" id="resultCard" style="display:none">
+        <h2>2. Hasil Deskripsi</h2>
+        <div class="summary" id="summary"></div>
+        <div class="output-wrap">
+            <div id="output"></div>
+        </div>
+        <div class="row">
+            <button class="btn-primary" onclick="copyOutput()">📋 Copy Deskripsi</button>
+        </div>
+    </div>
+</div>
+
+<div class="copied-toast" id="toast">Deskripsi berhasil di-copy!</div>
+
+<script>
+    // Tag standar/gratis yang tidak perlu ditampilkan di deskripsi jual akun
+    const BASIC_TAGS = new Set(['Normal', 'Elite', 'Season Reward']);
+
+    // Urutan prioritas rarity cekskin.com (makin tinggi makin langka/mahal)
+    const RARITY_WEIGHT = { 'Grand': 6, 'Supreme': 5, 'Exquisite': 4, 'Deluxe': 3, 'Exceptional': 2, 'Common': 1 };
+
+    let rawText = '';
+
+    function loadSample() {
+        const sample = {
+            total: 12,
+            skins: [
+                { heroName: 'Alucard', skinName: 'Obsidian Blade', rarity: 'Supreme', tag: 'Legend' },
+                { heroName: 'Franco', skinName: 'King of Hell', rarity: 'Supreme', tag: 'Legend' },
+                { heroName: 'Angela', skinName: 'Heartstring', rarity: 'Grand', tag: 'Sanrio' },
+                { heroName: 'Kimmy', skinName: 'Starbound Sentry', rarity: 'Grand', tag: 'Collector' },
+                { heroName: 'Ling', skinName: 'Serene Plume', rarity: 'Grand', tag: 'Collector' },
+                { heroName: 'Alice', skinName: 'Wizardry Teacher', rarity: 'Exquisite', tag: 'Lucky Box' },
+                { heroName: 'Eudora', skinName: 'Emerald Enchantress', rarity: 'Exquisite', tag: 'Lucky Box' },
+                { heroName: 'Hayabusa', skinName: 'Experiment 21', rarity: 'Exquisite', tag: 'Star' },
+                { heroName: 'Gord', skinName: 'No.1 Controller', rarity: 'Exquisite', tag: 'Star' },
+                { heroName: 'Alucard', skinName: 'Lone Hero', rarity: 'Common', tag: 'Normal' },
+                { heroName: 'Alpha', skinName: 'Fierce Dragon', rarity: 'Common', tag: 'Elite' },
+                { heroName: 'Argus', skinName: 'Winged Nightmare', rarity: 'Common', tag: 'Season Reward' },
+            ]
+        };
+        document.getElementById('input').value = JSON.stringify(sample, null, 2);
+    }
+
+    function clearAll() {
+        document.getElementById('input').value = '';
+        document.getElementById('resultCard').style.display = 'none';
+        hideError();
+    }
+
+    function showError(msg) {
+        const el = document.getElementById('err');
+        el.textContent = '❌ ' + msg;
+        el.classList.add('show');
+    }
+    function hideError() {
+        document.getElementById('err').classList.remove('show');
+    }
+
+    function parseSkinsInput(text) {
+        const data = JSON.parse(text);
+        if (Array.isArray(data)) return data;
+        if (Array.isArray(data.skins)) return data.skins;
+        throw new Error('Format tidak dikenali. Harus array skin atau object dengan field "skins".');
+    }
+
+    function generate() {
+        hideError();
+        const text = document.getElementById('input').value.trim();
+        if (!text) { showError('Paste data skin dulu ya.'); return; }
+
+        let skins;
+        try {
+            skins = parseSkinsInput(text);
+        } catch (e) {
+            showError('Gagal parse JSON: ' + e.message);
+            return;
+        }
+        if (!skins.length) { showError('Data skin kosong.'); return; }
+
+        const excludeBasic = document.getElementById('excludeBasic').checked;
+        const sortByValue = document.getElementById('sortByValue').checked;
+
+        let filtered = skins.filter(s => s.heroName && s.tag);
+        if (excludeBasic) filtered = filtered.filter(s => !BASIC_TAGS.has(s.tag));
+
+        // Group by tag
+        const groups = {};
+        const groupOrderSeen = [];
+        for (const s of filtered) {
+            if (!groups[s.tag]) { groups[s.tag] = []; groupOrderSeen.push(s.tag); }
+            groups[s.tag].push(s);
+        }
+
+        let tagOrder = groupOrderSeen;
+        if (sortByValue) {
+            const maxWeight = tag => Math.max(...groups[tag].map(s => RARITY_WEIGHT[s.rarity] || 0));
+            tagOrder = [...groupOrderSeen].sort((a, b) => maxWeight(b) - maxWeight(a));
+        }
+
+        const outputEl = document.getElementById('output');
+        outputEl.innerHTML = '';
+        let lineCount = 0;
+
+        for (const tag of tagOrder) {
+            const heroes = groups[tag];
+            for (const s of heroes) {
+                const line = document.createElement('span');
+                line.textContent = `${tag} ${s.heroName}`;
+                outputEl.appendChild(line);
+                outputEl.appendChild(document.createElement('br'));
+                lineCount++;
+            }
+        }
+
+        rawText = tagOrder.flatMap(tag => groups[tag].map(s => `${tag} ${s.heroName}`)).join('\n');
+
+        document.getElementById('summary').innerHTML =
+            `Total skin: <b>${skins.length}</b> &nbsp;•&nbsp; Ditampilkan: <b>${lineCount}</b> &nbsp;•&nbsp; Grup tag: <b>${tagOrder.length}</b>`;
+
+        document.getElementById('resultCard').style.display = 'block';
+    }
+
+    function copyOutput() {
+        if (!rawText) return;
+        navigator.clipboard.writeText('Desk:\n\n' + rawText).then(() => {
+            const t = document.getElementById('toast');
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 1800);
+        });
+    }
+</script>
+</body>
+</html>
