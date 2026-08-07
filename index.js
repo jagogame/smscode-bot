@@ -40,6 +40,7 @@ require('dotenv').config();
 })();
 
 backup.startSchedule();
+require('./weeklyAward').start(); // Juara Mingguan otomatis (umumkan + reset tiap awal minggu)
 
 // Follow-up otomatis: ingatkan pesanan PENDING yang belum dibayar (>15 menit, sekali saja)
 setInterval(() => {

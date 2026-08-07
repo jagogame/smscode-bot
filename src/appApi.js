@@ -10,8 +10,8 @@ const { getRekapSemua, submitLocalOnly } = require('./sales');
 const push = require('./push');
 
 const RATE = 5000;            // komisi Rp per bulan YouTube
-const WEEK_GOAL = 50;         // target mingguan (pesanan)
-const WEEK_BONUS = 25000;     // bonus tembus 50 / juara #1
+const WEEK_GOAL = 50;         // (tidak dipakai lagi di UI) sisa dari target lama
+const WEEK_BONUS = 15000;     // bonus juara #1 mingguan
 const KASIR = ['Arshil', 'Arinal', 'Dewo'];
 
 function isYT(r) { return r.source === 'yt_g2g' || /youtube/i.test(r.detailAkun || ''); }
