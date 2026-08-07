@@ -433,13 +433,19 @@
     var card=$('targetCard'), n2=$('tNote2');
     if(s.role!=='kasir'||s.period!=='minggu'){card.classList.add('hide');return}
     card.classList.remove('hide');
-    var wc=s.me.count, goal=cfg.weekGoal, bonus=cfg.weekBonus, pct=Math.min(wc/goal*100,100);
-    $('targetTitle').textContent='🎯 Target mingguan';
-    $('tGoalTxt').textContent=wc+' / '+goal+' pesanan';
-    $('tNote').textContent = wc>=goal ? ('🎉 Tembus '+goal+'! Bonus Rp '+rp(bonus)+' ✓') : ((goal-wc)+' pesanan lagi buat +Rp '+rp(bonus));
-    var top=s.leaderboard&&s.leaderboard[0]?s.leaderboard[0].name:null;
-    n2.style.display='';
-    n2.textContent = (top===s.name)?('🥇 Kamu #1 minggu ini — +Rp '+rp(bonus)+' juga!'):('🥇 Peringkat #1 minggu ini dapat +Rp '+rp(bonus));
+    var bonus=cfg.weekBonus;
+    var lead=s.leaderboard||[];
+    var top=lead[0]||null, topCount=top?top.count:0, meCount=s.me.count, isTop=!!(top&&top.name===s.name);
+    $('targetTitle').textContent='🏆 Bonus mingguan';
+    $('tGoalTxt').textContent='Juara #1 → +Rp '+rp(bonus);
+    if(isTop){
+      $('tNote').textContent='🥇 Kamu #1 sekarang! Pertahankan sampai akhir minggu buat +Rp '+rp(bonus);
+    }else{
+      var gap=Math.max(1, topCount-meCount+1);
+      $('tNote').textContent='🔥 '+gap+' pesanan lagi buat nyalip #1'+(top?(' ('+top.name+')'):'');
+    }
+    n2.style.display='none';
+    var pct = isTop ? 100 : (topCount>0 ? Math.min(meCount/topCount*100,100) : 0);
     requestAnimationFrame(function(){setTimeout(function(){$('tBar').style.width=pct+'%'},30)});
   }
 
@@ -455,7 +461,6 @@
       var badges='';
       if(s.period==='minggu'){
         if(i===0&&x.count>0) badges+='<span class="lbadge gold">🥇 +'+rp(cfg.weekBonus/1000)+'rb</span>';
-        if(x.count>=cfg.weekGoal) badges+='<span class="lbadge">🎯 '+cfg.weekGoal+'+ +'+rp(cfg.weekBonus/1000)+'rb</span>';
       }
       row.innerHTML='<div class="rk">'+(medals[i]||'<small>'+(i+1)+'</small>')+'</div>'+
         '<div class="lav">'+x.name.slice(0,1)+'</div>'+
