@@ -15,6 +15,52 @@ const KASIR_JID_FILE = path.join(__dirname, '../data/kasir-jid.json');
 function loadKasirJid() { try { return JSON.parse(fs.readFileSync(KASIR_JID_FILE,'utf8')); } catch { return {}; } }
 function saveKasirJid(map) { fs.writeFileSync(KASIR_JID_FILE, JSON.stringify(map, null, 2)); }
 
+// Config bot (grup setor akun, dll)
+const CONFIG_FILE = path.join(__dirname, '../data/config.json');
+function loadConfig() { try { return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8')); } catch { return {}; } }
+function saveConfig(c) { fs.writeFileSync(CONFIG_FILE, JSON.stringify(c, null, 2)); }
+
+// Report YouTube (harian / bulanan)
+function isYT(r) { return r.source === 'yt_g2g' || /youtube/i.test(r.detailAkun || ''); }
+function ytReport(period) {
+    const db = getRekapSemua().filter(isYT);
+    const now = new Date();
+    let filtered, judul, kosong;
+    if (period === 'harian') {
+        const today = now.toISOString().slice(0, 10);
+        filtered = db.filter(r => (r.submittedAt || '').slice(0, 10) === today);
+        judul = `Report Harian YouTube — ${now.toLocaleDateString('id-ID')}`;
+        kosong = 'hari ini';
+    } else if (period === 'mingguan') {
+        const d = new Date(now);
+        const back = d.getDay() === 0 ? 6 : d.getDay() - 1;  // mundur ke Senin
+        d.setDate(d.getDate() - back);
+        const senin = d.toISOString().slice(0, 10);
+        const today = now.toISOString().slice(0, 10);
+        filtered = db.filter(r => { const t = (r.submittedAt || '').slice(0, 10); return t >= senin && t <= today; });
+        judul = `Report Mingguan YouTube — ${senin} s/d ${today}`;
+        kosong = 'minggu ini';
+    } else {
+        const ym = now.toISOString().slice(0, 7);
+        filtered = db.filter(r => (r.submittedAt || '').slice(0, 7) === ym);
+        judul = `Report Bulanan YouTube — ${now.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}`;
+        kosong = 'bulan ini';
+    }
+    if (!filtered.length) return `📊 *${judul}*\n\nBelum ada penjualan YouTube ${kosong}.`;
+    const byKasir = {};
+    filtered.forEach(r => { const k = r.namaKasir || 'Unknown'; byKasir[k] = (byKasir[k] || 0) + 1; });
+    let txt = `📊 *${judul}*\n${'─'.repeat(28)}\n\n📦 Total: *${filtered.length}* akun YouTube\n\n👥 *Per kasir:*\n`;
+    Object.entries(byKasir).sort((a, b) => b[1] - a[1]).forEach(([k, n]) => { txt += `  • ${k}: ${n}\n`; });
+    txt += `\n📝 *Detail:*\n`;
+    filtered.slice(-15).forEach((r, i) => {
+        const tgl = (r.submittedAt || '').slice(0, 10);
+        const pembeli = r.usernamePembeli || r.namaPembeli || '-';
+        txt += `${i + 1}. ${pembeli} — ${r.namaKasir || '-'} — ${tgl}\n`;
+    });
+    if (filtered.length > 15) txt += `_...dan ${filtered.length - 15} lainnya_`;
+    return txt.trim();
+}
+
 const KASIR_LIST    = ['Arshil', 'Arinal', 'Dewo'];
 const PRODUK_LIST   = ['Gemini Pro + 5 TB', 'Youtube Premium'];
 const DURASI_LIST   = ['1 Bulan', '2 Bulan', '3 Bulan', '4 Bulan', '5 Bulan', '6 Bulan', '1 Tahun', '18 Bulan'];
@@ -204,6 +250,27 @@ async function handleSales(sock, msg, text) {
     const jid = msg.key.remoteJid;
     const lower = text.toLowerCase();
     const reply = (content) => sock.sendMessage(jid, { text: content }, { quoted: msg });
+    const senderJid = msg.key.participant || msg.key.remoteJid;  // di grup: pengirim asli
+    const isGroup = jid.endsWith('@g.us');
+
+    // ── Absensi kasir: on / off ──
+    // Catatan: notifikasi ke grup WA "setor akun" DIMATIKAN — bot tidak lagi
+    // mengirim absensi ke grup mana pun. Kasir cukup dapat balasan konfirmasi.
+    if (lower === 'on' || lower === 'off') {
+        const kasir = detectKasir(senderJid);
+        if (!kasir) return null;  // bukan kasir → abaikan (biar tidak berisik)
+        return reply(lower === 'on'
+            ? `✅ Absen ON tercatat. Semangat, ${kasir}!`
+            : `✅ Absen OFF tercatat. Terima kasih, ${kasir}!`);
+    }
+
+    // ── Report YouTube (harian / bulanan) ──
+    if (['report harian', 'report yt harian', 'report harian yt', 'laporan harian', 'laporan yt harian'].includes(lower))
+        return reply(ytReport('harian'));
+    if (['report mingguan', 'report yt mingguan', 'report mingguan yt', 'laporan mingguan', 'laporan yt mingguan'].includes(lower))
+        return reply(ytReport('mingguan'));
+    if (['report bulanan', 'report yt bulanan', 'report bulanan yt', 'laporan bulanan', 'laporan yt bulanan'].includes(lower))
+        return reply(ytReport('bulanan'));
 
     // ── Rekap ─────────────────────────────────────────────────────────
     if (lower === 'rekap') {
@@ -288,9 +355,9 @@ async function handleSales(sock, msg, text) {
         const valid = KASIR_LIST.find(k => k.toLowerCase() === nama.toLowerCase());
         if (!valid) return reply(`❌ Nama tidak valid. Pilih: ${KASIR_LIST.join(', ')}`);
         const map = loadKasirJid();
-        map[jid] = valid;
+        map[senderJid] = valid;
         saveKasirJid(map);
-        return reply(`✅ Berhasil daftar sebagai kasir *${valid}*!\n\nSekarang kamu bisa langsung kirim foto + caption username pembeli untuk laporan YT G2G.`);
+        return reply(`✅ Berhasil daftar sebagai kasir *${valid}*!\n\n• Kirim foto + caption username pembeli → laporan YT G2G\n• Ketik *on* / *off* → absensi kerja`);
     }
 
     // ── Input laporan ─────────────────────────────────────────────────
