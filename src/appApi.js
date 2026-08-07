@@ -7,6 +7,7 @@ const path = require('path');
 const router = express.Router();
 const auth = require('./auth');
 const { getRekapSemua, submitLocalOnly } = require('./sales');
+const push = require('./push');
 
 const RATE = 5000;            // komisi Rp per bulan YouTube
 const WEEK_GOAL = 50;         // target mingguan (pesanan)
@@ -130,7 +131,26 @@ router.post('/api/app/laporan', requireAuth, (req, res) => {
             source: 'yt_g2g',
         };
         submitLocalOnly(record);
+        // Notif HP ke admin: ada laporan baru
+        push.send(
+            { title: '📝 Laporan baru', body: `${kasir} — ${username} (${bulan} bln YT)`, url: '/app' },
+            u => u.role === 'admin'
+        ).catch(() => {});
         res.json({ ok: true, komisi: bulan * RATE, record });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Web Push: kunci publik VAPID + daftar langganan HP ──────
+router.get('/api/app/push/vapid', (req, res) => {
+    const key = push.getPublicKey();
+    if (!key) return res.status(503).json({ error: 'Push belum aktif di server' });
+    res.json({ key });
+});
+router.post('/api/app/push/subscribe', requireAuth, (req, res) => {
+    try {
+        const ok = push.addSubscription(req.body && req.body.subscription, { name: req.session.name, role: req.session.role });
+        if (!ok) return res.status(400).json({ error: 'Langganan tidak valid' });
+        res.json({ ok: true });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

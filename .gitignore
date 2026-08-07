@@ -8,3 +8,5 @@ data/store-vouchers.json
 data/backups/
 data/sessions.json
 data/audit-log.json
+data/vapid.json
+data/push-subs.json

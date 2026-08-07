@@ -52,6 +52,8 @@ async function deliverOrder(order) {
     if (settings.whatsapp && wa.isReady()) {
         wa.sendText(settings.whatsapp, `💰 TERJUAL!\n${order.productName}\nRp ${Number(order.productPrice).toLocaleString('id-ID')}\nPembeli: ${order.customerName} (${order.customerWA})\nSisa stok: ${store.getStockCount(order.productId)}`).catch(() => {});
     }
+    // Notif HP (PWA) ke admin: transaksi selesai
+    try { require('./push').send({ title: '💰 Transaksi selesai', body: `${order.productName} — ${order.customerName}`, url: '/app' }, u => u.role === 'admin').catch(() => {}); } catch (_) {}
     return updated;
     } finally {
         delivering.delete(order.id);
@@ -96,6 +98,8 @@ router.use((req, res, next) => {
     res.setHeader('X-Frame-Options', 'SAMEORIGIN');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+    // HSTS: paksa browser selalu pakai HTTPS selama 1 tahun (termasuk subdomain)
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
     next();
 });
 
