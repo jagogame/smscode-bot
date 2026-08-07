@@ -1,7 +1,7 @@
 // ─────────────────────────────────────────────────────────────
-// Juara Mingguan otomatis: tiap awal minggu (Senin, batas UTC — sama
-// dengan papan peringkat di app), umumkan juara minggu yang baru selesai
-// lalu minggu baru dimulai (papan peringkat sudah auto-reset per periode).
+// Juara Mingguan otomatis: tiap hari Minggu (batas UTC — sama dengan papan
+// peringkat di app), umumkan juara minggu yang baru selesai lalu minggu baru
+// dimulai (papan peringkat sudah auto-reset per periode).
 // Notif dikirim ke semua langganan push + WA ke admin.
 // ─────────────────────────────────────────────────────────────
 const fs = require('fs');
@@ -18,11 +18,11 @@ const STATE_FILE = path.join(VOL_DIR, 'weekly-award.json');
 function isYT(r) { return r.source === 'yt_g2g' || /youtube/i.test(r.detailAkun || ''); }
 function rupiah(n) { return 'Rp ' + Number(n || 0).toLocaleString('id-ID'); }
 
-// Senin (UTC) dari sebuah Date → "yyyy-mm-dd"
-function mondayOf(date) {
+// Awal minggu = hari Minggu (UTC) dari sebuah Date → "yyyy-mm-dd"
+// Sama dengan papan peringkat di app → reset & juara tiap hari Minggu.
+function weekStartOf(date) {
     const d = new Date(date);
-    const back = d.getUTCDay() === 0 ? 6 : d.getUTCDay() - 1;
-    d.setUTCDate(d.getUTCDate() - back);
+    d.setUTCDate(d.getUTCDate() - d.getUTCDay());
     return d.toISOString().slice(0, 10);
 }
 function addDays(ds, n) { const d = new Date(ds + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
@@ -70,15 +70,15 @@ async function announce(prevMon, thisMon) {
 }
 
 function tick() {
-    const thisMon = mondayOf(new Date());
-    const prevMon = addDays(thisMon, -7);
+    const thisWk = weekStartOf(new Date());   // Minggu (Sunday) minggu berjalan
+    const prevWk = addDays(thisWk, -7);        // Minggu minggu sebelumnya
     const st = loadState();
-    // Boot pertama: jangan umumkan minggu yang sudah lewat, cukup tandai.
-    if (st.lastAnnounced === undefined) { saveState({ lastAnnounced: prevMon }); return; }
-    // Minggu baru terdeteksi → umumkan minggu sebelumnya (sekali).
-    if (st.lastAnnounced !== prevMon) {
-        announce(prevMon, thisMon).catch(() => {});
-        saveState({ lastAnnounced: prevMon, lastWinner: winnerOf(prevMon, thisMon), announcedAt: new Date().toISOString() });
+    // Boot pertama (atau migrasi dari skema lama): tandai saja, jangan umumkan.
+    if (st.lastWeek === undefined) { saveState({ lastWeek: prevWk }); return; }
+    // Minggu baru terdeteksi (hari Minggu) → umumkan minggu sebelumnya (sekali).
+    if (st.lastWeek !== prevWk) {
+        announce(prevWk, thisWk).catch(() => {});
+        saveState({ lastWeek: prevWk, lastWinner: winnerOf(prevWk, thisWk), announcedAt: new Date().toISOString() });
     }
 }
 

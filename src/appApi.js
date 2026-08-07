@@ -37,15 +37,15 @@ function requireAuth(req, res, next) {
 
 // Batas periode pakai UTC-slice (konsisten dgn report YT bot yang sudah ada)
 function todayStr() { return new Date().toISOString().slice(0, 10); }
-function mondayStr() {
-    const d = new Date(); const back = d.getUTCDay() === 0 ? 6 : d.getUTCDay() - 1;
-    d.setUTCDate(d.getUTCDate() - back); return d.toISOString().slice(0, 10);
+// Awal minggu = hari Minggu (UTC). Papan peringkat reset tiap Minggu.
+function weekStartStr() {
+    const d = new Date(); d.setUTCDate(d.getUTCDate() - d.getUTCDay()); return d.toISOString().slice(0, 10);
 }
 function inPeriod(r, period) {
     const day = (r.submittedAt || '').slice(0, 10);
     if (!day) return false;
     if (period === 'hari') return day === todayStr();
-    if (period === 'minggu') return day >= mondayStr() && day <= todayStr();
+    if (period === 'minggu') return day >= weekStartStr() && day <= todayStr();
     return (r.submittedAt || '').slice(0, 7) === new Date().toISOString().slice(0, 7); // bulan
 }
 function parseTgl(s) { // "dd/mm/yyyy" → ms akhir hari itu
