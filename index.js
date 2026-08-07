@@ -62,6 +62,7 @@ const PORT = process.env.PORT || 3000;
 let currentQR = null;
 
 app.use(express.json());
+app.use('/', require('./src/appApi')); // API Aplikasi Kasir (PWA) — additive
 app.use('/', apiRouter);
 
 app.get('/qr', async (req, res) => {
