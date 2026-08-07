@@ -131,10 +131,15 @@ router.post('/api/app/laporan', requireAuth, (req, res) => {
             source: 'yt_g2g',
         };
         submitLocalOnly(record);
-        // Notif HP ke admin: ada laporan baru
+        // Notif HP admin: info laporan baru
         push.send(
             { title: '📝 Laporan baru', body: `${kasir} — ${username} (${bulan} bln YT)`, url: '/app' },
             u => u.role === 'admin'
+        ).catch(() => {});
+        // Notif HP kasir LAIN: pancing kompetisi (yang closing tidak dinotif)
+        push.send(
+            { title: `🔥 ${kasir} baru closing!`, body: `${username} · ${bulan} bln YT — kejar posisinya di papan peringkat! 🏆`, url: '/app' },
+            u => u.role === 'kasir' && String(u.name).toLowerCase() !== String(kasir).toLowerCase()
         ).catch(() => {});
         res.json({ ok: true, komisi: bulan * RATE, record });
     } catch (e) { res.status(500).json({ error: e.message }); }
