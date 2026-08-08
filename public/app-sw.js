@@ -1,5 +1,5 @@
 // Service worker Aplikasi Kasir Jago Game
-const CACHE = 'jago-kasir-v7';
+const CACHE = 'jago-kasir-v9';
 const SHELL = ['/app', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png'];
 
 self.addEventListener('install', (e) => {
