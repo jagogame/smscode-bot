@@ -28,14 +28,16 @@
   *{box-sizing:border-box}
   html,body{margin:0;padding:0}
   body{font-family:var(--ff);color:var(--ink);background:var(--paper);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;min-height:100vh}
+  /* iOS: tombol jangan pakai warna biru default — ikut warna teks yang kita set */
+  button{color:inherit;-webkit-text-fill-color:currentColor}
   .stage{min-height:100vh;display:grid;place-items:center;padding:24px 16px;
     background:radial-gradient(700px 420px at 88% -8%,rgba(228,87,46,.10),transparent 60%),var(--paper)}
   .device{width:100%;max-width:428px;height:min(880px,calc(100vh - 48px));background:var(--paper);
     border:1px solid var(--line);border-radius:38px;box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden;position:relative}
   @media (max-width:520px){.stage{padding:0}.device{max-width:none;height:100vh;height:100dvh;border-radius:0;border:none}}
 
-  .login{position:absolute;inset:0;z-index:40;background:var(--paper);display:flex;flex-direction:column;padding:38px 24px;overflow-y:auto}
-  .login .brandbig{display:flex;align-items:center;gap:11px;margin-bottom:auto}
+  .login{position:absolute;inset:0;z-index:40;background:var(--paper);display:flex;flex-direction:column;justify-content:center;padding:24px 24px;padding-top:calc(20px + env(safe-area-inset-top,0px));padding-bottom:calc(20px + env(safe-area-inset-bottom,0px));overflow-y:auto}
+  .login .brandbig{display:flex;align-items:center;gap:11px;margin-bottom:26px}
   .login .emblem{width:40px;height:40px;border-radius:12px;background:var(--ink);color:var(--paper);display:grid;place-items:center;font-weight:900;font-size:16px;letter-spacing:-.03em}
   .login .brandbig b{font-size:17px;font-weight:850;letter-spacing:-.02em}
   .login h1{margin:0;font-size:38px;line-height:.98;font-weight:900;letter-spacing:-.045em}
@@ -63,7 +65,7 @@
   .login .hintline{font-size:12px;color:var(--faint);font-weight:600;text-align:center;margin-top:14px}
   .errline{font-size:13px;color:var(--accent-deep);font-weight:800;text-align:center;margin-top:12px;min-height:16px}
 
-  .topbar{flex:0 0 auto;margin:14px 14px 4px;background:var(--card);border:1px solid var(--line);border-radius:var(--r-pill);box-shadow:var(--shadow-pill);
+  .topbar{flex:0 0 auto;margin:calc(12px + env(safe-area-inset-top,0px)) 14px 4px;background:var(--card);border:1px solid var(--line);border-radius:var(--r-pill);box-shadow:var(--shadow-pill);
     display:flex;align-items:center;gap:10px;padding:9px 12px 9px 10px;position:relative;z-index:20}
   .emblem{width:34px;height:34px;border-radius:10px;flex:0 0 auto;background:var(--ink);color:var(--paper);display:grid;place-items:center;font-weight:900;font-size:14px;letter-spacing:-.03em}
   .brand{display:flex;flex-direction:column;line-height:1;gap:3px;margin-right:auto}
@@ -92,7 +94,7 @@
 
   .screens{flex:1 1 auto;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none}
   .screens::-webkit-scrollbar{display:none}
-  .screen{display:none;padding:12px 16px 22px}
+  .screen{display:none;padding:8px 16px 18px}
   .screen.active{display:block}
   @media (prefers-reduced-motion:reduce){*{animation-duration:.001ms!important}}
   .eyebrow{font-size:12px;font-weight:800;letter-spacing:.02em;text-transform:uppercase;color:var(--faint);margin:8px 2px 12px}
@@ -110,7 +112,7 @@
   .omzet .v .rp{font-size:12px;color:var(--faint);font-weight:800;margin-right:2px}
   .omzet .v b{color:var(--ink)}
 
-  .chips{display:flex;gap:8px;margin:20px 0 16px}
+  .chips{display:flex;gap:8px;margin:16px 0 14px}
   .chip{flex:1;text-align:center;font-size:13px;font-weight:800;letter-spacing:-.01em;padding:11px 8px;border-radius:var(--r-pill);cursor:pointer;border:1.5px solid var(--line);background:transparent;color:var(--muted);transition:.15s}
   .chip.active{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 
@@ -179,7 +181,7 @@
   .seg button.sel{background:var(--ink);border-color:var(--ink);color:var(--paper)}
   .lockmsg{font-size:13px;font-weight:800;color:var(--ink);background:var(--paper-2);border-radius:var(--r-input);padding:12px 14px;display:flex;align-items:center;gap:8px}
 
-  .tabbar{flex:0 0 auto;margin:4px 14px 14px;background:var(--card);border:1px solid var(--line);border-radius:var(--r-pill);box-shadow:var(--shadow-pill);display:flex;padding:6px}
+  .tabbar{flex:0 0 auto;margin:4px 14px calc(12px + env(safe-area-inset-bottom,0px));background:var(--card);border:1px solid var(--line);border-radius:var(--r-pill);box-shadow:var(--shadow-pill);display:flex;padding:6px}
   .tab{flex:1;background:none;border:none;cursor:pointer;padding:11px 8px;display:flex;align-items:center;justify-content:center;gap:8px;color:var(--muted);font-family:var(--ff);font-weight:800;font-size:13.5px;letter-spacing:-.01em;border-radius:var(--r-pill);transition:.15s}
   .tab svg{width:19px;height:19px;stroke-width:2}
   .tab .lb2{font-size:13.5px;font-weight:800}
@@ -199,7 +201,7 @@
     <!-- LOGIN -->
     <div class="login" id="loginView">
       <div class="brandbig">
-        <div class="emblem">JG</div>
+        <div class="emblem"><svg viewBox="0 0 40 40" width="74%" height="74%" aria-hidden="true"><path d="M13 14 L13 9.5 L16.3 12.4 L20 7.5 L23.7 12.4 L27 9.5 L27 14 Z" fill="#E4572E"/><rect x="13" y="13.2" width="14" height="1.8" rx="0.6" fill="#E4572E"/><circle cx="20" cy="23.6" r="10" fill="#E4572E"/><path d="M17.2 18.4 L17.2 28.8 L25.2 23.6 Z" fill="#F3EFE7"/></svg></div>
         <b>Jago Game</b>
       </div>
       <h1>Panel kasir<br>YouTube.</h1>
@@ -222,7 +224,7 @@
 
     <!-- APP -->
     <header class="topbar hide" id="topbar">
-      <div class="emblem">JG</div>
+      <div class="emblem"><svg viewBox="0 0 40 40" width="74%" height="74%" aria-hidden="true"><path d="M13 14 L13 9.5 L16.3 12.4 L20 7.5 L23.7 12.4 L27 9.5 L27 14 Z" fill="#E4572E"/><rect x="13" y="13.2" width="14" height="1.8" rx="0.6" fill="#E4572E"/><circle cx="20" cy="23.6" r="10" fill="#E4572E"/><path d="M17.2 18.4 L17.2 28.8 L25.2 23.6 Z" fill="#F3EFE7"/></svg></div>
       <div class="brand"><b>Jago Game</b><span id="brandRole">Rekap YT</span></div>
       <button class="bell" id="bellBtn" aria-label="Notifikasi">
         <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
