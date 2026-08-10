@@ -1,5 +1,7 @@
 const sms = require('./smscode');
 const { handleSales } = require('./salesHandler');
+const { checkSkin } = require('./cekskin-bot/index.js');
+const fs = require('fs');
 
 // catalog_product_id tetap untuk Google/YouTube/Gmail - Brazil
 const GOOGLE_BR_PRODUCT_ID = 6220;
@@ -65,6 +67,15 @@ const MENU = `╔═════════════════════
 ║ *daftar kasir <nama>*    ║
 ║ *rekap yt*   - Rekap YT   ║
 ║ *rekap*      - Rekap umum ║
+╠══════════════════════════╣
+║ 📊 *Report YouTube*      ║
+║ *report harian*  - Hari  ║
+║ *report mingguan*- Minggu║
+║ *report bulanan* - Bulan ║
+╠══════════════════════════╣
+║ 🕒 *Absensi Kasir*       ║
+║ *on*  - Mulai kerja      ║
+║ *off* - Selesai kerja    ║
 ╚══════════════════════════╝`;
 
 async function handleMessage(sock, msg) {
@@ -77,6 +88,30 @@ async function handleMessage(sock, msg) {
         || msg.message?.viewOnceMessageV2?.message?.imageMessage;
 
     const text = (msg.message?.conversation || msg.message?.extendedTextMessage?.text || '').trim();
+
+    // Screenshot + "?" → AI bantu balas chat G2G
+    // Support: (1) gambar dengan caption "?" atau (2) reply "?" ke gambar
+    const caption = (imgMsg?.caption || '').trim();
+    const quotedImg = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage?.imageMessage;
+    const isG2GRequest = (imgMsg && caption === '?') || (text === '?' && quotedImg);
+
+    if (isG2GRequest) {
+        const reply = (content) => sock.sendMessage(jid, { text: content }, { quoted: msg });
+        const targetMsg = (imgMsg && caption === '?') ? msg : { message: { imageMessage: quotedImg } };
+        try {
+            await reply('🤖 Analyzing screenshot...');
+            const { generateG2GReply } = require('./g2gReply');
+            const aiReply = await generateG2GReply(targetMsg);
+            if (aiReply) {
+                await reply(aiReply);
+            } else {
+                await reply('⚠️ Tidak bisa menganalisis screenshot. Pastikan API key sudah di-set.');
+            }
+        } catch (e) {
+            await reply(`❌ Gagal analisis: ${e.message}`);
+        }
+        return;
+    }
 
     // Teruskan pesan gambar ke salesHandler
     if (imgMsg) {
@@ -218,10 +253,35 @@ async function handleMessage(sock, msg) {
         }
     }
 
+    // CekSkin MLBB
+    if (lower.startsWith('/cekskin ') || lower.startsWith('cekskin ')) {
+        const gameId = text.split(' ')[1]?.trim();
+        if (!gameId) return reply('❌ Format salah! Gunakan: /cekskin <ID>\nContoh: /cekskin 12345678');
+        
+        await reply('⏳ Sedang mengecek skin untuk ID ' + gameId + '...\nProses memakan waktu sekitar 15-30 detik.');
+        try {
+            const hasil = await checkSkin(gameId);
+            await sock.sendMessage(jid, {
+                image: { url: hasil.posterPath },
+                caption: hasil.descriptionText
+            }, { quoted: msg });
+            
+            // Hapus file gambar setelah dikirim untuk menghemat storage
+            if (fs.existsSync(hasil.posterPath)) {
+                fs.unlinkSync(hasil.posterPath);
+            }
+            return;
+        } catch (e) {
+            console.error('Error CekSkin:', e);
+            return reply(`❌ Gagal mengecek skin: ${e.message}`);
+        }
+    }
+
     // Coba handler laporan penjualan
     const salesResult = await handleSales(sock, msg, text);
     if (salesResult !== null) return salesResult;
 
+    if (jid.endsWith('@g.us')) return; // di grup: diam kalau perintah tak dikenal (biar tidak spam)
     return reply(`Perintah tidak dikenal. Ketik *menu* untuk melihat perintah yang tersedia.`);
 }
 

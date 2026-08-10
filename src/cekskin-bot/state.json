@@ -1,0 +1,95 @@
+{
+  "cookies": [
+    {
+      "name": "connect.sid",
+      "value": "VaVx0KVvaSZ64zQt4hWHxg8IgMgoZVOj.eGMPq1%2BsI5lZelKcpPGtZGcyYIuCygeEFE8O%2FU6fw74%3D",
+      "domain": "cekskin.com",
+      "path": "/",
+      "expires": 1788974258.61,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "session",
+      "value": "VaVx0KVvaSZ64zQt4hWHxg8IgMgoZVOj.eGMPq1%2BsI5lZelKcpPGtZGcyYIuCygeEFE8O%2FU6fw74%3D",
+      "domain": "cekskin.com",
+      "path": "/",
+      "expires": 1788974258.61,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "PHPSESSID",
+      "value": "VaVx0KVvaSZ64zQt4hWHxg8IgMgoZVOj.eGMPq1%2BsI5lZelKcpPGtZGcyYIuCygeEFE8O%2FU6fw74%3D",
+      "domain": "cekskin.com",
+      "path": "/",
+      "expires": 1788974258.61,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "__session",
+      "value": "VaVx0KVvaSZ64zQt4hWHxg8IgMgoZVOj.eGMPq1%2BsI5lZelKcpPGtZGcyYIuCygeEFE8O%2FU6fw74%3D",
+      "domain": "cekskin.com",
+      "path": "/",
+      "expires": 1788974258.61,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "token",
+      "value": "VaVx0KVvaSZ64zQt4hWHxg8IgMgoZVOj.eGMPq1%2BsI5lZelKcpPGtZGcyYIuCygeEFE8O%2FU6fw74%3D",
+      "domain": "cekskin.com",
+      "path": "/",
+      "expires": 1788974258.61,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "auth_token",
+      "value": "VaVx0KVvaSZ64zQt4hWHxg8IgMgoZVOj.eGMPq1%2BsI5lZelKcpPGtZGcyYIuCygeEFE8O%2FU6fw74%3D",
+      "domain": "cekskin.com",
+      "path": "/",
+      "expires": 1788974258.61,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "cekskin_session",
+      "value": "VaVx0KVvaSZ64zQt4hWHxg8IgMgoZVOj.eGMPq1%2BsI5lZelKcpPGtZGcyYIuCygeEFE8O%2FU6fw74%3D",
+      "domain": "cekskin.com",
+      "path": "/",
+      "expires": 1788974258.61,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "next-auth.session-token",
+      "value": "VaVx0KVvaSZ64zQt4hWHxg8IgMgoZVOj.eGMPq1%2BsI5lZelKcpPGtZGcyYIuCygeEFE8O%2FU6fw74%3D",
+      "domain": "cekskin.com",
+      "path": "/",
+      "expires": 1788974258.61,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "__Secure-next-auth.session-token",
+      "value": "VaVx0KVvaSZ64zQt4hWHxg8IgMgoZVOj.eGMPq1%2BsI5lZelKcpPGtZGcyYIuCygeEFE8O%2FU6fw74%3D",
+      "domain": "cekskin.com",
+      "path": "/",
+      "expires": 1788974258.61,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": []
+}
