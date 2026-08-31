@@ -7,6 +7,7 @@ const sms = require('./smscode');
 const { submitForm, getRekapHariIni, getRekapSemua, getRekapByKasir } = require('./sales');
 const store = require('./store');
 const midtrans = require('./midtrans');
+const digiflazz = require('./digiflazz');
 const wa = require('./wa');
 const backup = require('./backup');
 const otp = require('./otp');
@@ -17,6 +18,77 @@ const router = express.Router();
 // Kunci untuk cegah double-delivery order yang sama (mis. webhook ganda)
 const delivering = new Set();
 
+// Kirim invoice sukses + notif admin (dipakai oleh kedua jalur pengiriman)
+async function notifySuccess(order, detailText) {
+    const settings = store.getSettings();
+    if (wa.isReady()) {
+        const rp = n => 'Rp ' + Number(n || 0).toLocaleString('id-ID');
+        let inv = `✅ *PEMBAYARAN BERHASIL — Jago Game*\n\nTerima kasih ${order.customerName}! 🎉\n\n🧾 *INVOICE*\nID: ${order.id}\nProduk: ${order.productName}\nHarga: ${rp(order.productPrice)}`;
+        if (order.discount > 0) inv += `\nDiskon${order.voucherCode ? ' (' + order.voucherCode + ')' : ''}: -${rp(order.discount)}`;
+        inv += `\n*Total Bayar: ${rp(order.finalPrice != null ? order.finalPrice : order.productPrice)}*\nStatus: LUNAS ✅\n\n━━━━━━━━━━━━━━\n${detailText}\n━━━━━━━━━━━━━━\n\nAda kendala? Balas chat ini. 🙏`;
+        wa.sendText(order.customerWA, inv).catch(() => {});
+    }
+    if (settings.whatsapp && wa.isReady()) {
+        wa.sendText(settings.whatsapp, `💰 TERJUAL!\n${order.productName}\nRp ${Number(order.productPrice).toLocaleString('id-ID')}\nPembeli: ${order.customerName} (${order.customerWA})`).catch(() => {});
+    }
+    try { require('./push').send({ title: '💰 Transaksi selesai', body: `${order.productName} — ${order.customerName}`, url: '/app' }, u => u.role === 'admin').catch(() => {}); } catch (_) {}
+}
+
+// Kirim topup game otomatis via Digiflazz
+async function deliverTopup(order) {
+    const settings = store.getSettings();
+    const product = store.getProducts().find(p => p.id === order.productId);
+    const customerNo = String(order.gameId || '') + String(order.serverId || '');
+
+    if (!digiflazz.isConfigured()) {
+        const updated = store.patchOrder(order.id, { status: 'PAID_NO_STOCK', paymentStatus: 'PAID', paidAt: new Date().toISOString() });
+        if (settings.whatsapp && wa.isReady()) {
+            wa.sendText(settings.whatsapp, `⚠️ TOPUP MANUAL DIPERLUKAN\nDigiflazz belum dikonfigurasi.\nPesanan ${order.id} (${order.productName}) sudah LUNAS.\nID: ${order.gameId}${order.serverId ? ' / ' + order.serverId : ''}\nPembeli: ${order.customerName} (${order.customerWA})`).catch(() => {});
+        }
+        return updated;
+    }
+    if (!product || !customerNo) {
+        const updated = store.patchOrder(order.id, { status: 'PAID_NO_STOCK', paymentStatus: 'PAID', paidAt: new Date().toISOString() });
+        if (settings.whatsapp && wa.isReady()) {
+            wa.sendText(settings.whatsapp, `⚠️ TOPUP GAGAL — data tidak lengkap\nPesanan ${order.id} (${order.productName}) sudah LUNAS tapi produk/Game ID tidak valid. Kirim manual.\nPembeli: ${order.customerName} (${order.customerWA})`).catch(() => {});
+        }
+        return updated;
+    }
+
+    const baseRefId = `jg-store-${order.id}-${Date.now()}`;
+    let result;
+    try {
+        result = await digiflazz.multiTopup(product, customerNo, baseRefId);
+    } catch (err) {
+        result = { success: false, results: [{ status: 'Error', message: err.message }], totalPurchases: 0 };
+    }
+
+    const okCount = result.results.filter(r => r.status === 'Sukses').length;
+    const pendingCount = result.results.filter(r => r.status === 'Pending').length;
+    const failed = result.results.filter(r => r.status !== 'Sukses' && r.status !== 'Pending');
+
+    if (okCount > 0 && failed.length === 0) {
+        // Semua sukses (Pending dianggap masih diproses Digiflazz, tetap tandai terkirim)
+        const sns = result.results.map(r => r.sn).filter(Boolean).join(', ');
+        const updated = store.patchOrder(order.id, {
+            status: 'DELIVERED', paymentStatus: 'PAID',
+            credential: encrypt(`Topup ke ID ${order.gameId}${order.serverId ? ' (' + order.serverId + ')' : ''}${sns ? ' — SN: ' + sns : ''}`),
+            paidAt: new Date().toISOString(), deliveredAt: new Date().toISOString(),
+        });
+        if (order.voucherCode) store.useVoucher(order.voucherCode);
+        await notifySuccess(order, `📦 *TOPUP BERHASIL*\n\nID: ${order.gameId}${order.serverId ? ' / Server: ' + order.serverId : ''}\nProduk sudah masuk ke akun kamu.${pendingCount ? '\n(Sebagian item masih diproses sistem, akan otomatis masuk beberapa menit lagi.)' : ''}`);
+        return updated;
+    }
+
+    // Gagal total atau sebagian gagal -> perlu tindakan admin
+    const updated = store.patchOrder(order.id, { status: 'PAID_NO_STOCK', paymentStatus: 'PAID', paidAt: new Date().toISOString() });
+    if (settings.whatsapp && wa.isReady()) {
+        const errMsg = failed.map(f => f.message).filter(Boolean).join('; ') || 'Tidak diketahui';
+        wa.sendText(settings.whatsapp, `❌ TOPUP GAGAL (${okCount} sukses, ${failed.length} gagal)\nPesanan ${order.id} — ${order.productName}\nID: ${order.gameId}${order.serverId ? ' / ' + order.serverId : ''}\nPembeli: ${order.customerName} (${order.customerWA})\nError: ${errMsg}\n\nCek saldo Digiflazz & kirim manual bila perlu.`).catch(() => {});
+    }
+    return updated;
+}
+
 // Kirim produk otomatis setelah pembayaran lunas
 async function deliverOrder(order) {
     // Selalu baca status terbaru dari penyimpanan
@@ -25,6 +97,9 @@ async function deliverOrder(order) {
     if (delivering.has(order.id)) return fresh;
     delivering.add(order.id);
     try {
+    if (order.productType === 'game_topup' || fresh.productType === 'game_topup') {
+        return await deliverTopup({ ...fresh, ...order });
+    }
     const cred = store.popStock(order.productId);
     const settings = store.getSettings();
     if (!cred) {
@@ -40,17 +115,9 @@ async function deliverOrder(order) {
         credential: encrypt(cred), paidAt: new Date().toISOString(), deliveredAt: new Date().toISOString(),
     });
     if (order.voucherCode) store.useVoucher(order.voucherCode);
-    // Kirim invoice + akun ke WhatsApp pembeli
-    if (wa.isReady()) {
-        const rp = n => 'Rp ' + Number(n || 0).toLocaleString('id-ID');
-        let inv = `✅ *PEMBAYARAN BERHASIL — Jago Game*\n\nTerima kasih ${order.customerName}! 🎉\n\n🧾 *INVOICE*\nID: ${order.id}\nProduk: ${order.productName}\nHarga: ${rp(order.productPrice)}`;
-        if (order.discount > 0) inv += `\nDiskon${order.voucherCode ? ' (' + order.voucherCode + ')' : ''}: -${rp(order.discount)}`;
-        inv += `\n*Total Bayar: ${rp(order.finalPrice != null ? order.finalPrice : order.productPrice)}*\nStatus: LUNAS ✅\n\n━━━━━━━━━━━━━━\n📦 *DETAIL AKUN KAMU:*\n\n${cred}\n━━━━━━━━━━━━━━\n\nSimpan baik-baik & segera ganti email/password. Ada kendala? Balas chat ini. 🙏`;
-        wa.sendText(order.customerWA, inv).catch(() => {});
-    }
-    // Beritahu admin
+    await notifySuccess(order, `📦 *DETAIL AKUN KAMU:*\n\n${cred}\n\nSimpan baik-baik & segera ganti email/password.`);
     if (settings.whatsapp && wa.isReady()) {
-        wa.sendText(settings.whatsapp, `💰 TERJUAL!\n${order.productName}\nRp ${Number(order.productPrice).toLocaleString('id-ID')}\nPembeli: ${order.customerName} (${order.customerWA})\nSisa stok: ${store.getStockCount(order.productId)}`).catch(() => {});
+        wa.sendText(settings.whatsapp, `Sisa stok: ${store.getStockCount(order.productId)}`).catch(() => {});
     }
     return updated;
     } finally {
@@ -298,9 +365,10 @@ router.get('/api/store/products', (req, res) => {
 
 router.post('/api/store/orders', rateLimiter({ windowMs: 60 * 1000, max: 10, message: 'Terlalu banyak pesanan. Tunggu sebentar.' }), (req, res) => {
     try {
-        // Tolak bila produk auto-deliver tapi stok habis
+        // Tolak bila produk auto-deliver tapi stok habis (tidak berlaku untuk topup game,
+        // yang stoknya bergantung ke saldo Digiflazz, bukan stok kredensial lokal)
         const product = store.getProducts().find(p => p.id === req.body.productId);
-        if (product && product.autoDeliver && store.getStockCount(product.id) <= 0) {
+        if (product && product.type !== 'game_topup' && product.autoDeliver && store.getStockCount(product.id) <= 0) {
             return res.status(400).json({ error: 'Stok produk ini sedang habis. Silakan chat WhatsApp kami.' });
         }
         // Verifikasi OTP WhatsApp bila diaktifkan
@@ -484,6 +552,16 @@ router.get('/api/admin/backup/list', requireAuth, requireAdmin, (req, res) => re
 
 // Status koneksi WhatsApp
 router.get('/api/admin/wa-status', requireAuth, requireAdmin, (req, res) => res.json(wa.getStatus()));
+
+// Saldo Digiflazz (buat topup game otomatis)
+router.get('/api/admin/digiflazz/balance', requireAuth, requireAdmin, async (req, res) => {
+    if (!digiflazz.isConfigured()) return res.json({ configured: false, balance: null });
+    try {
+        const balance = await digiflazz.getBalance();
+        res.json({ configured: true, balance });
+    } catch (e) { res.status(500).json({ configured: true, error: e.message }); }
+});
+
 
 // Laporan penjualan
 router.get('/api/admin/report', requireAuth, requireAdmin, (req, res) => {

@@ -253,28 +253,15 @@ async function handleSales(sock, msg, text) {
     const senderJid = msg.key.participant || msg.key.remoteJid;  // di grup: pengirim asli
     const isGroup = jid.endsWith('@g.us');
 
-    // ── Set grup setor akun (tujuan notif absensi) ──
-    if (lower === 'set grup setor') {
-        if (!isGroup) return reply('⚠️ Ketik *set grup setor* DI DALAM grup setor akun yang mau jadi tujuan notifikasi absensi.');
-        const cfg = loadConfig(); cfg.grupSetor = jid; saveConfig(cfg);
-        return reply('✅ Grup ini diset sebagai *grup setor akun*.\nNotifikasi absensi kasir (on/off) akan dikirim ke sini.');
-    }
-
     // ── Absensi kasir: on / off ──
+    // Catatan: notifikasi ke grup WA "setor akun" DIMATIKAN — bot tidak lagi
+    // mengirim absensi ke grup mana pun. Kasir cukup dapat balasan konfirmasi.
     if (lower === 'on' || lower === 'off') {
         const kasir = detectKasir(senderJid);
         if (!kasir) return null;  // bukan kasir → abaikan (biar tidak berisik)
-        const cfg = loadConfig();
-        if (!cfg.grupSetor) return reply('⚠️ Grup setor belum diset. Admin ketik *set grup setor* di dalam grup setor dulu.');
-        const tz = { timeZone: 'Asia/Jakarta' };
-        const jam = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', ...tz });
-        const tgl = new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', ...tz });
-        const notif = lower === 'on'
-            ? `🟢 *${kasir} ON*\n📌 Mulai kerja\n🗓️ ${tgl}\n🕒 ${jam} WIB`
-            : `🔴 *${kasir} OFF*\n📌 Selesai kerja\n🗓️ ${tgl}\n🕒 ${jam} WIB`;
-        await sock.sendMessage(cfg.grupSetor, { text: notif });
-        if (jid !== cfg.grupSetor) await reply(lower === 'on' ? `✅ Absen ON tercatat. Semangat, ${kasir}!` : `✅ Absen OFF tercatat. Terima kasih, ${kasir}!`);
-        return true;
+        return reply(lower === 'on'
+            ? `✅ Absen ON tercatat. Semangat, ${kasir}!`
+            : `✅ Absen OFF tercatat. Terima kasih, ${kasir}!`);
     }
 
     // ── Report YouTube (harian / bulanan) ──
