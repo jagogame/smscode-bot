@@ -51,10 +51,15 @@ header{background:var(--text);padding:0 40px;position:sticky;top:0;z-index:100}
 .section{max-width:1100px;margin:0 auto;padding:48px 40px}
 .section-title{font-size:18px;font-weight:700;letter-spacing:-.4px;margin-bottom:6px}
 .section-sub{font-size:13px;color:var(--text2);margin-bottom:24px}
-.cat-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:28px}
+.cat-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
 .cat-tab{padding:7px 18px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:var(--white);color:var(--text2);transition:all .15s;user-select:none}
 .cat-tab:hover{border-color:var(--orange);color:var(--orange)}
 .cat-tab.active{background:var(--text);color:var(--cream);border-color:var(--text)}
+.search-wrap{position:relative;margin-bottom:20px;max-width:360px}
+.search-wrap input{width:100%;padding:11px 14px 11px 38px;background:var(--white);border:1px solid var(--border2);border-radius:10px;font-family:inherit;font-size:13px;color:var(--text);outline:none;transition:border-color .15s}
+.search-wrap input:focus{border-color:var(--orange)}
+.search-wrap .si{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:14px;pointer-events:none}
+.result-count{font-size:12px;color:var(--text3);margin:-10px 0 16px}
 
 /* PRODUCTS */
 .products-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
@@ -200,9 +205,14 @@ footer a:hover{color:rgba(253,252,250,0.8)}
 <div class="section" id="produk">
   <div class="section-title">Produk Kami</div>
   <div class="section-sub">Pilih produk yang kamu butuhkan</div>
+  <div class="search-wrap">
+    <span class="si">🔍</span>
+    <input id="search-box" type="text" placeholder="Cari game atau produk…" oninput="renderProducts(activeCategory)">
+  </div>
   <div class="cat-tabs" id="cat-tabs">
     <div class="cat-tab active" data-cat="Semua" onclick="filterCat('Semua',this)">Semua</div>
   </div>
+  <div class="result-count" id="result-count"></div>
   <div class="products-grid" id="products-grid">
     <div class="no-products">Memuat produk...</div>
   </div>
@@ -242,6 +252,14 @@ footer a:hover{color:rgba(253,252,250,0.8)}
             <div class="mpi-name" id="mpi-name">—</div>
             <div class="mpi-price" id="mpi-price">—</div>
           </div>
+        </div>
+        <div class="fld" id="fld-gameid" style="display:none">
+          <label id="lbl-gameid">User ID *</label>
+          <input id="o-gameid" type="text" placeholder="Masukkan ID akun game kamu">
+        </div>
+        <div class="fld" id="fld-serverid" style="display:none">
+          <label id="lbl-serverid">Zone ID / Server *</label>
+          <input id="o-serverid" type="text" placeholder="Masukkan Zone ID / Server">
         </div>
         <div class="fld">
           <label>Nama lengkap *</label>
@@ -342,17 +360,27 @@ function filterCat(cat, el) {
   renderProducts(cat);
 }
 
-const catIcon = { 'Mobile Legend': '🎮', 'YouTube': '▶️', 'Google': '🔵', 'Gemini': '✨', 'Umum': '📦' };
+const catIcon = {
+  'Mobile Legend': '🎮', 'YouTube': '▶️', 'Google': '🔵', 'Gemini': '✨', 'Umum': '📦',
+  'Free Fire': '🔥', 'PUBG': '🪖', 'Valorant': '🎯', 'Genshin': '⚔️', 'Honkai': '🚀',
+  'Call of Duty': '💥', 'League of Legends': '🐉', 'Point Blank': '🔫', 'Arena of Valor': '🏹',
+  'Ragnarok': '🗡️', 'Lords Mobile': '🏰', 'Stumble Guys': '🏃', 'Tower of Fantasy': '🌌',
+  'State of Survival': '🧟', 'Sausage Man': '🌭', 'Speed Drifters': '🏎️', 'Asphalt': '🏁',
+};
 function getIcon(cat) {
   for (const k in catIcon) if (cat.includes(k)) return catIcon[k];
   return '📦';
 }
 
 function renderProducts(cat) {
-  const filtered = cat === 'Semua' ? allProducts : allProducts.filter(p=>p.category===cat);
+  let filtered = cat === 'Semua' ? allProducts : allProducts.filter(p=>p.category===cat);
+  const q = (document.getElementById('search-box').value || '').trim().toLowerCase();
+  if (q) filtered = filtered.filter(p => (p.name+' '+p.category).toLowerCase().includes(q));
   const el = document.getElementById('products-grid');
+  const countEl = document.getElementById('result-count');
+  countEl.textContent = q ? `${filtered.length} produk ditemukan untuk "${q}"` : '';
   if (!filtered.length) {
-    el.innerHTML = '<div class="no-products">Belum ada produk di kategori ini</div>';
+    el.innerHTML = '<div class="no-products">Belum ada produk yang cocok</div>';
     return;
   }
   el.innerHTML = filtered.map(p => `
@@ -384,7 +412,16 @@ function openOrder(id) {
   document.getElementById('o-name').value = '';
   document.getElementById('o-wa').value = '';
   document.getElementById('o-notes').value = '';
+  document.getElementById('o-gameid').value = '';
+  document.getElementById('o-serverid').value = '';
   document.getElementById('order-msg').textContent = '';
+
+  const isTopup = selectedProduct.type === 'game_topup';
+  document.getElementById('fld-gameid').style.display = isTopup && selectedProduct.requiresGameId ? 'block' : 'none';
+  document.getElementById('fld-serverid').style.display = isTopup && selectedProduct.requiresServerId ? 'block' : 'none';
+  document.getElementById('lbl-gameid').textContent = (selectedProduct.gameIdLabel || 'User ID') + ' *';
+  document.getElementById('lbl-serverid').textContent = (selectedProduct.serverIdLabel || 'Zone ID / Server') + ' *';
+
   showStep('form');
   document.getElementById('order-modal').classList.add('open');
 }
@@ -404,8 +441,14 @@ async function submitOrder() {
   const name = document.getElementById('o-name').value.trim();
   const wa = document.getElementById('o-wa').value.trim();
   const notes = document.getElementById('o-notes').value.trim();
+  const gameId = document.getElementById('o-gameid').value.trim();
+  const serverId = document.getElementById('o-serverid').value.trim();
   const msg = document.getElementById('order-msg');
   if (!name || !wa) { msg.innerHTML = '<span style="color:var(--red)">Nama dan WhatsApp wajib diisi</span>'; return; }
+  if (selectedProduct.type === 'game_topup') {
+    if (selectedProduct.requiresGameId && !gameId) { msg.innerHTML = `<span style="color:var(--red)">${selectedProduct.gameIdLabel || 'User ID'} wajib diisi</span>`; return; }
+    if (selectedProduct.requiresServerId && !serverId) { msg.innerHTML = `<span style="color:var(--red)">${selectedProduct.serverIdLabel || 'Server ID'} wajib diisi</span>`; return; }
+  }
 
   const btn = document.getElementById('btn-submit');
   btn.disabled = true; btn.textContent = 'Memproses...';
@@ -413,7 +456,7 @@ async function submitOrder() {
   const res = await fetch('/api/store/orders', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ productId: selectedProduct.id, customerName: name, customerWA: wa, notes }),
+    body: JSON.stringify({ productId: selectedProduct.id, customerName: name, customerWA: wa, notes, gameId, serverId }),
   }).then(r=>r.json());
 
   btn.disabled = false; btn.textContent = 'Lanjut ke Pembayaran →';

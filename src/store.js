@@ -30,8 +30,9 @@ function saveProducts(p) { writeJSON(PRODUCTS_FILE, p); }
 
 function addProduct(data) {
     const products = getProducts();
+    const type = data.type === 'game_topup' ? 'game_topup' : 'account';
     const product = {
-        id: Date.now().toString(),
+        id: data.id || Date.now().toString(),
         name: data.name,
         description: data.description || '',
         category: data.category || 'Umum',
@@ -39,8 +40,17 @@ function addProduct(data) {
         stock: data.stock === undefined ? -1 : Number(data.stock), // -1 = unlimited
         autoDeliver: data.autoDeliver === true || data.autoDeliver === 'true',
         image: data.image || '',
-        active: true,
-        createdAt: new Date().toISOString(),
+        active: data.active === undefined ? true : !!data.active,
+        createdAt: data.createdAt || new Date().toISOString(),
+        type, // 'account' (stok kredensial) | 'game_topup' (kirim otomatis via Digiflazz)
+        // Field khusus type=game_topup:
+        game: data.game || '',                                   // nama game (untuk grup & label form)
+        digiSku: data.digiSku || null,                            // 1 SKU Digiflazz
+        digiSkus: Array.isArray(data.digiSkus) ? data.digiSkus : null, // atau beberapa SKU: [{sku, qty}]
+        requiresGameId: type === 'game_topup' ? (data.requiresGameId !== false) : false,
+        requiresServerId: type === 'game_topup' ? !!data.requiresServerId : false,
+        gameIdLabel: data.gameIdLabel || 'User ID',
+        serverIdLabel: data.serverIdLabel || 'Zone ID / Server',
     };
     products.push(product);
     saveProducts(products);
@@ -173,6 +183,14 @@ function createOrder(data) {
     if (!product) throw new Error('Produk tidak ditemukan');
     if (!product.active) throw new Error('Produk tidak tersedia');
 
+    // Topup game: wajib isi Game ID (& Server ID bila game-nya butuh)
+    const gameId = String(data.gameId || '').trim();
+    const serverId = String(data.serverId || '').trim();
+    if (product.type === 'game_topup') {
+        if (product.requiresGameId && !gameId) throw new Error(`${product.gameIdLabel || 'Game ID'} wajib diisi`);
+        if (product.requiresServerId && !serverId) throw new Error(`${product.serverIdLabel || 'Server ID'} wajib diisi`);
+    }
+
     // Diskon: ambil yang TERBAIK antara voucher / flash sale / loyalty
     const base = product.price;
     let discount = 0, voucherCode = null, discountType = null;
@@ -212,7 +230,10 @@ function createOrder(data) {
         customerName: data.customerName,
         customerWA: data.customerWA,
         notes: data.notes || '',
-        status: 'PENDING',          // PENDING -> PAID -> DELIVERED (atau PAID_NO_STOCK)
+        productType: product.type,
+        gameId: product.type === 'game_topup' ? gameId : null,
+        serverId: product.type === 'game_topup' ? serverId : null,
+        status: 'PENDING',          // PENDING -> PAID -> DELIVERED (atau PAID_NO_STOCK / PAID_TOPUP_FAILED)
         paymentStatus: 'UNPAID',
         credential: null,
         createdAt: new Date().toISOString(),
