@@ -71,7 +71,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--dark);-webk
 .stat{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:18px}
 .stat-l{font-size:11px;color:var(--text3);margin-bottom:7px;font-weight:500}
 .stat-v{font-size:22px;font-weight:700;letter-spacing:-.5px}
-.stat-v.green{color:var(--green)}.stat-v.orange{color:var(--orange)}
+.stat-v.green{color:var(--green)}.stat-v.orange{color:var(--orange)}.stat-v.red{color:var(--red,#C04A3A)}
 .live-chip{display:inline-flex;align-items:center;gap:6px;background:var(--green-bg);color:var(--green);font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;margin-top:6px}
 .dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:bl 2s infinite}
 @keyframes bl{0%,100%{opacity:1}50%{opacity:.3}}
@@ -199,6 +199,7 @@ code{font-family:'SF Mono',monospace;font-size:11px;background:var(--bg2);color:
         <div class="stat"><div class="stat-l">Omzet bulan ini</div><div class="stat-v green" id="s-rev-month">—</div></div>
         <div class="stat"><div class="stat-l">Pesanan pending</div><div class="stat-v orange" id="s-pending">—</div></div>
         <div class="stat"><div class="stat-l">Total terjual</div><div class="stat-v" id="s-total">—</div></div>
+        <div class="stat"><div class="stat-l">Saldo Digiflazz</div><div class="stat-v" id="s-digi-balance">—</div></div>
         <div class="stat"><div class="stat-l">Status bot WA</div><div id="bot-chip" class="live-chip"><span class="dot"></span>Mengecek…</div></div>
       </div>
       <div class="card">
@@ -466,11 +467,16 @@ function show(page,el){
   if(page==='setting')loadSetting();
 }
 
-const osBadge={PENDING:'a',CONFIRMED:'b',DONE:'g',CANCELLED:'r'};
+const osBadge={PENDING:'a',CONFIRMED:'b',DONE:'g',CANCELLED:'r',DELIVERED:'g',PAID_NO_STOCK:'r'};
+const osLabel={PAID_NO_STOCK:'PERLU DIKIRIM MANUAL'};
 
 const rp=n=>'Rp '+Number(n||0).toLocaleString('id-ID');
 async function loadHome(){
-  const[rep,ords,was]=await Promise.all([api('GET','/api/admin/report'),api('GET','/api/admin/orders'),api('GET','/api/admin/wa-status')]);
+  const[rep,ords,was,digi]=await Promise.all([api('GET','/api/admin/report'),api('GET','/api/admin/orders'),api('GET','/api/admin/wa-status'),api('GET','/api/admin/digiflazz/balance')]);
+  const digiEl=document.getElementById('s-digi-balance');
+  if(digi&&digi.configured&&digi.balance!=null){digiEl.textContent=rp(digi.balance);digiEl.className='stat-v '+(digi.balance<50000?'red':'green');}
+  else if(digi&&!digi.configured){digiEl.textContent='Belum aktif';digiEl.className='stat-v';}
+  else{digiEl.textContent='—';}
   if(rep&&!rep.error){
     document.getElementById('s-rev-today').textContent=rp(rep.todayRevenue);
     document.getElementById('s-rev-month').textContent=rp(rep.monthRevenue);
@@ -506,27 +512,38 @@ async function loadPesanan(){
 }
 
 function orderRow(o,compact){
+  const gameInfo = o.productType==='game_topup' && o.gameId
+    ? `<div style="font-size:10px;color:var(--text3,#9C9590);margin-top:2px">🎮 ID: ${o.gameId}${o.serverId?' / '+o.serverId:''}</div>` : '';
+  const productCell = `<td style="font-weight:600;color:var(--dark);font-size:12px">${o.productName}${gameInfo}</td>`;
   const btns=`<div style="display:flex;gap:4px;flex-wrap:wrap">
-    ${o.status==='PENDING'?`<button class="btn btn-g" style="font-size:11px;padding:5px 9px" onclick="updOrd('${o.id}','CONFIRMED')">✓ Konfirmasi</button>`:''}
-    ${o.status==='CONFIRMED'?`<button class="btn btn-dark" style="font-size:11px;padding:5px 9px" onclick="updOrd('${o.id}','DONE')">✓ Selesai</button>`:''}
-    ${['PENDING','CONFIRMED'].includes(o.status)?`<button class="btn btn-r" style="font-size:11px;padding:5px 9px" onclick="updOrd('${o.id}','CANCELLED')">✕</button>`:''}
+    ${o.status==='PENDING'?`<button class="btn btn-g" style="font-size:11px;padding:5px 9px" onclick="deliverOrd('${o.id}')">💰 Lunas &amp; Kirim</button>`:''}
+    ${o.status==='PAID_NO_STOCK'?`<button class="btn btn-g" style="font-size:11px;padding:5px 9px" onclick="deliverOrd('${o.id}')">🔁 Kirim Ulang</button>`:''}
+    ${o.status==='PENDING'?`<button class="btn btn-r" style="font-size:11px;padding:5px 9px" onclick="updOrd('${o.id}','CANCELLED')">✕</button>`:''}
   </div>`;
+  const statusBadge=`<span class="badge ${osBadge[o.status]||'a'}">${osLabel[o.status]||o.status}</span>`;
   if(compact) return `<tr>
     <td><code style="font-size:10px">${o.id.slice(-8)}</code></td>
-    <td style="font-weight:600;color:var(--dark);font-size:12px">${o.productName}</td>
+    ${productCell}
     <td>${o.customerName}</td>
     <td>Rp ${Number(o.productPrice).toLocaleString('id-ID')}</td>
-    <td><span class="badge ${osBadge[o.status]||'a'}">${o.status}</span></td>
+    <td>${statusBadge}</td>
     <td>${btns}</td></tr>`;
   return `<tr>
     <td><code style="font-size:10px">${o.id}</code></td>
-    <td style="font-weight:600;color:var(--dark);font-size:12px">${o.productName}</td>
+    ${productCell}
     <td>${o.customerName}</td>
     <td><a href="https://wa.me/${o.customerWA.replace(/\D/g,'')}" target="_blank" style="color:var(--green);font-size:12px">📱 ${o.customerWA}</a></td>
     <td>Rp ${Number(o.productPrice).toLocaleString('id-ID')}</td>
-    <td><span class="badge ${osBadge[o.status]||'a'}">${o.status}</span></td>
+    <td>${statusBadge}</td>
     <td style="font-size:11px;color:var(--text3)">${new Date(o.createdAt).toLocaleString('id-ID')}</td>
     <td>${btns}</td></tr>`;
+}
+
+async function deliverOrd(id){
+  const r=await api('POST',`/api/admin/orders/${id}/deliver`,{});
+  if(r&&r.error){toast(r.error,'err');return}
+  toast(r&&r.status==='DELIVERED'?'Terkirim otomatis ✓':'Diproses — cek status di bawah','ok');
+  loadPesanan();loadHome();
 }
 
 async function updOrd(id,status){
