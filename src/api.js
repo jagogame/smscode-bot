@@ -96,6 +96,18 @@ router.use((req, res, next) => {
     res.setHeader('X-Frame-Options', 'SAMEORIGIN');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+    // HSTS: paksa browser selalu pakai HTTPS selama 1 tahun (termasuk subdomain)
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    next();
+});
+
+// Subdomain cekskin.jagogame.store: root diarahkan ke tool deskripsi skin,
+// bukan homepage toko akun ML. Domain lain tidak terpengaruh.
+router.get('/', (req, res, next) => {
+    const host = String(req.hostname || '').toLowerCase();
+    if (host === 'cekskin.jagogame.store') {
+        return res.sendFile(path.join(__dirname, '../public/desk-bookmarklet.html'));
+    }
     next();
 });
 

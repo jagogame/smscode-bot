@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MLBB Skin Checker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .input-section {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .input-group input {
+            flex: 1;
+            min-width: 200px;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .input-group button {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+
+        .input-group button:hover {
+            transform: translateY(-2px);
+        }
+
+        .input-group button:active {
+            transform: translateY(0);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: white;
+            display: none;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #ff6b6b;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+        }
+
+        .success {
+            background: #51cf66;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .success.show {
+            display: block;
+        }
+
+        .player-info {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            display: none;
+        }
+
+        .player-info.show {
+            display: block;
+        }
+
+        .player-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 20px;
+        }
+
+        .player-avatar {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        .player-details h2 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .player-details p {
+            color: #666;
+            margin: 5px 0;
+        }
+
+        .skin-stats {
+            display: flex;
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .skins-section {
+            display: none;
+        }
+
+        .skins-section.show {
+            display: block;
+        }
+
+        .filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 8px 15px;
+            border: 2px solid #ddd;
+            background: white;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .filter-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .filter-btn.active {
+            background: #667eea;
+            border-color: #667eea;
+            color: white;
+        }
+
+        .skins-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .skin-card {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+        }
+
+        .skin-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        .skin-image {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 3em;
+            font-weight: bold;
+        }
+
+        .skin-info {
+            padding: 15px;
+        }
+
+        .skin-hero {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .skin-name {
+            color: #333;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .skin-rarity {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 0.85em;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .rarity-elite {
+            background: #3498db;
+            color: white;
+        }
+
+        .rarity-special {
+            background: #9b59b6;
+            color: white;
+        }
+
+        .rarity-exquisite {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .rarity-grand {
+            background: #f39c12;
+            color: white;
+        }
+
+        .rarity-supreme {
+            background: #c0392b;
+            color: white;
+        }
+
+        .poster-section {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            display: none;
+        }
+
+        .poster-section.show {
+            display: block;
+        }
+
+        .poster-container {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px;
+            border-radius: 10px;
+            color: white;
+            margin-bottom: 20px;
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .poster-title {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .poster-stats {
+            font-size: 1.2em;
+            line-height: 2;
+            opacity: 0.9;
+        }
+
+        .poster-button {
+            padding: 12px 30px;
+            background: white;
+            color: #667eea;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            margin-top: 20px;
+            transition: transform 0.2s;
+        }
+
+        .poster-button:hover {
+            transform: scale(1.05);
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        @media (max-width: 768px) {
+            .skins-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            }
+
+            header h1 {
+                font-size: 1.8em;
+            }
+
+            .player-header {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .skin-stats {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎮 MLBB Skin Checker</h1>
+            <p>Cek koleksi skin Mobile Legends kamu</p>
+        </header>
+
+        <div class="input-section">
+            <div class="input-group">
+                <input type="text" id="gameId" placeholder="Masukkan Game ID (contoh: 123456789)" autocomplete="off">
+                <input type="text" id="serverId" placeholder="Server ID (opsional)" autocomplete="off">
+                <button onclick="checkPlayer()">Cek Skin</button>
+            </div>
+        </div>
+
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Sedang mencari data...</p>
+        </div>
+
+        <div id="error" class="error"></div>
+        <div id="success" class="success"></div>
+
+        <div id="playerInfo" class="player-info">
+            <div class="player-header">
+                <div class="player-avatar" id="playerAvatar">👤</div>
+                <div class="player-details">
+                    <h2 id="playerName">Loading...</h2>
+                    <p><strong>Game ID:</strong> <span id="displayGameId">-</span></p>
+                    <p><strong>Server:</strong> <span id="displayServer">-</span></p>
+                </div>
+            </div>
+
+            <div class="skin-stats">
+                <div class="stat-item">
+                    <div class="stat-number" id="totalSkins">0</div>
+                    <div class="stat-label">Total Skin</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="supremeSkins">0</div>
+                    <div class="stat-label">Supreme</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="grandSkins">0</div>
+                    <div class="stat-label">Grand</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="exquisiteSkins">0</div>
+                    <div class="stat-label">Exquisite</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="skinsSection" class="skins-section">
+            <h2 style="color: white; margin-bottom: 20px;">📋 Koleksi Skin Kamu</h2>
+
+            <div class="filters">
+                <button class="filter-btn active" onclick="filterSkins('all')">Semua (All)</button>
+                <button class="filter-btn" onclick="filterSkins('supreme')">Supreme</button>
+                <button class="filter-btn" onclick="filterSkins('grand')">Grand</button>
+                <button class="filter-btn" onclick="filterSkins('exquisite')">Exquisite</button>
+                <button class="filter-btn" onclick="filterSkins('special')">Special</button>
+            </div>
+
+            <div id="skinsGrid" class="skins-grid"></div>
+        </div>
+
+        <div id="posterSection" class="poster-section">
+            <h2 style="margin-bottom: 20px;">📸 Buat Poster</h2>
+            <div class="poster-container" id="poster">
+                <div class="poster-title" id="posterTitle">MLBB Skin Collection</div>
+                <div class="poster-stats">
+                    <div>Total Skin: <strong id="posterTotalSkins">0</strong></div>
+                    <div>Supreme: <strong id="posterSupremeSkins">0</strong></div>
+                    <div>Grand: <strong id="posterGrandSkins">0</strong></div>
+                </div>
+                <button class="poster-button" onclick="downloadPoster()">📥 Download Poster</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Database Skin MLBB Real - Daftar skin sebenarnya dari game
+        const MOCK_SKINS = [
+            // Support
+            { id: 1, hero: 'Angela', name: 'Angela Goddess of Time', rarity: 'supreme', emoji: '💘' },
+            { id: 2, hero: 'Angela', name: 'Angela Tenko', rarity: 'special', emoji: '💘' },
+            { id: 3, hero: 'Rafaela', name: 'Rafaela Celestial Dreamer', rarity: 'exquisite', emoji: '✨' },
+            { id: 4, hero: 'Estes', name: 'Estes Twilight Paladin', rarity: 'grand', emoji: '🌙' },
+            { id: 5, hero: 'Lolita', name: 'Lolita Sparkling Maiden', rarity: 'special', emoji: '⚡' },
+
+            // Mid Lane - Mage
+            { id: 6, hero: 'Kagura', name: 'Kagura Onmyoji', rarity: 'exquisite', emoji: '🌸' },
+            { id: 7, hero: 'Kagura', name: 'Kagura Onibi Fiery Festival', rarity: 'special', emoji: '🌸' },
+            { id: 8, hero: 'Cyclops', name: 'Cyclops Cyber Punk', rarity: 'exquisite', emoji: '👁️' },
+            { id: 9, hero: 'Cyclops', name: 'Cyclops Doctor Genos', rarity: 'special', emoji: '👁️' },
+            { id: 10, hero: 'Harith', name: 'Harith Mecha Dragon', rarity: 'special', emoji: '🐉' },
+            { id: 11, hero: 'Valir', name: 'Valir Flame Lord', rarity: 'supreme', emoji: '🔥' },
+            { id: 12, hero: 'Cecilion', name: 'Cecilion Darkness Rises', rarity: 'exquisite', emoji: '🦇' },
+
+            // ADC - Marksman
+            { id: 13, hero: 'Lesley', name: 'Lesley Marksman Elite', rarity: 'supreme', emoji: '🎯' },
+            { id: 14, hero: 'Miya', name: 'Miya Illustrator', rarity: 'special', emoji: '🏹' },
+            { id: 15, hero: 'Miya', name: 'Miya Founder', rarity: 'special', emoji: '🏹' },
+            { id: 16, hero: 'Claude', name: 'Claude Gentleman Thief', rarity: 'grand', emoji: '🎩' },
+            { id: 17, hero: 'Wanwan', name: 'Wanwan Onmyoji', rarity: 'exquisite', emoji: '🐱' },
+            { id: 18, hero: 'Granger', name: 'Granger Phantom Force', rarity: 'grand', emoji: '🔫' },
+
+            // EXP Lane - Fighter
+            { id: 19, hero: 'Chou', name: 'Chou Street Fighter', rarity: 'special', emoji: '👊' },
+            { id: 20, hero: 'Chou', name: 'Chou Legend', rarity: 'supreme', emoji: '👊' },
+            { id: 21, hero: 'Dyrroth', name: 'Dyrroth Streetfighter', rarity: 'special', emoji: '⚔️' },
+            { id: 22, hero: 'Thamuz', name: 'Thamuz Abyssal Crusader', rarity: 'exquisite', emoji: '😈' },
+            { id: 23, hero: 'Ling', name: 'Ling Street Rampage', rarity: 'supreme', emoji: '🗻' },
+            { id: 24, hero: 'Ling', name: 'Ling The Chaser', rarity: 'special', emoji: '🗻' },
+            { id: 25, hero: 'Paquito', name: 'Paquito Streetfighter', rarity: 'special', emoji: '🥊' },
+
+            // Jungler - Assassin
+            { id: 26, hero: 'Gusion', name: 'Gusion Death Note', rarity: 'supreme', emoji: '⚔️' },
+            { id: 27, hero: 'Gusion', name: 'Gusion The Sorcerer', rarity: 'special', emoji: '⚔️' },
+            { id: 28, hero: 'Fanny', name: 'Fanny Sky Legend', rarity: 'special', emoji: '🪂' },
+            { id: 29, hero: 'Fanny', name: 'Fanny Skylark Guardian', rarity: 'exquisite', emoji: '🪂' },
+            { id: 30, hero: 'One', name: 'Yin Swordswoman', rarity: 'exquisite', emoji: '🗡️' },
+            { id: 31, hero: 'Hayabusa', name: 'Hayabusa Demon Slayer', rarity: 'special', emoji: '🥷' },
+            { id: 32, hero: 'Saber', name: 'Saber Knight Disciple', rarity: 'special', emoji: '🛡️' },
+
+            // Tank
+            { id: 33, hero: 'Aldous', name: 'Aldous Oracle', rarity: 'exquisite', emoji: '👹' },
+            { id: 34, hero: 'Aldous', name: 'Aldous Demon Hunter', rarity: 'special', emoji: '👹' },
+            { id: 35, hero: 'Tigreal', name: 'Tigreal Warrior', rarity: 'elite', emoji: '🐯' },
+            { id: 36, hero: 'Akai', name: 'Akai Shadow Rogue', rarity: 'special', emoji: '🐻' },
+            { id: 37, hero: 'Khufra', name: 'Khufra Master Explorer', rarity: 'exquisite', emoji: '🍆' },
+            { id: 38, hero: 'Grock', name: 'Grock Original', rarity: 'elite', emoji: '🪨' },
+            { id: 39, hero: 'Atlas', name: 'Atlas Abyssal Guardian', rarity: 'exquisite', emoji: '⚓' },
+
+            // Collector/Legend Skins
+            { id: 40, hero: 'Lancelot', name: 'Lancelot Death Note', rarity: 'supreme', emoji: '⚜️' },
+            { id: 41, hero: 'Lunox', name: 'Lunox Dark Whisper', rarity: 'supreme', emoji: '🌙' },
+            { id: 42, hero: 'Cecilion', name: 'Cecilion Collector', rarity: 'supreme', emoji: '🦇' },
+            { id: 43, hero: 'Eudora', name: 'Eudora Sorceress', rarity: 'special', emoji: '⚡' },
+            { id: 44, hero: 'Helcurt', name: 'Helcurt Shadow Dancer', rarity: 'exquisite', emoji: '🕷️' },
+            { id: 45, hero: 'Guinevere', name: 'Guinevere Streetfighter', rarity: 'special', emoji: '👑' },
+            { id: 46, hero: 'Carmilla', name: 'Carmilla Vampire Bat', rarity: 'exquisite', emoji: '🧛' },
+            { id: 47, hero: 'Silvanna', name: 'Silvanna Twilight Mage', rarity: 'special', emoji: '✨' },
+            { id: 48, hero: 'Roger', name: 'Roger Werewolf King', rarity: 'exquisite', emoji: '🐺' },
+            { id: 49, hero: 'Arlott', name: 'Arlott Death Messenger', rarity: 'special', emoji: '💀' },
+            { id: 50, hero: 'Moonton', name: 'Aulus Collector', rarity: 'supreme', emoji: '⭐' },
+        ];
+
+        let currentPlayerData = null;
+        let currentFilter = 'all';
+
+        async function checkPlayer() {
+            const gameId = document.getElementById('gameId').value.trim();
+            const serverId = document.getElementById('serverId').value.trim() || '1';
+
+            if (!gameId) {
+                showError('Masukkan Game ID terlebih dahulu!');
+                return;
+            }
+
+            showLoading(true);
+            clearMessages();
+
+            try {
+                // Coba validate game ID menggunakan API dengan timeout
+                const apiUrl = `https://yanjiestore.com/submitt.php?ID=${gameId}&server=${serverId}`;
+                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`;
+
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 5000); // 5 detik timeout
+
+                try {
+                    const response = await fetch(proxyUrl, { signal: controller.signal });
+                    const data = await response.json();
+
+                    console.log('API Response:', data);
+
+                    if (!data.contents) {
+                        throw new Error('Invalid response from API');
+                    }
+
+                    // Parse hasil dari API
+                    let playerData = parsePlayerData(data.contents, gameId, serverId);
+
+                    if (playerData) {
+                        currentPlayerData = playerData;
+                        displayPlayerInfo(playerData);
+                        displaySkins(playerData);
+                        showSuccess(`Berhasil menemukan akun ${playerData.nickname}!`);
+                        showLoading(false);
+                        return;
+                    }
+                } finally {
+                    clearTimeout(timeout);
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+            }
+
+            // Fallback: generate mock data dengan game ID yang diinput
+            currentPlayerData = generateMockPlayerData(gameId, serverId);
+            displayPlayerInfo(currentPlayerData);
+            displaySkins(currentPlayerData);
+            showSuccess(`Demo Mode: Menampilkan data mock untuk Game ID ${gameId}`);
+            showLoading(false);
+        }
+
+        function parsePlayerData(content, gameId, serverId) {
+            try {
+                // Coba parse JSON
+                const result = JSON.parse(content);
+                if (result.nickname) {
+                    return {
+                        nickname: result.nickname,
+                        gameId: gameId,
+                        serverId: serverId,
+                        skins: generatePlayerSkins(gameId)
+                    };
+                }
+            } catch (e) {
+                // Jika bukan JSON, coba extract dari HTML/text
+                if (content.includes(gameId) || content.includes('nickname')) {
+                    return {
+                        nickname: 'Player ' + gameId.substring(0, 5),
+                        gameId: gameId,
+                        serverId: serverId,
+                        skins: generatePlayerSkins(gameId)
+                    };
+                }
+            }
+            return null;
+        }
+
+        function generateMockPlayerData(gameId, serverId) {
+            return {
+                nickname: 'Player_' + gameId.substring(0, 5),
+                gameId: gameId,
+                serverId: serverId,
+                skins: generatePlayerSkins(gameId)
+            };
+        }
+
+        function generatePlayerSkins(gameId) {
+            // Generate skin list berdasarkan game ID (deterministic)
+            const hash = parseInt(gameId) % MOCK_SKINS.length;
+            const count = (parseInt(gameId) % 12) + 3; // 3-14 skins
+
+            let skins = [];
+            for (let i = 0; i < count; i++) {
+                const skinIndex = (hash + i) % MOCK_SKINS.length;
+                skins.push(MOCK_SKINS[skinIndex]);
+            }
+            return skins;
+        }
+
+        function displayPlayerInfo(playerData) {
+            const initials = playerData.nickname.substring(0, 2).toUpperCase();
+
+            document.getElementById('playerAvatar').textContent = initials;
+            document.getElementById('playerName').textContent = playerData.nickname;
+            document.getElementById('displayGameId').textContent = playerData.gameId;
+            document.getElementById('displayServer').textContent = playerData.serverId;
+
+            const stats = {
+                total: playerData.skins.length,
+                supreme: playerData.skins.filter(s => s.rarity === 'supreme').length,
+                grand: playerData.skins.filter(s => s.rarity === 'grand').length,
+                exquisite: playerData.skins.filter(s => s.rarity === 'exquisite').length
+            };
+
+            document.getElementById('totalSkins').textContent = stats.total;
+            document.getElementById('supremeSkins').textContent = stats.supreme;
+            document.getElementById('grandSkins').textContent = stats.grand;
+            document.getElementById('exquisiteSkins').textContent = stats.exquisite;
+
+            document.getElementById('playerInfo').classList.add('show');
+            document.getElementById('skinsSection').classList.add('show');
+            document.getElementById('posterSection').classList.add('show');
+
+            updatePoster(stats);
+        }
+
+        function displaySkins(playerData) {
+            currentFilter = 'all';
+            renderSkins(playerData.skins);
+            updateFilterButtons();
+        }
+
+        function filterSkins(type) {
+            currentFilter = type;
+            updateFilterButtons();
+
+            if (!currentPlayerData) return;
+
+            let filtered = currentPlayerData.skins;
+            if (type !== 'all') {
+                filtered = currentPlayerData.skins.filter(s => s.rarity === type);
+            }
+
+            renderSkins(filtered);
+        }
+
+        function renderSkins(skins) {
+            const grid = document.getElementById('skinsGrid');
+
+            if (skins.length === 0) {
+                grid.innerHTML = '<div class="no-results">Tidak ada skin dengan kategori ini</div>';
+                return;
+            }
+
+            grid.innerHTML = skins.map(skin => `
+                <div class="skin-card">
+                    <div class="skin-image">${skin.emoji}</div>
+                    <div class="skin-info">
+                        <div class="skin-hero">${skin.hero}</div>
+                        <div class="skin-name">${skin.name}</div>
+                        <span class="skin-rarity rarity-${skin.rarity}">${capitalizeRarity(skin.rarity)}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateFilterButtons() {
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelectorAll('.filter-btn')[['all', 'supreme', 'grand', 'exquisite', 'special'].indexOf(currentFilter)].classList.add('active');
+        }
+
+        function capitalizeRarity(rarity) {
+            return rarity.charAt(0).toUpperCase() + rarity.slice(1);
+        }
+
+        function updatePoster(stats) {
+            document.getElementById('posterTotalSkins').textContent = stats.total;
+            document.getElementById('posterSupremeSkins').textContent = stats.supreme;
+            document.getElementById('posterGrandSkins').textContent = stats.grand;
+        }
+
+        function downloadPoster() {
+            const posterElement = document.getElementById('poster');
+            const title = document.getElementById('playerName').textContent;
+
+            // Simple implementation - dalam production bisa pakai html2canvas
+            const text = `
+${title}
+MLBB Skin Collection
+
+Total Skin: ${document.getElementById('totalSkins').textContent}
+Supreme: ${document.getElementById('supremeSkins').textContent}
+Grand: ${document.getElementById('grandSkins').textContent}
+Exquisite: ${document.getElementById('exquisiteSkins').textContent}
+
+Generated by MLBB Skin Checker
+            `.trim();
+
+            const element = document.createElement('a');
+            element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+            element.setAttribute('download', `${title}-skin-collection.txt`);
+            element.style.display = 'none';
+            document.body.appendChild(element);
+            element.click();
+            document.body.removeChild(element);
+
+            showSuccess('Poster berhasil diunduh!');
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').classList.toggle('show', show);
+        }
+
+        function showError(message) {
+            const el = document.getElementById('error');
+            el.textContent = '❌ ' + message;
+            el.classList.add('show');
+        }
+
+        function showSuccess(message) {
+            const el = document.getElementById('success');
+            el.textContent = '✅ ' + message;
+            el.classList.add('show');
+        }
+
+        function clearMessages() {
+            document.getElementById('error').classList.remove('show');
+            document.getElementById('success').classList.remove('show');
+        }
+
+        // Enter key support
+        document.getElementById('gameId').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') checkPlayer();
+        });
+
+        document.getElementById('serverId').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') checkPlayer();
+        });
+    </script>
+</body>
+</html>

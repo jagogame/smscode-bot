@@ -8,3 +8,16 @@ data/store-vouchers.json
 data/backups/
 data/sessions.json
 data/audit-log.json
+
+# Backup & bukti transaksi — operasional, jangan masuk git
+.deploy-backup/
+data/bukti_yt/
+
+# State runtime lain (auto-regenerate saat startup / berisi sesi sensitif)
+data/config.json
+data/kasir-jid.json
+data/push-subs.json
+data/vapid.json
+data/weekly-award.json
+src/cekskin-bot/state.json
+src/cekskin-bot/*.png

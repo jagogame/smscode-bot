@@ -40,6 +40,7 @@ require('dotenv').config();
 })();
 
 backup.startSchedule();
+require('./src/weeklyAward').start(); // Juara Mingguan otomatis (umumkan + reset tiap awal minggu)
 
 // Follow-up otomatis: ingatkan pesanan PENDING yang belum dibayar (>15 menit, sekali saja)
 setInterval(() => {
@@ -62,6 +63,7 @@ const PORT = process.env.PORT || 3000;
 let currentQR = null;
 
 app.use(express.json());
+app.use('/', require('./src/appApi')); // API Aplikasi Kasir (PWA) — additive
 app.use('/', apiRouter);
 
 app.get('/qr', async (req, res) => {
