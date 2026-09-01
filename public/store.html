@@ -48,6 +48,8 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 .game-card:active{transform:scale(.96)}
 .game-card:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.15)}
 .game-card-icon{font-size:32px;filter:drop-shadow(0 2px 6px rgba(0,0,0,.3));z-index:1}
+.game-card-img{width:56px;height:56px;border-radius:14px;object-fit:cover;z-index:1;box-shadow:0 2px 8px rgba(0,0,0,.35);border:2px solid rgba(255,255,255,.2)}
+.game-card-initials{width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;background:rgba(255,255,255,.15);backdrop-filter:blur(4px);z-index:1;border:2px solid rgba(255,255,255,.2);text-shadow:0 1px 3px rgba(0,0,0,.4);letter-spacing:-.5px}
 .game-card-name{font-size:11px;font-weight:700;color:#fff;line-height:1.25;text-shadow:0 1px 4px rgba(0,0,0,.5);z-index:1;max-width:100%;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .game-card-count{font-size:9px;font-weight:500;color:rgba(255,255,255,.65);z-index:1}
 
@@ -56,7 +58,8 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 .sr-title{font-size:14px;font-weight:600;color:var(--text2);margin-bottom:16px}
 .sr-item{display:flex;align-items:center;gap:12px;padding:12px;background:var(--white);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;cursor:pointer;transition:border-color .15s}
 .sr-item:hover{border-color:var(--accent)}
-.sr-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.sr-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;overflow:hidden}
+.sr-icon img{width:100%;height:100%;object-fit:cover}
 .sr-info{flex:1;min-width:0}
 .sr-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sr-cat{font-size:11px;color:var(--text3)}
@@ -68,6 +71,8 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 .game-banner{margin:0 auto;max-width:900px;padding:0 16px}
 .game-banner-inner{border-radius:var(--radius);padding:24px 20px;display:flex;align-items:center;gap:16px;position:relative;overflow:hidden}
 .game-banner-icon{font-size:44px;filter:drop-shadow(0 2px 8px rgba(0,0,0,.3));z-index:1}
+.game-banner-img{width:64px;height:64px;border-radius:16px;object-fit:cover;z-index:1;box-shadow:0 3px 12px rgba(0,0,0,.4);border:2px solid rgba(255,255,255,.25);flex-shrink:0}
+.game-banner-initials{width:64px;height:64px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#fff;background:rgba(255,255,255,.15);backdrop-filter:blur(4px);z-index:1;border:2px solid rgba(255,255,255,.25);text-shadow:0 1px 3px rgba(0,0,0,.4);flex-shrink:0;letter-spacing:-.5px}
 .game-banner-info{z-index:1}
 .game-banner-name{font-size:20px;font-weight:800;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.4);letter-spacing:-.4px}
 .game-banner-sub{font-size:12px;color:rgba(255,255,255,.7);margin-top:4px}
@@ -245,7 +250,7 @@ footer a{color:var(--text2);text-decoration:none}
   </div>
   <div class="game-banner">
     <div class="game-banner-inner" id="gd-banner">
-      <div class="game-banner-icon" id="gd-icon">💎</div>
+      <div id="gd-icon"></div>
       <div class="game-banner-info">
         <div class="game-banner-name" id="gd-name">—</div>
         <div class="game-banner-sub" id="gd-sub">—</div>
@@ -312,43 +317,53 @@ footer a{color:var(--text2);text-decoration:none}
 let allProducts=[], settings={}, games=[], selectedProduct=null, currentGame=null;
 
 const STYLES = {
-  'Topup Mobile Legends':  {bg:'linear-gradient(135deg,#0D1B4A,#1E3A8A)',icon:'💎'},
-  'Topup Free Fire':       {bg:'linear-gradient(135deg,#7C2D12,#EA580C)',icon:'🔥'},
-  'Topup PUBG Mobile':     {bg:'linear-gradient(135deg,#1C1917,#D97706)',icon:'🎖️'},
-  'Topup Genshin Impact':  {bg:'linear-gradient(135deg,#1E3A5F,#60A5FA)',icon:'⚔️'},
-  'Topup Valorant':        {bg:'linear-gradient(135deg,#1F2937,#EF4444)',icon:'🎯'},
-  'Topup Honkai Star Rail': {bg:'linear-gradient(135deg,#312E81,#8B5CF6)',icon:'🌟'},
-  'Topup Honkai Impact 3': {bg:'linear-gradient(135deg,#1E1B4B,#6366F1)',icon:'⚡'},
-  'Topup Call of Duty Mobile':{bg:'linear-gradient(135deg,#14532D,#22C55E)',icon:'💥'},
-  'Topup League of Legends: Wild Rift':{bg:'linear-gradient(135deg,#1E3A5F,#0EA5E9)',icon:'🐉'},
-  'Topup Arena of Valor':  {bg:'linear-gradient(135deg,#4A1942,#C026D3)',icon:'🏹'},
-  'Topup Stumble Guys':    {bg:'linear-gradient(135deg,#DC2626,#FCD34D)',icon:'🏃'},
-  'Topup FC Mobile':       {bg:'linear-gradient(135deg,#064E3B,#10B981)',icon:'⚽'},
-  'Topup Lords Mobile':    {bg:'linear-gradient(135deg,#78350F,#D97706)',icon:'🏰'},
-  'Topup Point Blank':     {bg:'linear-gradient(135deg,#1F2937,#6B7280)',icon:'🔫'},
-  'Topup Ragnarok M: Eternal Love':{bg:'linear-gradient(135deg,#4C1D95,#7C3AED)',icon:'🗡️'},
-  'Topup Ragnarok Origin': {bg:'linear-gradient(135deg,#581C87,#A855F7)',icon:'⚔️'},
-  'Topup One Punch Man':   {bg:'linear-gradient(135deg,#92400E,#F59E0B)',icon:'👊'},
-  'Topup Sausage Man':     {bg:'linear-gradient(135deg,#9A3412,#F97316)',icon:'🌭'},
-  'Topup Tower of Fantasy':{bg:'linear-gradient(135deg,#0C4A6E,#38BDF8)',icon:'🌌'},
-  'Topup State of Survival':{bg:'linear-gradient(135deg,#1A2E05,#4D7C0F)',icon:'🧟'},
-  'Topup Speed Drifters':  {bg:'linear-gradient(135deg,#0F172A,#3B82F6)',icon:'🏎️'},
-  'Topup Asphalt 9':       {bg:'linear-gradient(135deg,#1C1917,#DC2626)',icon:'🏁'},
-  'Topup AU2 Mobile':      {bg:'linear-gradient(135deg,#831843,#EC4899)',icon:'💃'},
-  'Topup Be The King':     {bg:'linear-gradient(135deg,#78350F,#CA8A04)',icon:'👑'},
-  'Topup Garena':          {bg:'linear-gradient(135deg,#7C2D12,#DC2626)',icon:'🎮'},
-  'Topup Heroes Evolved':  {bg:'linear-gradient(135deg,#1E293B,#475569)',icon:'🦸'},
-  'Topup Honor of Kings':  {bg:'linear-gradient(135deg,#713F12,#EAB308)',icon:'👑'},
-  'Topup MU Origin 3':     {bg:'linear-gradient(135deg,#292524,#A16207)',icon:'🛡️'},
-  'Topup Super Sus':       {bg:'linear-gradient(135deg,#1E40AF,#3B82F6)',icon:'🔍'},
-  'Topup Tom and Jerry: Chase':{bg:'linear-gradient(135deg,#92400E,#FBBF24)',icon:'🐱'},
-  'Topup Revelation Infinite Journey':{bg:'linear-gradient(135deg,#1E1B4B,#4F46E5)',icon:'✨'},
-  'Mobile Legend':         {bg:'linear-gradient(135deg,#0D1B4A,#3B82F6)',icon:'🎮'},
-  'YouTube':               {bg:'linear-gradient(135deg,#7F1D1D,#DC2626)',icon:'▶️'},
-  'Google':                {bg:'linear-gradient(135deg,#1E40AF,#3B82F6)',icon:'🔵'},
-  'Gemini Pro':            {bg:'linear-gradient(135deg,#312E81,#6366F1)',icon:'✨'},
+  'Topup Mobile Legends':  {bg:'linear-gradient(135deg,#0D1B4A,#1E3A8A)',img:'/img/games/mobile-legends.jpg'},
+  'Topup Free Fire':       {bg:'linear-gradient(135deg,#7C2D12,#EA580C)',img:'/img/games/free-fire.jpg'},
+  'Topup PUBG Mobile':     {bg:'linear-gradient(135deg,#1C1917,#D97706)',img:'/img/games/pubg-mobile.jpg'},
+  'Topup Genshin Impact':  {bg:'linear-gradient(135deg,#1E3A5F,#60A5FA)',img:'/img/games/genshin-impact.jpg'},
+  'Topup Valorant':        {bg:'linear-gradient(135deg,#1F2937,#EF4444)'},
+  'Topup Honkai Star Rail': {bg:'linear-gradient(135deg,#312E81,#8B5CF6)',img:'/img/games/honkai-star-rail.jpg'},
+  'Topup Honkai Impact 3': {bg:'linear-gradient(135deg,#1E1B4B,#6366F1)',img:'/img/games/honkai-impact-3.jpg'},
+  'Topup Call of Duty Mobile':{bg:'linear-gradient(135deg,#14532D,#22C55E)',img:'/img/games/call-of-duty-mobile.jpg'},
+  'Topup League of Legends: Wild Rift':{bg:'linear-gradient(135deg,#1E3A5F,#0EA5E9)',img:'/img/games/wild-rift.jpg'},
+  'Topup Arena of Valor':  {bg:'linear-gradient(135deg,#4A1942,#C026D3)',img:'/img/games/arena-of-valor.jpg'},
+  'Topup Stumble Guys':    {bg:'linear-gradient(135deg,#DC2626,#FCD34D)',img:'/img/games/stumble-guys.jpg'},
+  'Topup FC Mobile':       {bg:'linear-gradient(135deg,#064E3B,#10B981)',img:'/img/games/fc-mobile.jpg'},
+  'Topup Lords Mobile':    {bg:'linear-gradient(135deg,#78350F,#D97706)',img:'/img/games/lords-mobile.jpg'},
+  'Topup Point Blank':     {bg:'linear-gradient(135deg,#1F2937,#6B7280)'},
+  'Topup Ragnarok M: Eternal Love':{bg:'linear-gradient(135deg,#4C1D95,#7C3AED)',img:'/img/games/ragnarok-m.jpg'},
+  'Topup Ragnarok Origin': {bg:'linear-gradient(135deg,#581C87,#A855F7)'},
+  'Topup One Punch Man':   {bg:'linear-gradient(135deg,#92400E,#F59E0B)'},
+  'Topup Sausage Man':     {bg:'linear-gradient(135deg,#9A3412,#F97316)'},
+  'Topup Tower of Fantasy':{bg:'linear-gradient(135deg,#0C4A6E,#38BDF8)',img:'/img/games/tower-of-fantasy.jpg'},
+  'Topup State of Survival':{bg:'linear-gradient(135deg,#1A2E05,#4D7C0F)',img:'/img/games/state-of-survival.jpg'},
+  'Topup Speed Drifters':  {bg:'linear-gradient(135deg,#0F172A,#3B82F6)'},
+  'Topup Asphalt 9':       {bg:'linear-gradient(135deg,#1C1917,#DC2626)',img:'/img/games/asphalt-9.jpg'},
+  'Topup AU2 Mobile':      {bg:'linear-gradient(135deg,#831843,#EC4899)'},
+  'Topup Be The King':     {bg:'linear-gradient(135deg,#78350F,#CA8A04)'},
+  'Topup Garena':          {bg:'linear-gradient(135deg,#7C2D12,#DC2626)',img:'/img/games/garena.jpg'},
+  'Topup Heroes Evolved':  {bg:'linear-gradient(135deg,#1E293B,#475569)',img:'/img/games/heroes-evolved.jpg'},
+  'Topup Honor of Kings':  {bg:'linear-gradient(135deg,#713F12,#EAB308)',img:'/img/games/honor-of-kings.jpg'},
+  'Topup MU Origin 3':     {bg:'linear-gradient(135deg,#292524,#A16207)'},
+  'Topup Super Sus':       {bg:'linear-gradient(135deg,#1E40AF,#3B82F6)'},
+  'Topup Tom and Jerry: Chase':{bg:'linear-gradient(135deg,#92400E,#FBBF24)',img:'/img/games/tom-and-jerry.jpg'},
+  'Topup Revelation Infinite Journey':{bg:'linear-gradient(135deg,#1E1B4B,#4F46E5)'},
+  'Mobile Legend':         {bg:'linear-gradient(135deg,#0D1B4A,#3B82F6)',img:'/img/games/mobile-legends.jpg'},
+  'YouTube':               {bg:'linear-gradient(135deg,#7F1D1D,#DC2626)',img:'/img/games/youtube.jpg'},
+  'Google':                {bg:'linear-gradient(135deg,#1E40AF,#3B82F6)'},
+  'Gemini Pro':            {bg:'linear-gradient(135deg,#312E81,#6366F1)'},
 };
-function getStyle(cat){return STYLES[cat]||{bg:'linear-gradient(135deg,#374151,#6B7280)',icon:'📦'}}
+function getStyle(cat){return STYLES[cat]||{bg:'linear-gradient(135deg,#374151,#6B7280)'}}
+function getInitials(name){
+  const clean=name.replace(/^Topup\s+/,'').replace(/[:\-]/g,' ');
+  const words=clean.split(/\s+/).filter(Boolean);
+  if(words.length===1) return words[0].substring(0,2).toUpperCase();
+  return words.slice(0,2).map(w=>w[0]).join('').toUpperCase();
+}
+function renderIcon(s,name,cls){
+  if(s.img) return `<img class="${cls}-img" src="${s.img}" alt="" onerror="this.outerHTML='<div class=\\'${cls}-initials\\'>'+getInitials('${name.replace(/'/g,"\\'")}')+'</div>'">`;
+  return `<div class="${cls}-initials">${getInitials(name)}</div>`;
+}
 
 async function init(){
   const [p,s] = await Promise.all([
@@ -396,8 +411,9 @@ function renderHome(){
 function gameCard(g){
   const s=getStyle(g.name);
   const displayName=g.name.replace(/^Topup\s+/,'');
+  const iconHtml=renderIcon(s,g.name,'game-card');
   return `<div class="game-card" style="background:${s.bg}" onclick="openGame('${g.name.replace(/'/g,"\\'")}')">
-    <div class="game-card-icon">${s.icon}</div>
+    ${iconHtml}
     <div class="game-card-name">${displayName}</div>
     <div class="game-card-count">${g.products.length} produk</div>
   </div>`;
@@ -425,7 +441,7 @@ function openGame(name){
   const displayName=name.replace(/^Topup\s+/,'');
   document.getElementById('gd-back-title').textContent=displayName;
   document.getElementById('gd-banner').style.background=s.bg;
-  document.getElementById('gd-icon').textContent=s.icon;
+  document.getElementById('gd-icon').innerHTML=renderIcon(s,name,'game-banner');
   document.getElementById('gd-name').textContent=displayName;
   document.getElementById('gd-sub').textContent=currentGame.products.length+' produk tersedia';
   renderGameBody();
@@ -481,8 +497,8 @@ function renderAccountBody(el,g){
   let html=`<div class="step"><div class="step-head"><div class="step-num">1</div><div class="step-title">Pilih Produk</div></div>`;
   html+=`<div class="account-grid">`;
   html+=g.products.map(p=>`<div class="acc-card" data-id="${p.id}" onclick="selectProduct('${p.id}')">
-    ${p.image?`<img class="acc-img" src="${p.image}" alt="${p.name}" onerror="this.outerHTML='<div class=acc-img-ph>${getStyle(g.name).icon}</div>'">`
-    :`<div class="acc-img-ph">${getStyle(g.name).icon}</div>`}
+    ${p.image?`<img class="acc-img" src="${p.image}" alt="${p.name}" onerror="this.outerHTML='<div class=acc-img-ph>'+getInitials('${g.name.replace(/'/g,"\\'")}')+'</div>'">`
+    :`<div class="acc-img-ph">${getStyle(g.name).img?`<img src="${getStyle(g.name).img}" style="width:100%;height:100%;object-fit:cover">`:getInitials(g.name)}</div>`}
     <div class="acc-body">
       <div class="acc-name">${p.name}</div>
       <div class="acc-price">Rp ${Number(p.price).toLocaleString('id-ID')}</div>
@@ -597,8 +613,9 @@ function onSearch(q){
     }else{
       el.innerHTML=`<div class="sr-title">${results.length} hasil untuk "${q}"</div>`+results.map(p=>{
         const s=getStyle(p.category);
+        const srIcon=s.img?`<img src="${s.img}" alt="">`:`<span style="font-size:13px;font-weight:800;color:#fff">${getInitials(p.category)}</span>`;
         return `<div class="sr-item" onclick="openGameAndSelect('${p.category.replace(/'/g,"\\'")}','${p.id}')">
-          <div class="sr-icon" style="background:${s.bg}">${s.icon}</div>
+          <div class="sr-icon" style="background:${s.bg}">${srIcon}</div>
           <div class="sr-info"><div class="sr-name">${p.name}</div><div class="sr-cat">${p.category.replace(/^Topup\s+/,'')}</div></div>
           <div class="sr-price">Rp ${Number(p.price).toLocaleString('id-ID')}</div>
         </div>`;
