@@ -15,12 +15,40 @@
   --green:#2D7D5A;--green-bg:#EAF3EC;
   --red:#C04A3A;--red-bg:#FCECEA;
   --radius:14px;
+  --hdr-bg:#1A1714;
+}
+@media(prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#121110;--bg2:#1C1A18;--white:#1E1C1A;
+    --text:#E8E4DF;--text2:#A09890;--text3:#706860;
+    --accent:#E8845A;--accent2:#D97757;--accent-bg:rgba(232,132,90,0.12);
+    --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.14);
+    --green:#4ADE80;--green-bg:rgba(74,222,128,0.1);
+    --red:#F87171;--red-bg:rgba(248,113,113,0.1);
+    --hdr-bg:#0A0908;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121110;--bg2:#1C1A18;--white:#1E1C1A;
+  --text:#E8E4DF;--text2:#A09890;--text3:#706860;
+  --accent:#E8845A;--accent2:#D97757;--accent-bg:rgba(232,132,90,0.12);
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.14);
+  --green:#4ADE80;--green-bg:rgba(74,222,128,0.1);
+  --red:#F87171;--red-bg:rgba(248,113,113,0.1);
+  --hdr-bg:#0A0908;
 }
 html{scroll-behavior:smooth}
 body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;overflow-x:hidden}
 
+/* LOADING SCREEN */
+#loading{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .4s}
+#loading.hide{opacity:0;pointer-events:none}
+#loading img{width:72px;height:72px;border-radius:18px;animation:loadPulse 1.2s ease-in-out infinite}
+#loading span{font-size:14px;font-weight:600;color:var(--text2);letter-spacing:-.2px}
+@keyframes loadPulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.08);opacity:.7}}
+
 /* HEADER */
-.hdr{position:sticky;top:0;z-index:100;background:var(--text);padding:0 16px}
+.hdr{position:sticky;top:0;z-index:100;background:var(--hdr-bg);padding:0 16px}
 .hdr-in{max-width:900px;margin:0 auto;display:flex;align-items:center;height:56px;gap:12px}
 .hdr-brand{display:flex;align-items:center;gap:8px;text-decoration:none;flex-shrink:0}
 .hdr-logo{width:30px;height:30px;border-radius:8px;object-fit:cover;border:1.5px solid rgba(255,255,255,.12)}
@@ -52,6 +80,11 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 .game-card-initials{width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;background:rgba(255,255,255,.15);backdrop-filter:blur(4px);z-index:1;border:2px solid rgba(255,255,255,.2);text-shadow:0 1px 3px rgba(0,0,0,.4);letter-spacing:-.5px}
 .game-card-name{font-size:11px;font-weight:700;color:#fff;line-height:1.25;text-shadow:0 1px 4px rgba(0,0,0,.5);z-index:1;max-width:100%;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .game-card-count{font-size:9px;font-weight:500;color:rgba(255,255,255,.65);z-index:1}
+.game-card-badge{position:absolute;top:6px;right:6px;background:linear-gradient(135deg,#F59E0B,#EF4444);color:#fff;font-size:8px;font-weight:800;padding:3px 7px;border-radius:6px;z-index:2;text-transform:uppercase;letter-spacing:.5px;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+
+/* DARK MODE TOGGLE */
+.theme-btn{width:34px;height:34px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.08);border-radius:8px;cursor:pointer;flex-shrink:0;transition:background .15s;color:#fff;font-size:16px}
+.theme-btn:hover{background:rgba(255,255,255,.18)}
 
 /* SEARCH RESULTS */
 .search-results{max-width:900px;margin:0 auto;padding:24px 16px}
@@ -197,6 +230,12 @@ footer a{color:var(--text2);text-decoration:none}
 </style>
 </head>
 <body>
+<!-- LOADING SCREEN -->
+<div id="loading">
+  <img src="/logo.jpg" alt="Jago Game" onerror="this.style.display='none'">
+  <span>Memuat produk...</span>
+</div>
+
 <div id="toast-wrap"></div>
 
 <!-- HEADER -->
@@ -210,6 +249,7 @@ footer a{color:var(--text2);text-decoration:none}
       <span class="si">🔍</span>
       <input id="search-box" type="text" placeholder="Cari game atau produk…" oninput="onSearch(this.value)">
     </div>
+    <button class="theme-btn" onclick="toggleTheme()" id="theme-btn" aria-label="Dark mode">&#9790;</button>
     <a id="h-wa" href="#" class="hdr-wa" target="_blank">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
       Chat
@@ -316,6 +356,29 @@ footer a{color:var(--text2);text-decoration:none}
 <script>
 let allProducts=[], settings={}, games=[], selectedProduct=null, currentGame=null;
 
+const POPULAR = ['Topup Mobile Legends','Topup Genshin Impact','Topup PUBG Mobile'];
+
+function isDark(){
+  const dt=document.documentElement.getAttribute('data-theme');
+  if(dt) return dt==='dark';
+  return window.matchMedia('(prefers-color-scheme:dark)').matches;
+}
+function toggleTheme(){
+  const next=isDark()?'light':'dark';
+  document.documentElement.setAttribute('data-theme',next);
+  try{localStorage.setItem('jg-theme',next)}catch(e){}
+  document.getElementById('theme-btn').innerHTML=next==='dark'?'&#9788;':'&#9790;';
+}
+(function initTheme(){
+  try{
+    const saved=localStorage.getItem('jg-theme');
+    if(saved){
+      document.documentElement.setAttribute('data-theme',saved);
+    }
+    document.getElementById('theme-btn').innerHTML=isDark()?'&#9788;':'&#9790;';
+  }catch(e){}
+})();
+
 const STYLES = {
   'Topup Mobile Legends':  {bg:'linear-gradient(135deg,#0D1B4A,#1E3A8A)',img:'/img/games/mobile-legends.jpg'},
   'Topup Free Fire':       {bg:'linear-gradient(135deg,#7C2D12,#EA580C)',img:'/img/games/free-fire.jpg'},
@@ -330,7 +393,7 @@ const STYLES = {
   'Topup Stumble Guys':    {bg:'linear-gradient(135deg,#DC2626,#FCD34D)',img:'/img/games/stumble-guys.jpg'},
   'Topup FC Mobile':       {bg:'linear-gradient(135deg,#064E3B,#10B981)',img:'/img/games/fc-mobile.jpg'},
   'Topup Lords Mobile':    {bg:'linear-gradient(135deg,#78350F,#D97706)',img:'/img/games/lords-mobile.jpg'},
-  'Topup Point Blank':     {bg:'linear-gradient(135deg,#1F2937,#6B7280)'},
+  'Topup Point Blank':     {bg:'linear-gradient(135deg,#1F2937,#6B7280)',img:'/img/games/point-blank.jpg'},
   'Topup Ragnarok M: Eternal Love':{bg:'linear-gradient(135deg,#4C1D95,#7C3AED)',img:'/img/games/ragnarok-m.jpg'},
   'Topup Ragnarok Origin': {bg:'linear-gradient(135deg,#581C87,#A855F7)',img:'/img/games/ragnarok-origin.jpg'},
   'Topup One Punch Man':   {bg:'linear-gradient(135deg,#92400E,#F59E0B)',img:'/img/games/one-punch-man.jpg'},
@@ -383,6 +446,8 @@ async function init(){
   }
   groupGames();
   renderHome();
+  const loadEl=document.getElementById('loading');
+  if(loadEl){loadEl.classList.add('hide');setTimeout(()=>loadEl.remove(),500)}
 }
 
 function groupGames(){
@@ -412,8 +477,9 @@ function gameCard(g){
   const s=getStyle(g.name);
   const displayName=g.name.replace(/^Topup\s+/,'');
   const iconHtml=renderIcon(s,g.name,'game-card');
+  const badge=POPULAR.includes(g.name)?'<div class="game-card-badge">Populer</div>':'';
   return `<div class="game-card" style="background:${s.bg}" onclick="openGame('${g.name.replace(/'/g,"\\'")}')">
-    ${iconHtml}
+    ${badge}${iconHtml}
     <div class="game-card-name">${displayName}</div>
     <div class="game-card-count">${g.products.length} produk</div>
   </div>`;
