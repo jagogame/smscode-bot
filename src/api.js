@@ -187,6 +187,11 @@ router.get('/admin', (req, res) => {
     res.sendFile(path.join(__dirname, '../public/admin.html'));
 });
 
+// Toko topup (Codashop-style)
+router.get('/store', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/store.html'));
+});
+
 // Halaman lacak pesanan
 router.get('/lacak', (req, res) => {
     res.sendFile(path.join(__dirname, '../public/lacak.html'));
