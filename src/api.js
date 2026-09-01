@@ -199,6 +199,9 @@ router.get('/lacak', (req, res) => {
 router.get('/kebijakan', (req, res) => {
     res.sendFile(path.join(__dirname, '../public/kebijakan.html'));
 });
+router.get('/syarat-ketentuan', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/syarat-ketentuan.html'));
+});
 
 // SEO: robots.txt & sitemap.xml
 const SITE = 'https://www.jagogame.store';
@@ -206,7 +209,7 @@ router.get('/robots.txt', (req, res) => {
     res.type('text/plain').send(`User-agent: *\nAllow: /\nDisallow: /admin\nSitemap: ${SITE}/sitemap.xml\n`);
 });
 router.get('/sitemap.xml', (req, res) => {
-    const urls = [`${SITE}/`, `${SITE}/lacak`, `${SITE}/kebijakan`];
+    const urls = [`${SITE}/`, `${SITE}/lacak`, `${SITE}/syarat-ketentuan`, `${SITE}/kebijakan`];
     const today = new Date().toISOString().slice(0, 10);
     const body = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
         urls.map(u => `  <url><loc>${u}</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq></url>`).join('\n') +
