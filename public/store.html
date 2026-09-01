@@ -4,6 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Jago Game — Toko Digital</title>
+<meta name="description" content="Top up game murah & cepat — Mobile Legends, PUBG Mobile, Genshin Impact, Free Fire, dan 30+ game lainnya. Proses otomatis, pembayaran aman via QRIS, GoPay, OVO, DANA, transfer bank.">
+<meta name="keywords" content="top up game murah, top up ml, top up pubg, top up genshin, diamond mobile legends, jago game">
+<link rel="canonical" href="https://jagogame.store/">
+<link rel="icon" href="/logo.jpg">
+<link rel="apple-touch-icon" href="/logo.jpg">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Jago Game — Top Up Game Murah & Cepat">
+<meta property="og:description" content="Top up 30+ game populer: ML, PUBG, Genshin, FF. Proses otomatis 1-5 menit, pembayaran aman, harga terjangkau.">
+<meta property="og:image" content="https://jagogame.store/logo.jpg">
+<meta property="og:url" content="https://jagogame.store/">
+<meta name="twitter:card" content="summary">
+<meta name="theme-color" content="#D97757">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -38,7 +50,6 @@ html{scroll-behavior:smooth}
   --red:#F87171;--red-bg:rgba(248,113,113,0.1);
   --hdr-bg:#0A0908;
 }
-html{scroll-behavior:smooth}
 body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;overflow-x:hidden}
 
 /* LOADING SCREEN */
@@ -82,6 +93,39 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 .game-card-name{font-size:11px;font-weight:700;color:#fff;line-height:1.25;text-shadow:0 1px 4px rgba(0,0,0,.5);z-index:1;max-width:100%;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .game-card-count{font-size:9px;font-weight:500;color:rgba(255,255,255,.65);z-index:1}
 .game-card-badge{position:absolute;top:6px;right:6px;background:linear-gradient(135deg,#F59E0B,#EF4444);color:#fff;font-size:8px;font-weight:800;padding:3px 7px;border-radius:6px;z-index:2;text-transform:uppercase;letter-spacing:.5px;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+
+/* PROMO BANNER */
+.promo-banner{max-width:900px;margin:0 auto;padding:16px 16px 0}
+.promo-slide{border-radius:var(--radius);overflow:hidden;position:relative;cursor:pointer;aspect-ratio:3.2;display:flex;align-items:center;padding:24px 28px;background:linear-gradient(135deg,#1E3A8A,#3B82F6);-webkit-tap-highlight-color:transparent}
+.promo-slide:hover{opacity:.95}
+.promo-bg{position:absolute;inset:0;object-fit:cover;width:100%;height:100%;opacity:.2}
+.promo-content{position:relative;z-index:1;display:flex;align-items:center;gap:16px;width:100%}
+.promo-icon{width:48px;height:48px;border-radius:12px;object-fit:cover;box-shadow:0 3px 12px rgba(0,0,0,.4);border:2px solid rgba(255,255,255,.25);flex-shrink:0}
+.promo-text{flex:1;min-width:0}
+.promo-tag{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.7);margin-bottom:4px}
+.promo-title{font-size:16px;font-weight:800;color:#fff;letter-spacing:-.3px;line-height:1.2}
+.promo-sub{font-size:11px;color:rgba(255,255,255,.6);margin-top:4px}
+.promo-cta{flex-shrink:0;padding:8px 16px;background:rgba(255,255,255,.2);backdrop-filter:blur(4px);border-radius:8px;font-size:11px;font-weight:700;color:#fff;border:1px solid rgba(255,255,255,.15)}
+@media(max-width:500px){.promo-slide{aspect-ratio:2.5;padding:16px 18px}.promo-title{font-size:14px}.promo-icon{width:40px;height:40px}}
+
+/* POPULAR CARDS BIGGER */
+.game-grid--popular{grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:4px}
+.game-grid--popular .game-card{aspect-ratio:.75}
+.game-grid--popular .game-card-img{width:64px;height:64px;border-radius:16px}
+.game-grid--popular .game-card-name{font-size:13px}
+.game-grid--popular .game-card-count{font-size:10px}
+@media(min-width:600px){.game-grid{grid-template-columns:repeat(6,1fr)}.game-grid--popular{grid-template-columns:repeat(3,1fr)}}
+
+/* DELIVERY BADGE */
+.denom-delivery{font-size:9px;font-weight:600;color:var(--green);margin-top:3px;display:flex;align-items:center;justify-content:center;gap:3px}
+
+/* ID HELP LINK */
+.id-help{font-size:11px;color:var(--accent);cursor:pointer;margin-left:auto;font-weight:500}
+.id-help:hover{text-decoration:underline}
+
+/* PAYMENT LOGOS */
+.pay-logos{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:12px 0 6px;opacity:.7}
+.pay-logos span{font-size:10px;font-weight:600;color:var(--text2);padding:4px 10px;border:1px solid var(--border2);border-radius:6px;white-space:nowrap;background:var(--white)}
 
 /* DARK MODE TOGGLE */
 .theme-btn{width:34px;height:34px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.08);border-radius:8px;cursor:pointer;flex-shrink:0;transition:background .15s;color:#fff;font-size:16px}
@@ -265,8 +309,26 @@ footer a{color:var(--text2);text-decoration:none}
 
 <!-- VIEW: HOME -->
 <div id="view-home" class="view active">
+  <div class="promo-banner" id="promo-banner">
+    <div class="promo-slide" onclick="openGame('Topup Mobile Legends')" style="background:linear-gradient(135deg,#0D1B4A,#1E3A8A)">
+      <img class="promo-bg" src="/img/games/mobile-legends.jpg" alt="">
+      <div class="promo-content">
+        <img class="promo-icon" src="/img/games/mobile-legends.jpg" alt="ML">
+        <div class="promo-text">
+          <div class="promo-tag">Top Up Populer</div>
+          <div class="promo-title">Mobile Legends Diamond</div>
+          <div class="promo-sub">Proses otomatis 1-5 menit &middot; Harga mulai Rp 1.200</div>
+        </div>
+        <div class="promo-cta">Top Up</div>
+      </div>
+    </div>
+  </div>
   <div class="home-section">
-    <div class="section-label">Top Up Game</div>
+    <div class="section-label">Populer</div>
+    <div class="game-grid game-grid--popular" id="popular-grid"></div>
+  </div>
+  <div class="home-section">
+    <div class="section-label">Semua Game</div>
     <div class="game-grid" id="topup-grid"></div>
   </div>
   <div class="home-section">
@@ -365,6 +427,10 @@ footer a{color:var(--text2);text-decoration:none}
     <a href="/syarat-ketentuan#kontak">Kontak</a>
   </div>
   <div class="ft-contact">WhatsApp: <a href="https://wa.me/6281317784126">0813-1778-4126</a> &middot; Email: <a href="mailto:itsryuki@gmail.com">itsryuki@gmail.com</a></div>
+  <div class="pay-logos">
+    <span>QRIS</span><span>GoPay</span><span>OVO</span><span>DANA</span><span>ShopeePay</span>
+    <span>BCA</span><span>BNI</span><span>Mandiri</span><span>BRI</span><span>Alfamart</span><span>Indomaret</span>
+  </div>
   <p>&copy; 2025–2026 <a href="/">Jago Game</a> &middot; Toko Digital Terpercaya &middot; Jakarta Utara, Indonesia</p>
 </footer>
 
@@ -478,7 +544,10 @@ function groupGames(){
 function renderHome(){
   const topup=games.filter(g=>g.isTopup).sort((a,b)=>b.products.length-a.products.length);
   const accounts=games.filter(g=>!g.isTopup);
-  document.getElementById('topup-grid').innerHTML=topup.map(g=>gameCard(g)).join('');
+  const popular=topup.filter(g=>POPULAR.includes(g.name));
+  const rest=topup.filter(g=>!POPULAR.includes(g.name));
+  document.getElementById('popular-grid').innerHTML=popular.map(g=>gameCard(g)).join('');
+  document.getElementById('topup-grid').innerHTML=rest.map(g=>gameCard(g)).join('');
   const accGrid=document.getElementById('account-grid');
   if(accounts.length){
     accGrid.innerHTML=accounts.map(g=>gameCard(g)).join('');
@@ -545,7 +614,7 @@ function renderTopupBody(el,g){
 
   let html='';
   if(needGameId){
-    html+=`<div class="step"><div class="step-head"><div class="step-num">1</div><div class="step-title">Masukkan ID Game</div></div>`;
+    html+=`<div class="step"><div class="step-head"><div class="step-num">1</div><div class="step-title">Masukkan ID Game</div><span class="id-help" onclick="alert('Buka game, masuk ke profil/pengaturan akun. User ID biasanya terlihat di halaman profil atau pengaturan.')">Cara cari ID?</span></div>`;
     if(needServer){
       html+=`<div class="step-row">
         <div class="fld"><label>${gameIdLabel}</label><input id="f-gameid" type="text" placeholder="Masukkan ${gameIdLabel}"></div>
@@ -563,6 +632,7 @@ function renderTopupBody(el,g){
   html+=g.products.map(p=>`<div class="denom-card" data-id="${p.id}" onclick="selectProduct('${p.id}')">
     <div class="denom-name">${p.name}</div>
     <div class="denom-price">Rp ${Number(p.price).toLocaleString('id-ID')}</div>
+    <div class="denom-delivery">⚡ Instan</div>
   </div>`).join('');
   html+=`</div></div>`;
 
