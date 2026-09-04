@@ -436,7 +436,7 @@ footer a{color:var(--text2);text-decoration:none}
 </footer>
 
 <script>
-let allProducts=[], settings={}, games=[], selectedProduct=null, currentGame=null;
+let allProducts=[], settings={}, games=[], selectedProduct=null, currentGame=null, midtransCfg=null;
 
 const POPULAR = ['Topup Mobile Legends','Topup Genshin Impact','Topup PUBG Mobile'];
 
@@ -510,11 +510,26 @@ function renderIcon(s,name,cls){
   return `<div class="${cls}-initials">${getInitials(name)}</div>`;
 }
 
+async function loadSnap(clientKey, isProd){
+  return new Promise((resolve,reject)=>{
+    const s=document.createElement('script');
+    s.src=isProd?'https://app.midtrans.com/snap/snap.js':'https://app.sandbox.midtrans.com/snap/snap.js';
+    s.setAttribute('data-client-key',clientKey);
+    s.onload=resolve;
+    s.onerror=reject;
+    document.head.appendChild(s);
+  });
+}
 async function init(){
-  const [p,s] = await Promise.all([
+  const [p,s,cfg] = await Promise.all([
     fetch('/api/store/products').then(r=>r.json()),
     fetch('/api/store/settings').then(r=>r.json()),
+    fetch('/api/store/config').then(r=>r.json()).catch(()=>({})),
   ]);
+  if(cfg.midtransEnabled){
+    midtransCfg=cfg;
+    loadSnap(cfg.clientKey, cfg.isProduction).catch(()=>{});
+  }
   allProducts = Array.isArray(p)?p:[];
   settings = s||{};
   if(settings.storeName){
@@ -717,8 +732,26 @@ async function submitOrder(){
     btn.disabled=false;btn.textContent='Bayar Sekarang';
     if(res.error){err.textContent=res.error;return}
 
-    showPayment(res);
-    toast('Order berhasil dibuat!');
+    if(midtransCfg&&midtransCfg.midtransEnabled&&window.snap){
+      btn.disabled=true;btn.textContent='Membuka pembayaran...';
+      try{
+        const payRes=await fetch('/api/store/pay',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({orderId:res.id})}).then(r=>r.json());
+        btn.disabled=false;btn.textContent='Bayar Sekarang';
+        if(payRes.error){err.textContent=payRes.error;return}
+        window.snap.pay(payRes.token,{
+          onSuccess:function(){toast('Pembayaran berhasil! Pesanan sedang diproses.');},
+          onPending:function(){toast('Menunggu pembayaran...');showPayment(res);},
+          onError:function(){err.textContent='Pembayaran gagal. Silakan coba lagi.';},
+          onClose:function(){toast('Pembayaran dibatalkan.');}
+        });
+      }catch(e2){
+        btn.disabled=false;btn.textContent='Bayar Sekarang';
+        showPayment(res);
+      }
+    }else{
+      showPayment(res);
+      toast('Order berhasil dibuat!');
+    }
   }catch(e){
     btn.disabled=false;btn.textContent='Bayar Sekarang';
     err.textContent='Gagal membuat order. Coba lagi.';
