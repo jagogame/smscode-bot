@@ -182,6 +182,7 @@ function createOrder(data) {
     const product = products.find(p => p.id === data.productId);
     if (!product) throw new Error('Produk tidak ditemukan');
     if (!product.active) throw new Error('Produk tidak tersedia');
+    if (!data.customerEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.customerEmail)) throw new Error('Email wajib diisi dengan format yang valid');
 
     // Topup game: wajib isi Game ID (& Server ID bila game-nya butuh)
     const gameId = String(data.gameId || '').trim();
@@ -228,7 +229,8 @@ function createOrder(data) {
         finalPrice,
         category: product.category,
         customerName: data.customerName,
-        customerWA: data.customerWA,
+        customerEmail: data.customerEmail || '',
+        customerWA: data.customerWA || '',
         notes: data.notes || '',
         productType: product.type,
         gameId: product.type === 'game_topup' ? gameId : null,

@@ -52,11 +52,11 @@ h1{font-size:26px;font-weight:800;letter-spacing:-.5px;margin-bottom:6px}
 
 <div class="wrap">
   <h1>Lacak Pesanan</h1>
-  <p class="sub">Masukkan ID Pesanan & nomor WhatsApp yang kamu gunakan saat memesan untuk melihat status & detail akun kamu.</p>
+  <p class="sub">Masukkan ID Pesanan & email yang kamu gunakan saat memesan untuk melihat status & detail akun kamu.</p>
 
   <div class="card" id="form-card">
     <div class="fld"><label>ID Pesanan</label><input id="i-id" placeholder="ORD-xxxxxxxxxxxxx"></div>
-    <div class="fld"><label>Nomor WhatsApp</label><input id="i-wa" type="tel" placeholder="08xxxxxxxxxx"></div>
+    <div class="fld"><label>Email</label><input id="i-email" type="email" placeholder="email@contoh.com"></div>
     <button class="btn" id="btn" onclick="track()">Lacak Pesanan</button>
     <div class="err" id="err"></div>
   </div>
@@ -71,7 +71,7 @@ h1{font-size:26px;font-weight:800;letter-spacing:-.5px;margin-bottom:6px}
       <pre class="cred-box" id="r-cred">—</pre>
       <button class="copy" onclick="copyCred()">📋 Salin Detail Akun</button>
     </div>
-    <div id="r-pending" style="display:none;margin-top:16px;font-size:13px;color:var(--text2);line-height:1.6;text-align:center">⏳ Pesanan sedang diproses. Detail akun akan dikirim ke WhatsApp kamu.</div>
+    <div id="r-pending" style="display:none;margin-top:16px;font-size:13px;color:var(--text2);line-height:1.6;text-align:center">⏳ Pesanan sedang diproses. Invoice akan dikirim ke email kamu.</div>
   </div>
 </div>
 
@@ -83,12 +83,12 @@ if(params.get('id'))document.getElementById('i-id').value=params.get('id');
 
 async function track(){
   const id=document.getElementById('i-id').value.trim();
-  const wa=document.getElementById('i-wa').value.trim();
+  const email=document.getElementById('i-email').value.trim();
   const err=document.getElementById('err');
-  if(!id||!wa){err.textContent='ID Pesanan & nomor WhatsApp wajib diisi';return}
+  if(!id||!email){err.textContent='ID Pesanan & email wajib diisi';return}
   err.textContent='';
   const btn=document.getElementById('btn');btn.disabled=true;btn.textContent='Mencari...';
-  const r=await fetch('/api/store/track',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({orderId:id,wa})}).then(r=>r.json()).catch(e=>({error:e.message}));
+  const r=await fetch('/api/store/track',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({orderId:id,email})}).then(r=>r.json()).catch(e=>({error:e.message}));
   btn.disabled=false;btn.textContent='Lacak Pesanan';
   if(r.error){err.textContent=r.error;document.getElementById('result').classList.remove('on');return}
   document.getElementById('r-id').textContent=r.id;
@@ -104,7 +104,7 @@ async function track(){
   document.getElementById('result').classList.add('on');
 }
 function copyCred(){navigator.clipboard.writeText(document.getElementById('r-cred').textContent).then(()=>toast('Detail akun disalin!'))}
-document.getElementById('i-wa').addEventListener('keydown',e=>{if(e.key==='Enter')track()});
+document.getElementById('i-email').addEventListener('keydown',e=>{if(e.key==='Enter')track()});
 </script>
 </body>
 </html>

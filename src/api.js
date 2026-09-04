@@ -21,15 +21,16 @@ const delivering = new Set();
 // Kirim invoice sukses + notif admin (dipakai oleh kedua jalur pengiriman)
 async function notifySuccess(order, detailText) {
     const settings = store.getSettings();
-    if (wa.isReady()) {
+    if (order.customerWA && wa.isReady()) {
         const rp = n => 'Rp ' + Number(n || 0).toLocaleString('id-ID');
         let inv = `✅ *PEMBAYARAN BERHASIL — Jago Game*\n\nTerima kasih ${order.customerName}! 🎉\n\n🧾 *INVOICE*\nID: ${order.id}\nProduk: ${order.productName}\nHarga: ${rp(order.productPrice)}`;
         if (order.discount > 0) inv += `\nDiskon${order.voucherCode ? ' (' + order.voucherCode + ')' : ''}: -${rp(order.discount)}`;
         inv += `\n*Total Bayar: ${rp(order.finalPrice != null ? order.finalPrice : order.productPrice)}*\nStatus: LUNAS ✅\n\n━━━━━━━━━━━━━━\n${detailText}\n━━━━━━━━━━━━━━\n\nAda kendala? Balas chat ini. 🙏`;
         wa.sendText(order.customerWA, inv).catch(() => {});
     }
+    const contact = order.customerEmail || order.customerWA || '';
     if (settings.whatsapp && wa.isReady()) {
-        wa.sendText(settings.whatsapp, `💰 TERJUAL!\n${order.productName}\nRp ${Number(order.productPrice).toLocaleString('id-ID')}\nPembeli: ${order.customerName} (${order.customerWA})`).catch(() => {});
+        wa.sendText(settings.whatsapp, `💰 TERJUAL!\n${order.productName}\nRp ${Number(order.productPrice).toLocaleString('id-ID')}\nPembeli: ${order.customerName} (${contact})`).catch(() => {});
     }
     try { require('./push').send({ title: '💰 Transaksi selesai', body: `${order.productName} — ${order.customerName}`, url: '/app' }, u => u.role === 'admin').catch(() => {}); } catch (_) {}
 }
@@ -43,14 +44,14 @@ async function deliverTopup(order) {
     if (!digiflazz.isConfigured()) {
         const updated = store.patchOrder(order.id, { status: 'PAID_NO_STOCK', paymentStatus: 'PAID', paidAt: new Date().toISOString() });
         if (settings.whatsapp && wa.isReady()) {
-            wa.sendText(settings.whatsapp, `⚠️ TOPUP MANUAL DIPERLUKAN\nDigiflazz belum dikonfigurasi.\nPesanan ${order.id} (${order.productName}) sudah LUNAS.\nID: ${order.gameId}${order.serverId ? ' / ' + order.serverId : ''}\nPembeli: ${order.customerName} (${order.customerWA})`).catch(() => {});
+            wa.sendText(settings.whatsapp, `⚠️ TOPUP MANUAL DIPERLUKAN\nDigiflazz belum dikonfigurasi.\nPesanan ${order.id} (${order.productName}) sudah LUNAS.\nID: ${order.gameId}${order.serverId ? ' / ' + order.serverId : ''}\nPembeli: ${order.customerName} (${order.customerEmail || order.customerWA})`).catch(() => {});
         }
         return updated;
     }
     if (!product || !customerNo) {
         const updated = store.patchOrder(order.id, { status: 'PAID_NO_STOCK', paymentStatus: 'PAID', paidAt: new Date().toISOString() });
         if (settings.whatsapp && wa.isReady()) {
-            wa.sendText(settings.whatsapp, `⚠️ TOPUP GAGAL — data tidak lengkap\nPesanan ${order.id} (${order.productName}) sudah LUNAS tapi produk/Game ID tidak valid. Kirim manual.\nPembeli: ${order.customerName} (${order.customerWA})`).catch(() => {});
+            wa.sendText(settings.whatsapp, `⚠️ TOPUP GAGAL — data tidak lengkap\nPesanan ${order.id} (${order.productName}) sudah LUNAS tapi produk/Game ID tidak valid. Kirim manual.\nPembeli: ${order.customerName} (${order.customerEmail || order.customerWA})`).catch(() => {});
         }
         return updated;
     }
@@ -84,7 +85,7 @@ async function deliverTopup(order) {
     const updated = store.patchOrder(order.id, { status: 'PAID_NO_STOCK', paymentStatus: 'PAID', paidAt: new Date().toISOString() });
     if (settings.whatsapp && wa.isReady()) {
         const errMsg = failed.map(f => f.message).filter(Boolean).join('; ') || 'Tidak diketahui';
-        wa.sendText(settings.whatsapp, `❌ TOPUP GAGAL (${okCount} sukses, ${failed.length} gagal)\nPesanan ${order.id} — ${order.productName}\nID: ${order.gameId}${order.serverId ? ' / ' + order.serverId : ''}\nPembeli: ${order.customerName} (${order.customerWA})\nError: ${errMsg}\n\nCek saldo Digiflazz & kirim manual bila perlu.`).catch(() => {});
+        wa.sendText(settings.whatsapp, `❌ TOPUP GAGAL (${okCount} sukses, ${failed.length} gagal)\nPesanan ${order.id} — ${order.productName}\nID: ${order.gameId}${order.serverId ? ' / ' + order.serverId : ''}\nPembeli: ${order.customerName} (${order.customerEmail || order.customerWA})\nError: ${errMsg}\n\nCek saldo Digiflazz & kirim manual bila perlu.`).catch(() => {});
     }
     return updated;
 }
@@ -106,7 +107,7 @@ async function deliverOrder(order) {
         const updated = store.patchOrder(order.id, { status: 'PAID_NO_STOCK', paymentStatus: 'PAID', paidAt: new Date().toISOString() });
         // Beritahu admin agar kirim manual
         if (settings.whatsapp && wa.isReady()) {
-            wa.sendText(settings.whatsapp, `⚠️ STOK HABIS!\nPesanan ${order.id} (${order.productName}) sudah LUNAS tapi stok akun kosong.\nPembeli: ${order.customerName} (${order.customerWA})\nSegera kirim manual & isi stok.`).catch(() => {});
+            wa.sendText(settings.whatsapp, `⚠️ STOK HABIS!\nPesanan ${order.id} (${order.productName}) sudah LUNAS tapi stok akun kosong.\nPembeli: ${order.customerName} (${order.customerEmail || order.customerWA})\nSegera kirim manual & isi stok.`).catch(() => {});
         }
         return updated;
     }
@@ -377,8 +378,8 @@ router.post('/api/store/orders', rateLimiter({ windowMs: 60 * 1000, max: 10, mes
         if (product && product.type !== 'game_topup' && product.autoDeliver && store.getStockCount(product.id) <= 0) {
             return res.status(400).json({ error: 'Stok produk ini sedang habis. Silakan chat WhatsApp kami.' });
         }
-        // Verifikasi OTP WhatsApp bila diaktifkan
-        if (store.getSettings().otpRequired && wa.isReady() && !otp.isVerified(req.body.customerWA)) {
+        // Verifikasi OTP WhatsApp bila diaktifkan dan customer mengisi WA
+        if (req.body.customerWA && store.getSettings().otpRequired && wa.isReady() && !otp.isVerified(req.body.customerWA)) {
             return res.status(400).json({ error: 'Nomor WhatsApp belum diverifikasi. Minta & masukkan kode OTP dulu.', needOtp: true });
         }
         const order = store.createOrder(req.body);
@@ -429,6 +430,7 @@ router.post('/api/store/pay', rateLimiter({ windowMs: 60 * 1000, max: 15, messag
             orderId: order.id,
             amount: order.finalPrice != null ? order.finalPrice : order.productPrice,
             customerName: order.customerName,
+            customerEmail: order.customerEmail,
             productName: order.productName,
         });
         res.json({ token: tx.token, redirect_url: tx.redirect_url });
@@ -473,11 +475,13 @@ router.get('/api/store/order-status', (req, res) => {
 
 // Lacak pesanan pakai ID + nomor WhatsApp (untuk pembeli yang tutup browser)
 router.post('/api/store/track', rateLimiter({ windowMs: 60 * 1000, max: 15 }), (req, res) => {
-    const { orderId, wa: waNum } = req.body;
+    const { orderId, wa: waNum, email } = req.body;
     const order = store.getOrderById((orderId || '').trim());
     const norm = s => String(s || '').replace(/\D/g, '').replace(/^0/, '62');
-    if (!order || norm(order.customerWA) !== norm(waNum)) {
-        return res.status(404).json({ error: 'Pesanan tidak ditemukan. Pastikan ID & nomor WhatsApp benar.' });
+    const emailMatch = email && order && order.customerEmail && order.customerEmail.toLowerCase() === email.toLowerCase();
+    const waMatch = waNum && order && order.customerWA && norm(order.customerWA) === norm(waNum);
+    if (!order || (!emailMatch && !waMatch)) {
+        return res.status(404).json({ error: 'Pesanan tidak ditemukan. Pastikan ID & email/WhatsApp benar.' });
     }
     res.json({
         id: order.id,
@@ -596,11 +600,11 @@ router.get('/api/admin/report', requireAuth, requireAdmin, (req, res) => {
 router.get('/api/admin/orders/export.csv', requireAuth, requireAdmin, (req, res) => {
     const orders = store.getOrders();
     const esc = v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
-    const head = ['ID', 'Tanggal', 'Produk', 'Harga', 'Diskon', 'Total', 'Voucher', 'Customer', 'WhatsApp', 'Status', 'Pembayaran'];
+    const head = ['ID', 'Tanggal', 'Produk', 'Harga', 'Diskon', 'Total', 'Voucher', 'Customer', 'Email', 'WhatsApp', 'Status', 'Pembayaran'];
     const rows = orders.map(o => [
         o.id, o.createdAt, o.productName, o.productPrice, o.discount || 0,
         o.finalPrice != null ? o.finalPrice : o.productPrice, o.voucherCode || '',
-        o.customerName, o.customerWA, o.status, o.paymentStatus,
+        o.customerName, o.customerEmail || '', o.customerWA || '', o.status, o.paymentStatus,
     ].map(esc).join(','));
     const csv = '﻿' + [head.map(esc).join(','), ...rows].join('\n');
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
