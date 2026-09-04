@@ -125,8 +125,30 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 .id-help:hover{text-decoration:underline}
 
 /* PAYMENT LOGOS */
-.pay-logos{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:12px 0 6px;opacity:.7}
-.pay-logos span{font-size:10px;font-weight:600;color:var(--text2);padding:4px 10px;border:1px solid var(--border2);border-radius:6px;white-space:nowrap;background:var(--white)}
+.pay-logos{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:14px 0 10px}
+.pay-logo{display:flex;align-items:center;gap:5px;font-size:10px;font-weight:600;color:var(--text2);padding:5px 10px;border:1px solid var(--border2);border-radius:8px;white-space:nowrap;background:var(--white)}
+.pay-logo img{height:16px;width:auto;flex-shrink:0}
+
+/* SHOW MORE BUTTON */
+.denom-show-more{display:flex;justify-content:center;margin-top:10px}
+.denom-show-more button{padding:10px 24px;background:var(--white);border:1.5px solid var(--border2);border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;color:var(--text2);cursor:pointer;transition:all .15s}
+.denom-show-more button:hover{border-color:var(--accent);color:var(--accent)}
+
+/* GAME ID VALIDATION */
+.fld-valid input{border-color:var(--green) !important}
+.fld-invalid input{border-color:var(--red) !important}
+.fld-hint{font-size:10px;margin-top:4px;line-height:1.3}
+.fld-hint.ok{color:var(--green)}
+.fld-hint.err{color:var(--red)}
+
+/* FLASH SALE BADGE (product page) */
+.flash-bar{background:linear-gradient(90deg,#C04A3A,#E8845A);color:#fff;padding:10px 16px;border-radius:10px;margin-bottom:16px;display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600}
+.flash-bar .fb-icon{font-size:18px;flex-shrink:0}
+.flash-bar .fb-text{flex:1}
+.flash-bar .fb-timer{font-size:12px;font-weight:700;background:rgba(0,0,0,.2);padding:4px 10px;border-radius:6px;white-space:nowrap}
+
+/* PROCESS TIME BADGE */
+.process-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--green);background:var(--green-bg);padding:5px 12px;border-radius:8px;margin-bottom:12px}
 
 /* DARK MODE TOGGLE */
 .theme-btn{width:34px;height:34px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.08);border-radius:8px;cursor:pointer;flex-shrink:0;transition:background .15s;color:#fff;font-size:16px}
@@ -318,7 +340,7 @@ footer a{color:var(--text2);text-decoration:none}
         <div class="promo-text">
           <div class="promo-tag">Top Up Populer</div>
           <div class="promo-title">Mobile Legends Diamond</div>
-          <div class="promo-sub">Proses otomatis 1-5 menit &middot; Harga mulai Rp 1.200</div>
+          <div class="promo-sub">Proses otomatis &amp; instan &middot; Harga mulai Rp 1.200</div>
         </div>
         <div class="promo-cta">Top Up</div>
       </div>
@@ -339,9 +361,9 @@ footer a{color:var(--text2);text-decoration:none}
   <div class="trust">
     <div class="trust-inner">
       <div class="trust-item"><div class="ti-n">76rb+</div><div class="ti-l">Transaksi</div></div>
-      <div class="trust-item"><div class="ti-n">99%</div><div class="ti-l">Selesai</div></div>
-      <div class="trust-item"><div class="ti-n">4.78 ⭐</div><div class="ti-l">Rating</div></div>
-      <div class="trust-item"><div class="ti-n">7 mnt</div><div class="ti-l">Avg. kirim</div></div>
+      <div class="trust-item"><div class="ti-n">99%</div><div class="ti-l">Sukses</div></div>
+      <div class="trust-item"><div class="ti-n">⚡ Instan</div><div class="ti-l">Proses</div></div>
+      <div class="trust-item"><div class="ti-n">24/7</div><div class="ti-l">Layanan</div></div>
     </div>
   </div>
 </div>
@@ -395,7 +417,7 @@ footer a{color:var(--text2);text-decoration:none}
           <div class="pay-bank-row" style="border:none"><span class="pay-bank-label">Total bayar</span><div><div class="pay-amount" id="pay-amount">—</div></div></div>
         </div>
       </div>
-      <div class="pay-note">Setelah transfer, kirim bukti pembayaran ke WhatsApp kami. Invoice dikirim ke email kamu. Order diproses dalam <strong>5–15 menit</strong>.</div>
+      <div class="pay-note">Setelah transfer, kirim bukti pembayaran ke WhatsApp kami. Invoice dikirim ke email kamu. Order diproses dalam <strong>1–5 menit</strong>.</div>
       <div class="pay-wa">
         <a class="btn-wa" id="pay-wa-btn" href="#" target="_blank">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
@@ -428,15 +450,26 @@ footer a{color:var(--text2);text-decoration:none}
     <a href="/syarat-ketentuan#kontak">Kontak</a>
   </div>
   <div class="ft-contact">WhatsApp: <a href="https://wa.me/6281317784126">0813-1778-4126</a> &middot; Email: <a href="mailto:itsryuki@gmail.com">itsryuki@gmail.com</a></div>
-  <div class="pay-logos">
-    <span>QRIS</span><span>GoPay</span><span>OVO</span><span>DANA</span><span>ShopeePay</span>
-    <span>BCA</span><span>BNI</span><span>Mandiri</span><span>BRI</span><span>Alfamart</span><span>Indomaret</span>
+  <div class="pay-logos" id="ft-pay-logos">
+    <span class="pay-logo"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 24'%3E%3Crect rx='4' width='80' height='24' fill='%23E31E26'/%3E%3Ctext x='40' y='16' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold' font-size='11'%3EQRIS%3C/text%3E%3C/svg%3E" alt="QRIS"></span>
+    <span class="pay-logo"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 24'%3E%3Crect rx='4' width='80' height='24' fill='%2300AED6'/%3E%3Ctext x='40' y='16' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold' font-size='11'%3EGoPay%3C/text%3E%3C/svg%3E" alt="GoPay"></span>
+    <span class="pay-logo"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 24'%3E%3Crect rx='4' width='80' height='24' fill='%234C2A86'/%3E%3Ctext x='40' y='16' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold' font-size='11'%3EOVO%3C/text%3E%3C/svg%3E" alt="OVO"></span>
+    <span class="pay-logo"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 24'%3E%3Crect rx='4' width='80' height='24' fill='%23108EE9'/%3E%3Ctext x='40' y='16' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold' font-size='11'%3EDANA%3C/text%3E%3C/svg%3E" alt="DANA"></span>
+    <span class="pay-logo"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 24'%3E%3Crect rx='4' width='80' height='24' fill='%23EE4D2D'/%3E%3Ctext x='40' y='16' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold' font-size='9'%3EShopeePay%3C/text%3E%3C/svg%3E" alt="ShopeePay"></span>
+    <span class="pay-logo"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 24'%3E%3Crect rx='4' width='80' height='24' fill='%23003D79'/%3E%3Ctext x='40' y='16' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold' font-size='11'%3EBCA%3C/text%3E%3C/svg%3E" alt="BCA"></span>
+    <span class="pay-logo"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 24'%3E%3Crect rx='4' width='80' height='24' fill='%23F05A22'/%3E%3Ctext x='40' y='16' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold' font-size='11'%3EBNI%3C/text%3E%3C/svg%3E" alt="BNI"></span>
+    <span class="pay-logo"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 24'%3E%3Crect rx='4' width='80' height='24' fill='%23003876'/%3E%3Ctext x='40' y='16' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold' font-size='9'%3EMandiri%3C/text%3E%3C/svg%3E" alt="Mandiri"></span>
+    <span class="pay-logo"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 24'%3E%3Crect rx='4' width='80' height='24' fill='%230066AE'/%3E%3Ctext x='40' y='16' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold' font-size='11'%3EBRI%3C/text%3E%3C/svg%3E" alt="BRI"></span>
+    <span class="pay-logo"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 24'%3E%3Crect rx='4' width='80' height='24' fill='%23ED1C24'/%3E%3Ctext x='40' y='16' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold' font-size='9'%3EAlfamart%3C/text%3E%3C/svg%3E" alt="Alfamart"></span>
+    <span class="pay-logo"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 24'%3E%3Crect rx='4' width='80' height='24' fill='%23003399'/%3E%3Ctext x='40' y='16' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold' font-size='8'%3EIndomaret%3C/text%3E%3C/svg%3E" alt="Indomaret"></span>
+    <span class="pay-logo"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 24'%3E%3Crect rx='4' width='80' height='24' fill='%234285F4'/%3E%3Ctext x='40' y='16' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold' font-size='8'%3EPermata%3C/text%3E%3C/svg%3E" alt="Permata"></span>
+    <span class="pay-logo"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 24'%3E%3Crect rx='4' width='80' height='24' fill='%23005BAC'/%3E%3Ctext x='40' y='16' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold' font-size='11'%3ECIMB%3C/text%3E%3C/svg%3E" alt="CIMB Niaga"></span>
   </div>
   <p>&copy; 2025–2026 <a href="/">Jago Game</a> &middot; Toko Digital Terpercaya &middot; Jakarta Utara, Indonesia</p>
 </footer>
 
 <script>
-let allProducts=[], settings={}, games=[], selectedProduct=null, currentGame=null, midtransCfg=null;
+let allProducts=[], settings={}, games=[], selectedProduct=null, currentGame=null, midtransCfg=null, flashSale=null;
 
 const POPULAR = ['Topup Mobile Legends','Topup Genshin Impact','Topup PUBG Mobile'];
 
@@ -521,15 +554,17 @@ async function loadSnap(clientKey, isProd){
   });
 }
 async function init(){
-  const [p,s,cfg] = await Promise.all([
+  const [p,s,cfg,fs] = await Promise.all([
     fetch('/api/store/products').then(r=>r.json()),
     fetch('/api/store/settings').then(r=>r.json()),
     fetch('/api/store/config').then(r=>r.json()).catch(()=>({})),
+    fetch('/api/store/flash-sale').then(r=>r.json()).catch(()=>({})),
   ]);
   if(cfg.midtransEnabled){
     midtransCfg=cfg;
     loadSnap(cfg.clientKey, cfg.isProduction).catch(()=>{});
   }
+  flashSale=fs&&fs.active?fs:null;
   allProducts = Array.isArray(p)?p:[];
   settings = s||{};
   if(settings.storeName){
@@ -627,30 +662,46 @@ function renderTopupBody(el,g){
   const needServer=!!sample.requiresServerId;
   const gameIdLabel=sample.gameIdLabel||'User ID';
   const serverLabel=sample.serverIdLabel||'Zone ID / Server';
+  const DENOM_LIMIT=20;
 
   let html='';
+
+  // Flash sale banner
+  if(flashSale&&flashSale.active){
+    const end=new Date(flashSale.endsAt);
+    html+=`<div class="flash-bar"><span class="fb-icon">🔥</span><span class="fb-text">${flashSale.text||'Flash Sale'} — Diskon ${flashSale.percent}%!</span><span class="fb-timer" id="flash-timer">--:--:--</span></div>`;
+  }
+
+  // Process time badge
+  html+=`<div class="process-badge">⚡ Proses otomatis &mdash; instan setelah bayar</div>`;
+
   if(needGameId){
     html+=`<div class="step"><div class="step-head"><div class="step-num">1</div><div class="step-title">Masukkan ID Game</div><span class="id-help" onclick="alert('Buka game, masuk ke profil/pengaturan akun. User ID biasanya terlihat di halaman profil atau pengaturan.')">Cara cari ID?</span></div>`;
     if(needServer){
       html+=`<div class="step-row">
-        <div class="fld"><label>${gameIdLabel}</label><input id="f-gameid" type="text" placeholder="Masukkan ${gameIdLabel}"></div>
-        <div class="fld"><label>${serverLabel}</label><input id="f-serverid" type="text" placeholder="${serverLabel}"></div>
+        <div class="fld" id="fld-gameid"><label>${gameIdLabel}</label><input id="f-gameid" type="text" inputmode="numeric" placeholder="Masukkan ${gameIdLabel}" oninput="validateGameId()"><div class="fld-hint" id="hint-gameid"></div></div>
+        <div class="fld" id="fld-serverid"><label>${serverLabel}</label><input id="f-serverid" type="text" inputmode="numeric" placeholder="${serverLabel}" oninput="validateServerId()"><div class="fld-hint" id="hint-serverid"></div></div>
       </div>`;
     } else {
-      html+=`<div class="fld"><label>${gameIdLabel}</label><input id="f-gameid" type="text" placeholder="Masukkan ${gameIdLabel}"></div>`;
+      html+=`<div class="fld" id="fld-gameid"><label>${gameIdLabel}</label><input id="f-gameid" type="text" inputmode="numeric" placeholder="Masukkan ${gameIdLabel}" oninput="validateGameId()"><div class="fld-hint" id="hint-gameid"></div></div>`;
     }
     html+=`</div>`;
   }
 
   const stepNum=needGameId?2:1;
-  html+=`<div class="step"><div class="step-head"><div class="step-num">${stepNum}</div><div class="step-title">Pilih Nominal</div></div>`;
-  html+=`<div class="denom-grid">`;
-  html+=g.products.map(p=>`<div class="denom-card" data-id="${p.id}" onclick="selectProduct('${p.id}')">
-    <div class="denom-name">${p.name}</div>
-    <div class="denom-price">Rp ${Number(p.price).toLocaleString('id-ID')}</div>
-    <div class="denom-delivery">⚡ Instan</div>
-  </div>`).join('');
-  html+=`</div></div>`;
+  const products=g.products;
+  const showAll=products.length<=DENOM_LIMIT;
+  const visible=showAll?products:products.slice(0,DENOM_LIMIT);
+  const hidden=showAll?[]:products.slice(DENOM_LIMIT);
+
+  html+=`<div class="step"><div class="step-head"><div class="step-num">${stepNum}</div><div class="step-title">Pilih Nominal</div><span style="font-size:11px;color:var(--text3);margin-left:auto">${products.length} produk</span></div>`;
+  html+=`<div class="denom-grid" id="denom-grid">`;
+  html+=visible.map(p=>denomCard(p)).join('');
+  html+=`</div>`;
+  if(!showAll){
+    html+=`<div class="denom-show-more" id="denom-more"><button onclick="showAllDenoms()">Lihat Semua ${products.length} Nominal ▾</button></div>`;
+  }
+  html+=`</div>`;
 
   html+=`<div class="step"><div class="step-head"><div class="step-num">${stepNum+1}</div><div class="step-title">Informasi Kontak</div></div>
     <div class="fld"><label>Email <span style="color:var(--accent);font-size:10px">(wajib — untuk invoice)</span></label><input id="f-email" type="email" placeholder="email@contoh.com"></div>
@@ -658,6 +709,84 @@ function renderTopupBody(el,g){
   </div>`;
   html+=`<div class="err-msg" id="f-err"></div>`;
   el.innerHTML=html;
+
+  // Start flash sale timer
+  if(flashSale&&flashSale.active) startFlashTimer(flashSale.endsAt);
+}
+
+function denomCard(p){
+  return `<div class="denom-card" data-id="${p.id}" onclick="selectProduct('${p.id}')">
+    <div class="denom-name">${p.name}</div>
+    <div class="denom-price">Rp ${Number(p.price).toLocaleString('id-ID')}</div>
+    <div class="denom-delivery">⚡ Instan</div>
+  </div>`;
+}
+
+function showAllDenoms(){
+  if(!currentGame) return;
+  const grid=document.getElementById('denom-grid');
+  const more=document.getElementById('denom-more');
+  const hidden=currentGame.products.slice(20);
+  grid.insertAdjacentHTML('beforeend',hidden.map(p=>denomCard(p)).join(''));
+  if(more) more.remove();
+  // re-apply selection
+  if(selectedProduct){
+    document.querySelectorAll('.denom-card').forEach(c=>c.classList.toggle('selected',c.dataset.id===selectedProduct.id));
+  }
+}
+
+// Game ID validation
+function validateGameId(){
+  const el=document.getElementById('f-gameid');
+  const hint=document.getElementById('hint-gameid');
+  const fld=document.getElementById('fld-gameid');
+  if(!el||!hint||!fld) return;
+  const v=el.value.trim();
+  fld.classList.remove('fld-valid','fld-invalid');
+  if(!v){hint.textContent='';hint.className='fld-hint';return}
+  if(!/^\d+$/.test(v)){
+    fld.classList.add('fld-invalid');
+    hint.textContent='Hanya angka';hint.className='fld-hint err';
+  }else if(v.length<5){
+    hint.textContent=`${v.length}/5+ digit`;hint.className='fld-hint err';
+  }else{
+    fld.classList.add('fld-valid');
+    hint.textContent='✓ Format OK';hint.className='fld-hint ok';
+  }
+}
+function validateServerId(){
+  const el=document.getElementById('f-serverid');
+  const hint=document.getElementById('hint-serverid');
+  const fld=document.getElementById('fld-serverid');
+  if(!el||!hint||!fld) return;
+  const v=el.value.trim();
+  fld.classList.remove('fld-valid','fld-invalid');
+  if(!v){hint.textContent='';hint.className='fld-hint';return}
+  if(!/^\d+$/.test(v)){
+    fld.classList.add('fld-invalid');
+    hint.textContent='Hanya angka';hint.className='fld-hint err';
+  }else{
+    fld.classList.add('fld-valid');
+    hint.textContent='✓ OK';hint.className='fld-hint ok';
+  }
+}
+
+// Flash sale countdown
+let flashInterval=null;
+function startFlashTimer(endsAt){
+  if(flashInterval) clearInterval(flashInterval);
+  const timer=document.getElementById('flash-timer');
+  if(!timer) return;
+  function tick(){
+    const diff=new Date(endsAt)-Date.now();
+    if(diff<=0){timer.textContent='Berakhir!';clearInterval(flashInterval);return}
+    const h=Math.floor(diff/3600000);
+    const m=Math.floor((diff%3600000)/60000);
+    const s=Math.floor((diff%60000)/1000);
+    timer.textContent=`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  }
+  tick();
+  flashInterval=setInterval(tick,1000);
 }
 
 function renderAccountBody(el,g){
@@ -718,7 +847,10 @@ async function submitOrder(){
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){err.textContent='Format email tidak valid';return}
   if(selectedProduct.type==='game_topup'){
     if(selectedProduct.requiresGameId!==false&&!gameId){err.textContent=(selectedProduct.gameIdLabel||'User ID')+' wajib diisi';return}
+    if(selectedProduct.requiresGameId!==false&&!/^\d+$/.test(gameId)){err.textContent=(selectedProduct.gameIdLabel||'User ID')+' harus berupa angka';return}
+    if(selectedProduct.requiresGameId!==false&&gameId.length<5){err.textContent=(selectedProduct.gameIdLabel||'User ID')+' minimal 5 digit';return}
     if(selectedProduct.requiresServerId&&!serverId){err.textContent=(selectedProduct.serverIdLabel||'Server ID')+' wajib diisi';return}
+    if(selectedProduct.requiresServerId&&!/^\d+$/.test(serverId)){err.textContent=(selectedProduct.serverIdLabel||'Server ID')+' harus berupa angka';return}
   }
 
   const btn=document.getElementById('bb-btn');
@@ -741,7 +873,7 @@ async function submitOrder(){
         btn.disabled=false;btn.textContent='Bayar Sekarang';
         if(payRes.error){err.textContent=payRes.error;return}
         window.snap.pay(payRes.token,{
-          onSuccess:function(){toast('Pembayaran berhasil! Invoice dikirim ke email kamu.');},
+          onSuccess:function(){toast('Pembayaran berhasil! Topup sedang diproses...');pollOrderStatus(res.id,res.accessToken);},
           onPending:function(){toast('Menunggu pembayaran...');showPayment(res);},
           onError:function(){err.textContent='Pembayaran gagal. Silakan coba lagi.';},
           onClose:function(){toast('Pembayaran dibatalkan.');}
@@ -825,6 +957,25 @@ function toast(msg){
   el.className='toast';el.textContent=msg;
   document.getElementById('toast-wrap').appendChild(el);
   setTimeout(()=>el.remove(),3200);
+}
+
+function pollOrderStatus(orderId,token){
+  let attempts=0;
+  const maxAttempts=30;
+  const interval=setInterval(async()=>{
+    attempts++;
+    if(attempts>maxAttempts){clearInterval(interval);return}
+    try{
+      const r=await fetch(`/api/store/order-status?id=${orderId}&token=${token}`).then(r=>r.json());
+      if(r.status==='DELIVERED'){
+        clearInterval(interval);
+        toast('Topup berhasil masuk ke akun kamu! ✓');
+      }else if(r.status==='PAID_NO_STOCK'||r.status==='PAID_TOPUP_FAILED'){
+        clearInterval(interval);
+        toast('Pembayaran diterima. Admin akan memproses manual.');
+      }
+    }catch(e){}
+  },3000);
 }
 
 init();
