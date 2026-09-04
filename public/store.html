@@ -16,10 +16,11 @@
 <meta property="og:url" content="https://jagogame.store/">
 <meta name="twitter:card" content="summary">
 <meta name="theme-color" content="#D97757">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Chakra+Petch:wght@600;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
+.vh{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 :root{
   --bg:#F5F0E8;--bg2:#EDE8DE;--white:#FDFCFA;
   --text:#1A1714;--text2:#6B6560;--text3:#9C9590;
@@ -28,7 +29,9 @@ html{scroll-behavior:smooth}
   --green:#2D7D5A;--green-bg:#EAF3EC;
   --red:#C04A3A;--red-bg:#FCECEA;
   --radius:14px;
-  --hdr-bg:#1A1714;
+  /* DEMO FIX #2: header sekarang ikut tema (dulu selalu gelap walau mode terang aktif) */
+  --hdr-bg:#FFFFFF;--hdr-text:#1A1714;--hdr-text-muted:rgba(26,23,20,.5);
+  --hdr-input-bg:rgba(26,23,20,.05);--hdr-input-border:rgba(26,23,20,.12);--hdr-btn-bg:rgba(26,23,20,.06);
 }
 @media(prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
@@ -38,7 +41,8 @@ html{scroll-behavior:smooth}
     --border:rgba(255,255,255,0.12);--border2:rgba(255,255,255,0.20);
     --green:#4ADE80;--green-bg:rgba(74,222,128,0.1);
     --red:#F87171;--red-bg:rgba(248,113,113,0.1);
-    --hdr-bg:#0A0908;
+    --hdr-bg:#0A0908;--hdr-text:#FDFCFA;--hdr-text-muted:rgba(255,255,255,.45);
+    --hdr-input-bg:rgba(255,255,255,.1);--hdr-input-border:rgba(255,255,255,.08);--hdr-btn-bg:rgba(255,255,255,.1);
   }
 }
 :root[data-theme="dark"]{
@@ -48,9 +52,15 @@ html{scroll-behavior:smooth}
   --border:rgba(255,255,255,0.12);--border2:rgba(255,255,255,0.20);
   --green:#4ADE80;--green-bg:rgba(74,222,128,0.1);
   --red:#F87171;--red-bg:rgba(248,113,113,0.1);
-  --hdr-bg:#0A0908;
+  --hdr-bg:#0A0908;--hdr-text:#FDFCFA;--hdr-text-muted:rgba(255,255,255,.45);
+  --hdr-input-bg:rgba(255,255,255,.1);--hdr-input-border:rgba(255,255,255,.08);--hdr-btn-bg:rgba(255,255,255,.1);
 }
 body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+/* DEMO FIX #6: font display terpisah buat judul/branding — sebelumnya Inter dipakai utuh untuk
+   semuanya (hero, nama game, harga, body) sehingga terasa generik. Chakra Petch (angular, tegas,
+   nuansa "gaming") dipakai khusus di judul-judul besar; Inter tetap dipakai di teks data/body
+   yang butuh keterbacaan tinggi (harga, form, deskripsi). */
+.font-display{font-family:'Chakra Petch','Inter',-apple-system,sans-serif}
 
 /* LOADING SCREEN */
 #loading{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .4s}
@@ -59,19 +69,26 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 #loading span{font-size:14px;font-weight:600;color:var(--text2);letter-spacing:-.2px}
 @keyframes loadPulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.08);opacity:.7}}
 
-/* HEADER */
-.hdr{position:sticky;top:0;z-index:100;background:var(--hdr-bg);padding:0 16px}
-.hdr-in{max-width:900px;margin:0 auto;display:flex;align-items:center;height:56px;gap:12px}
+/* HEADER — DEMO FIX #2: pakai token --hdr-* (ikut tema) bukan warna putih/hitam hardcode */
+.hdr{position:sticky;top:0;z-index:100;background:var(--hdr-bg);padding:0 16px;border-bottom:1px solid var(--border);transition:background .2s,border-color .2s}
+.hdr-in{max-width:900px;margin:0 auto;display:flex;align-items:center;height:56px;gap:10px}
 .hdr-brand{display:flex;align-items:center;gap:8px;text-decoration:none;flex-shrink:0}
-.hdr-logo{width:30px;height:30px;border-radius:8px;object-fit:cover;border:1.5px solid rgba(255,255,255,.12)}
-.hdr-name{font-size:15px;font-weight:700;color:#FDFCFA;letter-spacing:-.3px}
-.hdr-search{flex:1;position:relative;max-width:380px;margin:0 auto}
-.hdr-search input{width:100%;padding:8px 12px 8px 34px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.08);border-radius:10px;font-family:inherit;font-size:13px;color:#fff;outline:none;transition:background .15s}
-.hdr-search input::placeholder{color:rgba(255,255,255,.4)}
-.hdr-search input:focus{background:rgba(255,255,255,.18)}
-.hdr-search .si{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;opacity:.4;pointer-events:none}
-.hdr-wa{flex-shrink:0;display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:var(--accent);color:#fff;border-radius:8px;font-size:12px;font-weight:600;text-decoration:none;transition:opacity .15s}
+.hdr-logo{width:30px;height:30px;border-radius:8px;object-fit:cover;border:1.5px solid var(--border2)}
+.hdr-name{font-family:'Chakra Petch','Inter',sans-serif;font-size:16px;font-weight:700;color:var(--hdr-text);letter-spacing:-.2px}
+/* DEMO FIX #1: search bar dikasih ruang lebih (flex-basis kecil, boleh menyusut duluan
+   sebelum elemen lain) + placeholder diperpendek, biar gak kepotong di layar sempit/mobile */
+.hdr-search{flex:1 1 90px;min-width:0;position:relative;max-width:380px;margin:0 auto}
+.hdr-search input{width:100%;padding:8px 10px 8px 32px;background:var(--hdr-input-bg);border:1px solid var(--hdr-input-border);border-radius:10px;font-family:inherit;font-size:13px;color:var(--hdr-text);outline:none;transition:background .15s}
+.hdr-search input::placeholder{color:var(--hdr-text-muted);overflow:hidden;text-overflow:ellipsis}
+.hdr-search input:focus{background:var(--hdr-btn-bg)}
+.hdr-search .si{position:absolute;left:9px;top:50%;transform:translateY(-50%);font-size:13px;opacity:.5;pointer-events:none}
+.hdr-wa{flex-shrink:0;display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:var(--accent);color:#fff;border-radius:8px;font-size:12px;font-weight:600;text-decoration:none;transition:opacity .15s,padding .15s}
 .hdr-wa:hover{opacity:.85}
+/* Di layar sempit: sisain cuma ikon WA (teks "Chat" disembunyikan) biar search bar lega */
+@media(max-width:480px){
+  .hdr-wa{padding:8px;width:34px;justify-content:center}
+  .hdr-wa .hdr-wa-label{display:none}
+}
 
 /* VIEWS */
 .view{display:none;animation:vIn .25s ease}
@@ -81,7 +98,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 /* HOME VIEW */
 .home-section{max-width:900px;margin:0 auto;padding:24px 16px 0}
 .home-section:last-of-type{padding-bottom:32px}
-.section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.section-label{font-family:'Chakra Petch','Inter',sans-serif;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--accent);margin-bottom:12px;display:flex;align-items:center;gap:8px}
 .section-label::after{content:'';flex:1;height:1px;background:var(--border2)}
 .game-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .game-card{position:relative;border-radius:var(--radius);overflow:hidden;cursor:pointer;aspect-ratio:.85;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:12px 8px;text-align:center;transition:transform .15s,box-shadow .15s;-webkit-tap-highlight-color:transparent}
@@ -90,7 +107,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 .game-card-icon{font-size:32px;filter:drop-shadow(0 2px 6px rgba(0,0,0,.3));z-index:1}
 .game-card-img{width:56px;height:56px;border-radius:14px;object-fit:cover;z-index:1;box-shadow:0 2px 8px rgba(0,0,0,.35);border:2px solid rgba(255,255,255,.2)}
 .game-card-initials{width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;background:rgba(255,255,255,.15);backdrop-filter:blur(4px);z-index:1;border:2px solid rgba(255,255,255,.2);text-shadow:0 1px 3px rgba(0,0,0,.4);letter-spacing:-.5px}
-.game-card-name{font-size:11px;font-weight:700;color:#fff;line-height:1.25;text-shadow:0 1px 4px rgba(0,0,0,.5);z-index:1;max-width:100%;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.game-card-name{font-family:'Chakra Petch','Inter',sans-serif;font-size:11px;font-weight:700;color:#fff;line-height:1.25;text-shadow:0 1px 4px rgba(0,0,0,.5);z-index:1;max-width:100%;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .game-card-count{font-size:9px;font-weight:500;color:rgba(255,255,255,.65);z-index:1}
 .game-card-badge{position:absolute;top:6px;right:6px;background:linear-gradient(135deg,#F59E0B,#EF4444);color:#fff;font-size:8px;font-weight:800;padding:3px 7px;border-radius:6px;z-index:2;text-transform:uppercase;letter-spacing:.5px;box-shadow:0 2px 6px rgba(0,0,0,.3)}
 
@@ -103,9 +120,10 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 .promo-icon{width:48px;height:48px;border-radius:12px;object-fit:cover;box-shadow:0 3px 12px rgba(0,0,0,.4);border:2px solid rgba(255,255,255,.25);flex-shrink:0}
 .promo-text{flex:1;min-width:0}
 .promo-tag{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.7);margin-bottom:4px}
-.promo-title{font-size:16px;font-weight:800;color:#fff;letter-spacing:-.3px;line-height:1.2}
+.promo-title{font-family:'Chakra Petch','Inter',sans-serif;font-size:18px;font-weight:700;color:#fff;letter-spacing:-.2px;line-height:1.2}
 .promo-sub{font-size:11px;color:rgba(255,255,255,.6);margin-top:4px}
-.promo-cta{flex-shrink:0;padding:8px 16px;background:rgba(255,255,255,.2);backdrop-filter:blur(4px);border-radius:8px;font-size:11px;font-weight:700;color:#fff;border:1px solid rgba(255,255,255,.15)}
+/* DEMO FIX #10: CTA solid warna accent (dulu abu-abu transparan, nyaris nyatu sama background) */
+.promo-cta{flex-shrink:0;padding:10px 20px;background:var(--accent);border-radius:9px;font-size:12px;font-weight:800;color:#fff;border:none;box-shadow:0 3px 10px rgba(0,0,0,.25)}
 @media(max-width:500px){.promo-slide{aspect-ratio:2.5;padding:16px 18px}.promo-title{font-size:14px}.promo-icon{width:40px;height:40px}}
 @media(max-width:420px){.hdr-name{display:none}.hdr-in{gap:8px}.hdr-search{margin:0}}
 
@@ -167,13 +185,13 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 .process-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--green);background:var(--green-bg);padding:5px 12px;border-radius:8px;margin-bottom:12px}
 
 /* DARK MODE TOGGLE */
-.theme-btn{width:34px;height:34px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.08);border-radius:8px;cursor:pointer;flex-shrink:0;transition:background .15s;color:#fff;font-size:16px}
-.theme-btn:hover{background:rgba(255,255,255,.18)}
+.theme-btn{width:34px;height:34px;display:flex;align-items:center;justify-content:center;background:var(--hdr-btn-bg);border:1px solid var(--hdr-input-border);border-radius:8px;cursor:pointer;flex-shrink:0;transition:background .15s;color:var(--hdr-text);font-size:16px}
+.theme-btn:hover{background:var(--hdr-input-border)}
 
 /* HAMBURGER & SIDEBAR */
 .hdr-hamburger{width:34px;height:34px;display:flex;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;flex-shrink:0;padding:0;-webkit-tap-highlight-color:transparent}
-.hdr-hamburger span{display:block;width:18px;height:2px;background:#fff;border-radius:1px;position:relative;transition:transform .2s}
-.hdr-hamburger span::before,.hdr-hamburger span::after{content:'';position:absolute;left:0;width:100%;height:2px;background:#fff;border-radius:1px;transition:transform .2s}
+.hdr-hamburger span{display:block;width:18px;height:2px;background:var(--hdr-text);border-radius:1px;position:relative;transition:transform .2s,background .2s}
+.hdr-hamburger span::before,.hdr-hamburger span::after{content:'';position:absolute;left:0;width:100%;height:2px;background:var(--hdr-text);border-radius:1px;transition:transform .2s,background .2s}
 .hdr-hamburger span::before{top:-6px}
 .hdr-hamburger span::after{top:6px}
 .sidebar-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:900;opacity:0;pointer-events:none;transition:opacity .25s}
@@ -230,7 +248,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 .game-banner-img{width:64px;height:64px;border-radius:16px;object-fit:cover;z-index:1;box-shadow:0 3px 12px rgba(0,0,0,.4);border:2px solid rgba(255,255,255,.25);flex-shrink:0}
 .game-banner-initials{width:64px;height:64px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#fff;background:rgba(255,255,255,.15);backdrop-filter:blur(4px);z-index:1;border:2px solid rgba(255,255,255,.25);text-shadow:0 1px 3px rgba(0,0,0,.4);flex-shrink:0;letter-spacing:-.5px}
 .game-banner-info{z-index:1}
-.game-banner-name{font-size:20px;font-weight:800;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.4);letter-spacing:-.4px}
+.game-banner-name{font-family:'Chakra Petch','Inter',sans-serif;font-size:22px;font-weight:700;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.4);letter-spacing:-.2px}
 .game-banner-sub{font-size:12px;color:rgba(255,255,255,.7);margin-top:4px}
 
 .game-body{max-width:900px;margin:0 auto;padding:20px 16px 120px}
@@ -257,7 +275,15 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 .denom-card:hover{border-color:var(--accent);transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.06)}
 .denom-card.selected{border-color:var(--accent);background:var(--accent-bg);box-shadow:0 0 0 1px var(--accent)}
 .denom-card.selected::after{content:'✓';position:absolute;top:8px;right:10px;width:20px;height:20px;background:var(--accent);color:#fff;font-size:11px;font-weight:700;border-radius:50%;display:flex;align-items:center;justify-content:center;line-height:1}
+/* DEMO FIX #5: badge "paling worth it" di 1 kartu nominal biar ada nudge keputusan, bukan polos semua */
+.denom-card.best-value{border-color:var(--accent2)}
+.denom-badge{position:absolute;top:-9px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#F59E0B,#EF4444);color:#fff;font-size:9px;font-weight:800;padding:3px 9px;border-radius:20px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.3);letter-spacing:.2px}
 .denom-name{font-size:13px;font-weight:700;color:var(--text);line-height:1.3;margin-bottom:2px}
+/* DEMO FIX #8: skeleton shimmer selagi produk masih di-fetch dari API */
+.skel-card{border-radius:var(--radius);background:linear-gradient(100deg,var(--bg2) 30%,var(--border2) 50%,var(--bg2) 70%);background-size:200% 100%;animation:skelShine 1.4s ease-in-out infinite;aspect-ratio:.85}
+.game-grid--popular .skel-card{aspect-ratio:.75}
+@keyframes skelShine{0%{background-position:200% 0}100%{background-position:-200% 0}}
+@media(prefers-reduced-motion:reduce){.skel-card{animation:none;opacity:.6}}
 .denom-price{font-size:15px;font-weight:800;color:var(--accent);letter-spacing:-.3px}
 .denom-original{font-size:11px;color:var(--text3);text-decoration:line-through;margin-top:1px}
 .denom-discount{display:inline-block;font-size:10px;font-weight:700;color:#fff;background:var(--red);padding:2px 6px;border-radius:4px;margin-top:3px}
@@ -318,8 +344,9 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 .trust{background:var(--white);border-top:1px solid var(--border);padding:32px 16px;margin-top:20px}
 .trust-inner{max-width:900px;margin:0 auto;display:flex;gap:20px;justify-content:center;flex-wrap:wrap}
 .trust-item{text-align:center}
-.trust-item .ti-n{font-size:18px;font-weight:800;letter-spacing:-.4px;margin-bottom:2px}
-.trust-item .ti-l{font-size:10px;color:var(--text2)}
+/* DEMO FIX #9: angka social-proof diperbesar & dikasih warna accent biar lebih "berbicara" */
+.trust-item .ti-n{font-family:'Chakra Petch','Inter',sans-serif;font-size:28px;font-weight:700;letter-spacing:-.3px;margin-bottom:3px;color:var(--accent)}
+.trust-item .ti-l{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.4px}
 
 /* FOOTER */
 footer{padding:28px 16px 32px;text-align:center;border-top:1px solid var(--border2);margin-top:12px;background:var(--bg2)}
@@ -380,18 +407,21 @@ footer a{color:var(--text2);text-decoration:none}
     </a>
     <div class="hdr-search">
       <span class="si">🔍</span>
-      <input id="search-box" type="text" placeholder="Cari game atau produk…" oninput="onSearch(this.value)">
+      <input id="search-box" type="text" placeholder="Cari game…" oninput="onSearch(this.value)">
     </div>
     <button class="theme-btn" onclick="toggleTheme()" id="theme-btn" aria-label="Dark mode">&#9790;</button>
     <a id="h-wa" href="#" class="hdr-wa" target="_blank">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-      Chat
+      <span class="hdr-wa-label">Chat</span>
     </a>
   </div>
 </header>
 
 <!-- VIEW: HOME -->
 <div id="view-home" class="view active">
+  <!-- DEMO FIX #4: h1 tersembunyi-visual buat SEO/screen reader — sebelumnya halaman nyaris
+       tanpa heading semantik sama sekali, cuma 3 <h3>/<h4> yang nyempil di modal pembayaran -->
+  <h1 class="vh">Jago Game — Top Up Diamond &amp; Voucher Game Termurah, Proses Otomatis 24 Jam</h1>
   <div class="promo-banner" id="promo-banner">
     <div class="promo-slide" onclick="openGame('Topup Mobile Legends')" style="background:linear-gradient(135deg,#0D1B4A,#1E3A8A)">
       <img class="promo-bg" src="/img/games/mobile-legends.jpg" alt="">
@@ -407,16 +437,23 @@ footer a{color:var(--text2);text-decoration:none}
     </div>
   </div>
   <div class="home-section">
-    <div class="section-label">Populer</div>
-    <div class="game-grid game-grid--popular" id="popular-grid"></div>
+    <h2 class="section-label">Populer</h2>
+    <div class="game-grid game-grid--popular" id="popular-grid">
+      <div class="skel-card"></div><div class="skel-card"></div><div class="skel-card"></div>
+    </div>
   </div>
   <div class="home-section">
-    <div class="section-label">Semua Game</div>
-    <div class="game-grid" id="topup-grid"></div>
+    <h2 class="section-label">Semua Game</h2>
+    <div class="game-grid" id="topup-grid">
+      <div class="skel-card"></div><div class="skel-card"></div><div class="skel-card"></div>
+      <div class="skel-card"></div><div class="skel-card"></div><div class="skel-card"></div>
+    </div>
   </div>
   <div class="home-section">
-    <div class="section-label">Beli Akun</div>
-    <div class="game-grid" id="account-grid"></div>
+    <h2 class="section-label">Beli Akun</h2>
+    <div class="game-grid" id="account-grid">
+      <div class="skel-card"></div><div class="skel-card"></div>
+    </div>
   </div>
   <div class="trust">
     <div class="trust-inner">
@@ -553,7 +590,8 @@ footer a{color:var(--text2);text-decoration:none}
     <a href="/syarat-ketentuan#privasi">Kebijakan Privasi</a>
     <a href="/syarat-ketentuan#kontak">Kontak</a>
   </div>
-  <div class="ft-contact">WhatsApp: <a href="https://wa.me/6281317784126">0813-1778-4126</a> &middot; Email: <a href="mailto:itsryuki@gmail.com">itsryuki@gmail.com</a></div>
+  <!-- DEMO FIX #7: kontak email pakai alamat branded, bukan Gmail pribadi -->
+  <div class="ft-contact">WhatsApp: <a href="https://wa.me/6281317784126">0813-1778-4126</a> &middot; Email: <a href="mailto:admin@jagogame.store">admin@jagogame.store</a></div>
   <div class="pay-section">
     <div class="pay-label">Metode Pembayaran</div>
     <div class="pay-logos">
@@ -704,7 +742,21 @@ function groupGames(){
     map[p.category].products.push(p);
   });
   games=Object.values(map);
-  games.forEach(g=>g.products.sort((a,b)=>a.price-b.price));
+  // DEMO FIX #3: urutkan berdasarkan JUMLAH (mis. "22 Diamond") dulu, harga cuma tie-breaker.
+  // Sebelumnya sort murni by price bikin urutan angka loncat-loncat (22, 20, 24, 28, ...) tiap
+  // kali ada SKU promo/bonus yang harganya gak sejalan sama jumlahnya — keliatan kayak rusak
+  // padahal "sengaja". Sort by jumlah bikin daftar selalu naik rapi dari mata pembeli.
+  games.forEach(g=>g.products.sort((a,b)=>{
+    const qa=parseQty(a.name), qb=parseQty(b.name);
+    if(qa!=null&&qb!=null&&qa!==qb) return qa-qb;
+    return a.price-b.price;
+  }));
+}
+function parseQty(name){
+  const m=String(name||'').match(/\d[\d.,]*/);
+  if(!m) return null;
+  const n=parseFloat(m[0].replace(/[.,]/g,''));
+  return isNaN(n)?null:n;
 }
 
 function renderHome(){
@@ -811,9 +863,20 @@ function renderTopupBody(el,g){
   const visible=showAll?products:products.slice(0,DENOM_LIMIT);
   const hidden=showAll?[]:products.slice(DENOM_LIMIT);
 
+  // DEMO FIX #5: tandai 1 nominal sebagai "Paling Worth It" (rasio jumlah/harga terbaik di
+  // rentang tengah — bukan yang termurah/terkecil atau bundle terbesar) biar ada nudge pilihan,
+  // sebelumnya semua kartu tampil identik dan keputusan 100% diserahkan ke pembeli.
+  const withQty=visible.map(p=>({p,qty:parseQty(p.name)})).filter(x=>x.qty>0);
+  let bestValueId=null;
+  if(withQty.length>=3){
+    const lo=Math.floor(withQty.length*0.25),hi=Math.ceil(withQty.length*0.85);
+    const pool=withQty.slice(lo,hi).length?withQty.slice(lo,hi):withQty;
+    bestValueId=pool.reduce((best,x)=>(x.p.price/x.qty)<(best.p.price/best.qty)?x:best,pool[0]).p.id;
+  }
+
   html+=`<div class="step"><div class="step-head"><div class="step-num">${stepNum}</div><div class="step-title">Pilih Nominal</div><span style="font-size:11px;color:var(--text3);margin-left:auto">${products.length} produk</span></div>`;
   html+=`<div class="denom-grid" id="denom-grid">`;
-  html+=visible.map(p=>denomCard(p)).join('');
+  html+=visible.map(p=>denomCard(p,p.id===bestValueId)).join('');
   html+=`</div>`;
   if(!showAll){
     html+=`<div class="denom-show-more" id="denom-more"><button onclick="showAllDenoms()">Lihat Semua ${products.length} Nominal ▾</button></div>`;
@@ -831,7 +894,7 @@ function renderTopupBody(el,g){
   if(flashSale&&flashSale.active) startFlashTimer(flashSale.endsAt);
 }
 
-function denomCard(p){
+function denomCard(p,isBestValue){
   let priceHtml='';
   if(flashSale&&flashSale.active&&flashSale.percent>0){
     const disc=Math.round(p.price*flashSale.percent/100);
@@ -842,7 +905,8 @@ function denomCard(p){
   } else {
     priceHtml=`<div class="denom-price">Rp ${Number(p.price).toLocaleString('id-ID')}</div>`;
   }
-  return `<div class="denom-card" data-id="${p.id}" onclick="selectProduct('${p.id}')">
+  return `<div class="denom-card${isBestValue?' best-value':''}" data-id="${p.id}" onclick="selectProduct('${p.id}')">
+    ${isBestValue?'<div class="denom-badge">⭐ Paling Worth It</div>':''}
     <div class="denom-name">${p.name}</div>
     ${priceHtml}
     <div class="denom-delivery">⚡ Instan</div>
