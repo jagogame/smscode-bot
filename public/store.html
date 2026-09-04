@@ -125,9 +125,25 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 .id-help:hover{text-decoration:underline}
 
 /* PAYMENT LOGOS */
-.pay-logos{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:14px 0 10px}
-.pay-logo{display:flex;align-items:center;gap:5px;font-size:10px;font-weight:600;color:var(--text2);padding:5px 10px;border:1px solid var(--border2);border-radius:8px;white-space:nowrap;background:var(--white)}
-.pay-logo img{height:16px;width:auto;flex-shrink:0}
+.pay-section{margin:16px 0 10px;text-align:center}
+.pay-section .pay-label{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
+.pay-logos{display:flex;flex-wrap:wrap;justify-content:center;gap:5px;margin-bottom:10px}
+.pay-logo{display:inline-flex;align-items:center;justify-content:center;height:30px;padding:0 10px;border:1px solid var(--border2);border-radius:6px;background:var(--white);font-size:11px;font-weight:700;letter-spacing:-.2px;white-space:nowrap;color:var(--dark)}
+.pay-logo svg{height:16px;width:auto;flex-shrink:0}
+.pay-logo.qris{background:#E31E26;color:#fff;font-weight:800;letter-spacing:.5px}
+.pay-logo.gopay{color:#00880F}
+.pay-logo.ovo{color:#4C2A86}
+.pay-logo.dana{color:#108EE9}
+.pay-logo.spay{color:#EE4D2D}
+.pay-logo.bca{color:#003D79}
+.pay-logo.bni{color:#F05A22}
+.pay-logo.mandiri{color:#003876}
+.pay-logo.bri{color:#00529C}
+.pay-logo.alfa{color:#ED1C24}
+.pay-logo.indo{color:#003399}
+[data-theme=dark] .pay-logo{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.1)}
+[data-theme=dark] .pay-logo.qris{background:#E31E26}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]) .pay-logo{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.1)}:root:not([data-theme=light]) .pay-logo.qris{background:#E31E26}}
 
 /* SHOW MORE BUTTON */
 .denom-show-more{display:flex;justify-content:center;margin-top:10px}
@@ -536,20 +552,29 @@ footer a{color:var(--text2);text-decoration:none}
     <a href="/syarat-ketentuan#kontak">Kontak</a>
   </div>
   <div class="ft-contact">WhatsApp: <a href="https://wa.me/6281317784126">0813-1778-4126</a> &middot; Email: <a href="mailto:itsryuki@gmail.com">itsryuki@gmail.com</a></div>
-  <div class="pay-logos" id="ft-pay-logos">
-    <span class="pay-logo"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 24'%3E%3Crect rx='4' width='80' height='24' fill='%23E31E26'/%3E%3Ctext x='40' y='16' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold' font-size='11'%3EQRIS%3C/text%3E%3C/svg%3E" alt="QRIS"></span>
-    <span class="pay-logo"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 24'%3E%3Crect rx='4' width='80' height='24' fill='%2300AED6'/%3E%3Ctext x='40' y='16' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold' font-size='11'%3EGoPay%3C/text%3E%3C/svg%3E" alt="GoPay"></span>
-    <span class="pay-logo"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 24'%3E%3Crect rx='4' width='80' height='24' fill='%234C2A86'/%3E%3Ctext x='40' y='16' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold' font-size='11'%3EOVO%3C/text%3E%3C/svg%3E" alt="OVO"></span>
-    <span class="pay-logo"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 24'%3E%3Crect rx='4' width='80' height='24' fill='%23108EE9'/%3E%3Ctext x='40' y='16' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold' font-size='11'%3EDANA%3C/text%3E%3C/svg%3E" alt="DANA"></span>
-    <span class="pay-logo"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 24'%3E%3Crect rx='4' width='80' height='24' fill='%23EE4D2D'/%3E%3Ctext x='40' y='16' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold' font-size='9'%3EShopeePay%3C/text%3E%3C/svg%3E" alt="ShopeePay"></span>
-    <span class="pay-logo"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 24'%3E%3Crect rx='4' width='80' height='24' fill='%23003D79'/%3E%3Ctext x='40' y='16' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold' font-size='11'%3EBCA%3C/text%3E%3C/svg%3E" alt="BCA"></span>
-    <span class="pay-logo"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 24'%3E%3Crect rx='4' width='80' height='24' fill='%23F05A22'/%3E%3Ctext x='40' y='16' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold' font-size='11'%3EBNI%3C/text%3E%3C/svg%3E" alt="BNI"></span>
-    <span class="pay-logo"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 24'%3E%3Crect rx='4' width='80' height='24' fill='%23003876'/%3E%3Ctext x='40' y='16' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold' font-size='9'%3EMandiri%3C/text%3E%3C/svg%3E" alt="Mandiri"></span>
-    <span class="pay-logo"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 24'%3E%3Crect rx='4' width='80' height='24' fill='%230066AE'/%3E%3Ctext x='40' y='16' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold' font-size='11'%3EBRI%3C/text%3E%3C/svg%3E" alt="BRI"></span>
-    <span class="pay-logo"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 24'%3E%3Crect rx='4' width='80' height='24' fill='%23ED1C24'/%3E%3Ctext x='40' y='16' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold' font-size='9'%3EAlfamart%3C/text%3E%3C/svg%3E" alt="Alfamart"></span>
-    <span class="pay-logo"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 24'%3E%3Crect rx='4' width='80' height='24' fill='%23003399'/%3E%3Ctext x='40' y='16' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold' font-size='8'%3EIndomaret%3C/text%3E%3C/svg%3E" alt="Indomaret"></span>
-    <span class="pay-logo"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 24'%3E%3Crect rx='4' width='80' height='24' fill='%234285F4'/%3E%3Ctext x='40' y='16' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold' font-size='8'%3EPermata%3C/text%3E%3C/svg%3E" alt="Permata"></span>
-    <span class="pay-logo"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 24'%3E%3Crect rx='4' width='80' height='24' fill='%23005BAC'/%3E%3Ctext x='40' y='16' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold' font-size='11'%3ECIMB%3C/text%3E%3C/svg%3E" alt="CIMB Niaga"></span>
+  <div class="pay-section">
+    <div class="pay-label">Metode Pembayaran</div>
+    <div class="pay-logos">
+      <span class="pay-logo qris"><svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="height:14px;margin-right:3px"><rect x="1" y="1" width="5" height="5" rx=".5" stroke="#fff" stroke-width="1.2" fill="none"/><rect x="2.5" y="2.5" width="2" height="2" rx=".3" fill="#fff"/><rect x="10" y="1" width="5" height="5" rx=".5" stroke="#fff" stroke-width="1.2" fill="none"/><rect x="11.5" y="2.5" width="2" height="2" rx=".3" fill="#fff"/><rect x="1" y="10" width="5" height="5" rx=".5" stroke="#fff" stroke-width="1.2" fill="none"/><rect x="2.5" y="11.5" width="2" height="2" rx=".3" fill="#fff"/><rect x="10" y="10" width="2" height="2" fill="#fff"/><rect x="13" y="13" width="2" height="2" fill="#fff"/><rect x="10" y="13" width="2" height="2" fill="#fff"/></svg>QRIS</span>
+      <span class="pay-logo gopay"><svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="height:14px;margin-right:2px"><circle cx="8" cy="8" r="6.5" stroke="#00880F" stroke-width="1.5" fill="none"/><path d="M6 8.5a2.5 2.5 0 1 1 5 0 2.5 2.5 0 0 1-5 0Z" stroke="#00880F" stroke-width="1.2" fill="none"/></svg>GoPay</span>
+      <span class="pay-logo ovo"><svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="height:14px;margin-right:2px"><circle cx="8" cy="8" r="6.5" stroke="#4C2A86" stroke-width="1.5" fill="none"/><circle cx="8" cy="8" r="3" stroke="#4C2A86" stroke-width="1.2" fill="none"/></svg>OVO</span>
+      <span class="pay-logo dana"><svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="height:14px;margin-right:2px"><rect x="1.5" y="4" width="13" height="8" rx="2" stroke="#108EE9" stroke-width="1.3" fill="none"/><circle cx="8" cy="8" r="2" fill="#108EE9"/></svg>DANA</span>
+      <span class="pay-logo spay">ShopeePay</span>
+    </div>
+    <div class="pay-logos">
+      <span class="pay-logo bca">BCA</span>
+      <span class="pay-logo bni">BNI</span>
+      <span class="pay-logo mandiri">Mandiri</span>
+      <span class="pay-logo bri">BRI</span>
+      <span class="pay-logo">Permata</span>
+      <span class="pay-logo">CIMB</span>
+    </div>
+    <div class="pay-logos">
+      <span class="pay-logo alfa">Alfamart</span>
+      <span class="pay-logo indo">Indomaret</span>
+      <span class="pay-logo">Kredivo</span>
+      <span class="pay-logo">Akulaku</span>
+    </div>
   </div>
   <p>&copy; 2025–2026 <a href="/">Jago Game</a> &middot; Toko Digital Terpercaya &middot; Jakarta Utara, Indonesia</p>
 </footer>
