@@ -495,7 +495,7 @@ async function loadHome(){
   // Status bot WA
   const chip=document.getElementById('bot-chip');
   if(was&&was.connected){chip.className='live-chip';chip.innerHTML='<span class="dot"></span>Online';}
-  else{chip.className='live-chip';chip.style.color='var(--red,#C04A3A)';chip.innerHTML='<span class="dot" style="background:var(--red,#C04A3A)"></span>Terputus';}
+  else{chip.className='live-chip';chip.style.color='var(--red,#C04A3A)';chip.innerHTML='<span class="dot" style="background:var(--red,#C04A3A)"></span>Terputus — <a href="/qr?token='+encodeURIComponent(TOKEN)+'" target="_blank" style="color:inherit;text-decoration:underline">scan QR</a>';}
   if(Array.isArray(ords)){
     const recent=[...ords].reverse().slice(0,5);
     document.getElementById('t-recent').innerHTML=recent.length?recent.map(o=>orderRow(o,true)).join(''):'<tr><td colspan="6" class="empty-td">Belum ada pesanan</td></tr>';

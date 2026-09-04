@@ -15,6 +15,7 @@ const apiRouter = require('./src/api');
 const wa = require('./src/wa');
 const backup = require('./src/backup');
 const store = require('./src/store');
+const auth = require('./src/auth');
 require('dotenv').config();
 
 // ── Peringatan konfigurasi keamanan ──────────────────────────────────────────
@@ -69,7 +70,18 @@ app.use(express.json({ verify: (req, _res, buf) => { if (req.url === '/api/store
 app.use('/', require('./src/appApi')); // API Aplikasi Kasir (PWA) — additive
 app.use('/', apiRouter);
 
+// KRITIS: QR pairing WhatsApp wajib admin-only — siapapun yang scan QR ini bisa
+// bajak sesi WhatsApp bisnis (link device asing) sebelum admin sempat scan.
 app.get('/qr', async (req, res) => {
+    const session = auth.getSession(req.query.token);
+    if (!session || session.role !== 'admin') {
+        return res.status(401).send(`
+            <html><body style="font-family:sans-serif;text-align:center;padding:50px;background:#0f172a;color:#e2e8f0">
+            <h2>🔒 Khusus admin</h2>
+            <p style="color:#94a3b8">Login dulu di <a href="/admin" style="color:#6366f1">/admin</a>, lalu buka halaman ini via tombol di dashboard.</p>
+            </body></html>
+        `);
+    }
     if (!currentQR) {
         return res.send(`
             <html><body style="font-family:sans-serif;text-align:center;padding:50px;background:#0f172a;color:#e2e8f0">
