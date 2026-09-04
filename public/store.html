@@ -277,6 +277,8 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 .bottom-bar{position:fixed;bottom:0;left:0;right:0;background:var(--white);border-top:1px solid var(--border2);padding:12px 16px;z-index:200;display:none;animation:slideUp .2s ease}
 .bottom-bar.show{display:block}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:none}}
+@keyframes fieldShake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+.field-shake{animation:fieldShake .4s ease;border-color:var(--red)!important;box-shadow:0 0 0 3px rgba(192,74,58,.2)!important}
 .bb-inner{max-width:900px;margin:0 auto;display:flex;align-items:center;gap:12px}
 .bb-info{flex:1;min-width:0}
 .bb-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -967,14 +969,15 @@ async function submitOrder(){
   const serverId=serverIdEl?serverIdEl.value.trim():'';
   const name=email.split('@')[0];
 
-  if(!email){err.textContent='Email wajib diisi untuk pengiriman invoice';return}
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){err.textContent='Format email tidak valid';return}
+  function scrollToField(el){if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.focus();el.classList.add('field-shake');setTimeout(()=>el.classList.remove('field-shake'),600)}}
+  if(!email){err.textContent='Email wajib diisi untuk pengiriman invoice';scrollToField(emailEl);return}
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){err.textContent='Format email tidak valid';scrollToField(emailEl);return}
   if(selectedProduct.type==='game_topup'){
-    if(selectedProduct.requiresGameId!==false&&!gameId){err.textContent=(selectedProduct.gameIdLabel||'User ID')+' wajib diisi';return}
-    if(selectedProduct.requiresGameId!==false&&!/^\d+$/.test(gameId)){err.textContent=(selectedProduct.gameIdLabel||'User ID')+' harus berupa angka';return}
-    if(selectedProduct.requiresGameId!==false&&gameId.length<5){err.textContent=(selectedProduct.gameIdLabel||'User ID')+' minimal 5 digit';return}
-    if(selectedProduct.requiresServerId&&!serverId){err.textContent=(selectedProduct.serverIdLabel||'Server ID')+' wajib diisi';return}
-    if(selectedProduct.requiresServerId&&!/^\d+$/.test(serverId)){err.textContent=(selectedProduct.serverIdLabel||'Server ID')+' harus berupa angka';return}
+    if(selectedProduct.requiresGameId!==false&&!gameId){err.textContent=(selectedProduct.gameIdLabel||'User ID')+' wajib diisi';scrollToField(gameIdEl);return}
+    if(selectedProduct.requiresGameId!==false&&!/^\d+$/.test(gameId)){err.textContent=(selectedProduct.gameIdLabel||'User ID')+' harus berupa angka';scrollToField(gameIdEl);return}
+    if(selectedProduct.requiresGameId!==false&&gameId.length<5){err.textContent=(selectedProduct.gameIdLabel||'User ID')+' minimal 5 digit';scrollToField(gameIdEl);return}
+    if(selectedProduct.requiresServerId&&!serverId){err.textContent=(selectedProduct.serverIdLabel||'Server ID')+' wajib diisi';scrollToField(serverIdEl);return}
+    if(selectedProduct.requiresServerId&&!/^\d+$/.test(serverId)){err.textContent=(selectedProduct.serverIdLabel||'Server ID')+' harus berupa angka';scrollToField(serverIdEl);return}
   }
 
   const btn=document.getElementById('bb-btn');
