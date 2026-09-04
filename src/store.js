@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { encrypt, decrypt } = require('./crypto');
 
 // Produk & setting: selalu dari data/ (git), agar update produk langsung berlaku
@@ -14,7 +15,9 @@ const ORDERS_FILE = path.join(VOL_DIR, 'store-orders.json');
 const STOCK_FILE = path.join(VOL_DIR, 'store-stock.json');
 const VOUCHERS_FILE = path.join(VOL_DIR, 'store-vouchers.json');
 
-function randToken() { return Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6); }
+// Token akses pesanan (dipakai buka /api/store/order-status & lihat kredensial akun) —
+// wajib acak kriptografis: Math.random() bisa ditebak/direkonstruksi dari beberapa output.
+function randToken() { return crypto.randomBytes(24).toString('hex'); }
 
 function readJSON(file, def) {
     try { return JSON.parse(fs.readFileSync(file, 'utf8')); }

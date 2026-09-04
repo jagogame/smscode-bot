@@ -403,9 +403,13 @@ code{font-family:'SF Mono',monospace;font-size:11px;background:var(--bg2);color:
 let TOKEN=localStorage.getItem('adm-token'),NAME=localStorage.getItem('adm-name'),ROLE=localStorage.getItem('adm-role');
 if(TOKEN){document.getElementById('pg-login').style.display='none';document.getElementById('pg-dash').style.display='block';initDash()}
 
+// Escape HTML — WAJIB dipakai untuk semua data dari input publik (nama pembeli, WA, game ID, dll)
+// sebelum masuk innerHTML. Tanpa ini, order form publik jadi jalur XSS tersimpan -> curi token admin.
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+
 function toast(msg,t){
   const el=document.createElement('div');el.className='tst';
-  el.innerHTML=`<span>${t==='ok'?'✓':t==='err'?'✕':'·'}</span>${msg}`;
+  el.innerHTML=`<span>${t==='ok'?'✓':t==='err'?'✕':'·'}</span>${esc(msg)}`;
   document.getElementById('toast-wrap').appendChild(el);setTimeout(()=>el.remove(),3200);
 }
 
@@ -444,7 +448,7 @@ async function loadAudit(){
   const data=await api('GET','/api/admin/audit').catch(()=>[]);
   const tb=document.getElementById('t-audit');
   if(!Array.isArray(data)||!data.length){tb.innerHTML='<tr><td colspan="4" class="empty-td">Belum ada log</td></tr>';return}
-  tb.innerHTML=data.map(e=>`<tr><td style="white-space:nowrap">${new Date(e.at).toLocaleString('id-ID')}</td><td>${e.user||'-'}</td><td><span class="badge o">${e.action}</span></td><td style="font-size:12px;color:var(--text2,#6B6560)">${(e.detail||'').toString().slice(0,60)}</td></tr>`).join('');
+  tb.innerHTML=data.map(e=>`<tr><td style="white-space:nowrap">${new Date(e.at).toLocaleString('id-ID')}</td><td>${esc(e.user||'-')}</td><td><span class="badge o">${esc(e.action)}</span></td><td style="font-size:12px;color:var(--text2,#6B6560)">${esc((e.detail||'').toString().slice(0,60))}</td></tr>`).join('');
 }
 
 function initDash(){
@@ -513,8 +517,8 @@ async function loadPesanan(){
 
 function orderRow(o,compact){
   const gameInfo = o.productType==='game_topup' && o.gameId
-    ? `<div style="font-size:10px;color:var(--text3,#9C9590);margin-top:2px">🎮 ID: ${o.gameId}${o.serverId?' / '+o.serverId:''}</div>` : '';
-  const productCell = `<td style="font-weight:600;color:var(--dark);font-size:12px">${o.productName}${gameInfo}</td>`;
+    ? `<div style="font-size:10px;color:var(--text3,#9C9590);margin-top:2px">🎮 ID: ${esc(o.gameId)}${o.serverId?' / '+esc(o.serverId):''}</div>` : '';
+  const productCell = `<td style="font-weight:600;color:var(--dark);font-size:12px">${esc(o.productName)}${gameInfo}</td>`;
   const btns=`<div style="display:flex;gap:4px;flex-wrap:wrap">
     ${o.status==='PENDING'?`<button class="btn btn-g" style="font-size:11px;padding:5px 9px" onclick="deliverOrd('${o.id}')">💰 Lunas &amp; Kirim</button>`:''}
     ${o.status==='PAID_NO_STOCK'?`<button class="btn btn-g" style="font-size:11px;padding:5px 9px" onclick="deliverOrd('${o.id}')">🔁 Kirim Ulang</button>`:''}
@@ -524,15 +528,15 @@ function orderRow(o,compact){
   if(compact) return `<tr>
     <td><code style="font-size:10px">${o.id.slice(-8)}</code></td>
     ${productCell}
-    <td>${o.customerName}</td>
+    <td>${esc(o.customerName)}</td>
     <td>Rp ${Number(o.productPrice).toLocaleString('id-ID')}</td>
     <td>${statusBadge}</td>
     <td>${btns}</td></tr>`;
   return `<tr>
     <td><code style="font-size:10px">${o.id}</code></td>
     ${productCell}
-    <td>${o.customerName}</td>
-    <td><a href="https://wa.me/${o.customerWA.replace(/\D/g,'')}" target="_blank" style="color:var(--green);font-size:12px">📱 ${o.customerWA}</a></td>
+    <td>${esc(o.customerName)}</td>
+    <td><a href="https://wa.me/${encodeURIComponent(String(o.customerWA||'').replace(/\D/g,''))}" target="_blank" style="color:var(--green);font-size:12px">📱 ${esc(o.customerWA)}</a></td>
     <td>Rp ${Number(o.productPrice).toLocaleString('id-ID')}</td>
     <td>${statusBadge}</td>
     <td style="font-size:11px;color:var(--text3)">${new Date(o.createdAt).toLocaleString('id-ID')}</td>

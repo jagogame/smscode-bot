@@ -1071,7 +1071,8 @@ function onSearch(q){
     if(!results.length){
       el.innerHTML='<div class="empty">Tidak ada produk yang cocok</div>';
     }else{
-      el.innerHTML=`<div class="sr-title">${results.length} hasil untuk "${q}"</div>`+results.map(p=>{
+      const qSafe=String(q).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      el.innerHTML=`<div class="sr-title">${results.length} hasil untuk "${qSafe}"</div>`+results.map(p=>{
         const s=getStyle(p.category);
         const srIcon=s.img?`<img src="${s.img}" alt="">`:`<span style="font-size:13px;font-weight:800;color:#fff">${getInitials(p.category)}</span>`;
         return `<div class="sr-item" onclick="openGameAndSelect('${p.category.replace(/'/g,"\\'")}','${p.id}')">

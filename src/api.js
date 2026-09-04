@@ -519,7 +519,7 @@ router.post('/api/store/tripay/callback', async (req, res) => {
 });
 
 // Cek status order (untuk halaman sukses) - butuh accessToken
-router.get('/api/store/order-status', (req, res) => {
+router.get('/api/store/order-status', rateLimiter({ windowMs: 60 * 1000, max: 30, message: 'Terlalu banyak percobaan.' }), (req, res) => {
     const order = store.getOrderById(req.query.id);
     if (!order || order.accessToken !== req.query.token) return res.status(404).json({ error: 'Order tidak ditemukan' });
     res.json({

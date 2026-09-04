@@ -37,6 +37,9 @@ function checkCredentials(username, password) {
     const u = String(username || '').toLowerCase();
     const user = USERS[u];
     if (!user) return null;
+    // KRITIS: password wajib dicocokkan — sebelumnya fungsi ini return user
+    // hanya berdasar username valid, tanpa cek password sama sekali (auth bypass total).
+    if (!safeEqual(String(password || ''), String(user.password || ''))) return null;
     return { username: u, role: user.role, name: user.name };
 }
 
