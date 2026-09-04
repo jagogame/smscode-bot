@@ -582,7 +582,7 @@ footer a{color:var(--text2);text-decoration:none}
 </footer>
 
 <script>
-let allProducts=[], settings={}, games=[], selectedProduct=null, currentGame=null, midtransCfg=null, flashSale=null;
+let allProducts=[], settings={}, games=[], selectedProduct=null, currentGame=null, midtransCfg=null, tripayEnabled=false, flashSale=null;
 
 const POPULAR = ['Topup Mobile Legends','Topup Genshin Impact','Topup PUBG Mobile'];
 
@@ -677,6 +677,7 @@ async function init(){
     midtransCfg=cfg;
     loadSnap(cfg.clientKey, cfg.isProduction).catch(()=>{});
   }
+  if(cfg.tripayEnabled) tripayEnabled=true;
   flashSale=fs&&fs.active?fs:null;
   allProducts = Array.isArray(p)?p:[];
   settings = s||{};
@@ -1005,6 +1006,19 @@ async function submitOrder(){
           onError:function(){err.textContent='Pembayaran gagal. Silakan coba lagi.';},
           onClose:function(){toast('Pembayaran dibatalkan.');}
         });
+      }catch(e2){
+        btn.disabled=false;btn.textContent='Bayar Sekarang';
+        showPayment(res);
+      }
+    }else if(tripayEnabled){
+      btn.disabled=true;btn.textContent='Membuka pembayaran...';
+      try{
+        const payRes=await fetch('/api/store/tripay/pay',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({orderId:res.id,method:'QRIS'})}).then(r=>r.json());
+        btn.disabled=false;btn.textContent='Bayar Sekarang';
+        if(payRes.error){err.textContent=payRes.error;return}
+        window.open(payRes.checkout_url,'_blank');
+        toast('Halaman pembayaran dibuka di tab baru');
+        pollOrderStatus(res.id,res.accessToken);
       }catch(e2){
         btn.disabled=false;btn.textContent='Bayar Sekarang';
         showPayment(res);

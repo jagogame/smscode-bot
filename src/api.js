@@ -7,6 +7,7 @@ const sms = require('./smscode');
 const { submitForm, getRekapHariIni, getRekapSemua, getRekapByKasir } = require('./sales');
 const store = require('./store');
 const midtrans = require('./midtrans');
+const tripay = require('./tripay');
 const digiflazz = require('./digiflazz');
 const wa = require('./wa');
 const backup = require('./backup');
@@ -416,6 +417,7 @@ router.get('/api/store/config', (req, res) => {
         midtransEnabled: midtrans.isConfigured(),
         clientKey: midtrans.getClientKey(),
         isProduction: midtrans.isProduction(),
+        tripayEnabled: tripay.isConfigured(),
         otpRequired: !!store.getSettings().otpRequired && wa.isReady(),
     });
 });
@@ -458,6 +460,61 @@ router.post('/api/store/midtrans/notification', async (req, res) => {
             store.patchOrder(order.id, { paymentStatus: n.transaction_status.toUpperCase() });
         }
         res.json({ ok: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Buat transaksi Tripay untuk sebuah order -> kembalikan checkout_url
+router.post('/api/store/tripay/pay', rateLimiter({ windowMs: 60 * 1000, max: 15, message: 'Terlalu banyak percobaan pembayaran. Tunggu sebentar.' }), async (req, res) => {
+    try {
+        const order = store.getOrderById(req.body.orderId);
+        if (!order) return res.status(404).json({ error: 'Order tidak ditemukan' });
+        if (!tripay.isConfigured()) return res.status(400).json({ error: 'Tripay belum dikonfigurasi' });
+        const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+        const host = req.headers['x-forwarded-host'] || req.get('host');
+        const baseUrl = protocol + '://' + host;
+        const tx = await tripay.createTransaction({
+            orderId: order.id,
+            amount: order.finalPrice != null ? order.finalPrice : order.productPrice,
+            customerName: order.customerName,
+            customerEmail: order.customerEmail,
+            productName: order.productName,
+            method: req.body.method || 'QRIS',
+            callbackUrl: baseUrl + '/api/store/tripay/callback',
+            returnUrl: baseUrl + '/store.html',
+        });
+        store.patchOrder(order.id, { tripayRef: tx.reference });
+        res.json({ checkout_url: tx.checkout_url, reference: tx.reference });
+    } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+// Daftar payment channels Tripay
+router.get('/api/store/tripay/channels', async (req, res) => {
+    try {
+        const channels = await tripay.getPaymentChannels();
+        const active = channels.filter(c => c.active).map(c => ({
+            code: c.code, name: c.name, group: c.group, fee_flat: c.total_fee?.flat || 0,
+            fee_percent: c.total_fee?.percent || 0, icon: c.icon_url,
+        }));
+        res.json(active);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Webhook callback dari Tripay
+router.post('/api/store/tripay/callback', async (req, res) => {
+    try {
+        if (!tripay.isConfigured()) return res.status(503).json({ error: 'Tripay not configured' });
+        const rawBody = req.rawBody || JSON.stringify(req.body);
+        const sig = req.headers['x-callback-signature'];
+        if (!tripay.verifyCallback(rawBody, sig)) return res.status(403).json({ error: 'Invalid signature' });
+        const n = req.body;
+        const order = store.getOrderById(n.merchant_ref);
+        if (!order) return res.status(404).json({ error: 'Order tidak ditemukan' });
+        if (tripay.isPaid(n)) {
+            await deliverOrder(order);
+        } else if (['EXPIRED', 'FAILED', 'REFUND'].includes(n.status)) {
+            store.patchOrder(order.id, { paymentStatus: n.status });
+        }
+        res.json({ success: true });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

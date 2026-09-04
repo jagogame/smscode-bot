@@ -65,7 +65,7 @@ const PORT = process.env.PORT || 3000;
 let currentQR = null;
 
 app.use(compression()); // katalog produk (topup game) sekarang ribuan item -> kompres respons JSON
-app.use(express.json());
+app.use(express.json({ verify: (req, _res, buf) => { if (req.url === '/api/store/tripay/callback') req.rawBody = buf.toString('utf8'); } }));
 app.use('/', require('./src/appApi')); // API Aplikasi Kasir (PWA) — additive
 app.use('/', apiRouter);
 
