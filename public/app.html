@@ -331,6 +331,9 @@
 (function(){
   var $=function(id){return document.getElementById(id)};
   var rp=function(n){return Number(n||0).toLocaleString('id-ID')};
+  // Escape HTML — wajib untuk username pembeli (input bebas dari laporan kasir) sebelum
+  // masuk innerHTML/atribut, supaya kasir tidak bisa curi token admin lewat XSS tersimpan.
+  var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
   var TOKEN=localStorage.getItem('jg-token'), NAME=localStorage.getItem('jg-name'), ROLE=localStorage.getItem('jg-role');
   var curP='hari', curKasir='Arshil', unread=0, lastTopAt=null, pollTimer=null, cfg={rate:5000,weekGoal:50,weekBonus:25000};
   var reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
@@ -473,8 +476,8 @@
         if(i===0&&x.count>0) badges+='<span class="lbadge gold">🥇 +'+rp(cfg.weekBonus/1000)+'rb</span>';
       }
       row.innerHTML='<div class="rk">'+(medals[i]||'<small>'+(i+1)+'</small>')+'</div>'+
-        '<div class="lav">'+x.name.slice(0,1)+'</div>'+
-        '<div class="ln"><b>'+x.name+mine+'</b><span>'+x.count+' pesanan'+badges+'</span></div>'+
+        '<div class="lav">'+esc(x.name.slice(0,1))+'</div>'+
+        '<div class="ln"><b>'+esc(x.name)+mine+'</b><span>'+x.count+' pesanan'+badges+'</span></div>'+
         '<div class="le"><b>Rp '+rp(x.komisi)+'</b><span>komisi</span></div>';
       wrap.appendChild(row);
     });
@@ -488,8 +491,8 @@
     list.forEach(function(e){
       var row=document.createElement('div');row.className='exp';
       row.innerHTML='<div class="clock"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>'+
-        '<div class="info"><b>'+e.u+'</b><span>habis '+e.hoursLeft+' jam lagi'+(s.role==='admin'?' · '+e.k:'')+'</span></div>'+
-        '<button class="chat" data-u="'+e.u+'">Chat</button>';
+        '<div class="info"><b>'+esc(e.u)+'</b><span>habis '+e.hoursLeft+' jam lagi'+(s.role==='admin'?' · '+esc(e.k):'')+'</span></div>'+
+        '<button class="chat" data-u="'+esc(e.u)+'">Chat</button>';
       wrap.appendChild(row);
     });
   }
@@ -514,7 +517,7 @@
     s.recent.forEach(function(r){
       var el=document.createElement('div');el.className='sale';
       el.innerHTML='<div class="ico"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M23 12l-15 8V4z"/></svg></div>'+
-        '<div class="who"><b>'+r.u+'</b><span>Kasir '+r.k+' · YT '+r.months+' bln</span></div>'+
+        '<div class="who"><b>'+esc(r.u)+'</b><span>Kasir '+esc(r.k)+' · YT '+r.months+' bln</span></div>'+
         '<div class="meta"><b>+Rp '+rp(r.komisi)+'</b><span>'+ago(r.at)+'</span></div>';
       wrap.appendChild(el);
     });
@@ -546,7 +549,7 @@
     wrap.innerHTML='';
     NOTIF.slice(0,15).forEach(function(n){
       var el=document.createElement('div');el.className='np-item';
-      el.innerHTML='<div class="em">'+n.em+'</div><div class="tx"><b>'+n.text+'</b><span>'+ago(n.at)+'</span></div>';
+      el.innerHTML='<div class="em">'+esc(n.em)+'</div><div class="tx"><b>'+esc(n.text)+'</b><span>'+ago(n.at)+'</span></div>';
       wrap.appendChild(el);
     });
   }
@@ -589,7 +592,7 @@
   var toastT;
   function toast(msg){
     var t=$('toast');
-    t.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'+msg;
+    t.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'+esc(msg);
     t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(function(){t.classList.remove('show')},2600);
   }
 

@@ -3,6 +3,22 @@ const { handleSales } = require('./salesHandler');
 const { checkSkin } = require('./cekskin-bot/index.js');
 const fs = require('fs');
 
+// Command SMS/OTP (beli, saldo, batal, dst) belanjakan SALDO ASLI dan cuma buat pemilik toko —
+// tanpa cek ini, siapa pun yang chat ke nomor WA bot bisa memicunya. Nomor pemilik = settings.whatsapp
+// (dipakai juga buat notifikasi order), atau daftar OWNER_WA=628xxx,628yyy kalau mau override.
+// Normalisasi 08xx -> 62xx WAJIB — JID selalu format 62xx, sementara settings.whatsapp biasa diisi 08xx.
+function normWaNum(s) { let n = String(s || '').replace(/\D/g, ''); if (n.startsWith('0')) n = '62' + n.slice(1); return n; }
+function isOwner(jid) {
+    const num = normWaNum(String(jid || '').replace(/@.*/, ''));
+    if (!num) return false;
+    const fromEnv = (process.env.OWNER_WA || '').split(',').map(normWaNum).filter(Boolean);
+    if (fromEnv.length) return fromEnv.includes(num);
+    let adminNum = '';
+    try { adminNum = normWaNum(require('./store').getSettings().whatsapp); } catch {}
+    if (!adminNum) { console.warn('⚠️  Nomor admin (settings.whatsapp) belum diset — command SMS/OTP ditolak untuk semua orang demi keamanan.'); return false; }
+    return num === adminNum;
+}
+
 // catalog_product_id tetap untuk Google/YouTube/Gmail - Brazil
 const GOOGLE_BR_PRODUCT_ID = 6220;
 
@@ -10,6 +26,10 @@ const GOOGLE_BR_PRODUCT_ID = 6220;
 const activePolls = {};
 
 const POLL_INTERVAL_MS = 100;
+
+// Cooldown /cekskin per pengirim (fitur publik, tapi berat — cegah spam/DoS)
+const cekskinCooldown = new Map();
+const CEKSKIN_COOLDOWN_MS = 30 * 1000;
 
 function startPolling(sock, jid, orderId) {
     if (activePolls[orderId]) return;
@@ -113,13 +133,15 @@ async function handleMessage(sock, msg) {
         return;
     }
 
-    // Teruskan pesan gambar ke salesHandler
+    // Teruskan pesan gambar ke salesHandler (Hanya di Personal Chat)
     if (imgMsg) {
-        // Normalisasi: pastikan msg.message.imageMessage selalu ada untuk handler
-        if (!msg.message.imageMessage) msg.message.imageMessage = imgMsg;
-        const { handleSalesImage } = require('./salesHandler');
-        const handled = await handleSalesImage(sock, msg);
-        if (handled) return;
+        if (!jid.endsWith('@g.us')) {
+            // Normalisasi: pastikan msg.message.imageMessage selalu ada untuk handler
+            if (!msg.message.imageMessage) msg.message.imageMessage = imgMsg;
+            const { handleSalesImage } = require('./salesHandler');
+            const handled = await handleSalesImage(sock, msg);
+            if (handled) return;
+        }
         if (!text) return;
     }
 
@@ -131,6 +153,15 @@ async function handleMessage(sock, msg) {
     // Menu
     if (['menu', 'start', 'halo', 'hi', 'help'].includes(lower)) {
         return reply(MENU);
+    }
+
+    // Command SMS/OTP di bawah ini belanjakan saldo asli / kelola order asli — khusus pemilik toko.
+    const senderJid = msg.key.participant || jid;
+    const isSmsCommand = lower === 'saldo' || lower === 'beli' || lower === 'aktif'
+        || lower.startsWith('pantau ') || lower.startsWith('stop ') || lower.startsWith('cek ')
+        || lower.startsWith('batal ') || lower.startsWith('selesai ');
+    if (isSmsCommand && !isOwner(senderJid)) {
+        return reply('🔒 Perintah ini khusus pemilik toko.');
     }
 
     // Saldo
@@ -257,7 +288,17 @@ async function handleMessage(sock, msg) {
     if (lower.startsWith('/cekskin ') || lower.startsWith('cekskin ')) {
         const gameId = text.split(' ')[1]?.trim();
         if (!gameId) return reply('❌ Format salah! Gunakan: /cekskin <ID>\nContoh: /cekskin 12345678');
-        
+
+        // Rate limit per pengirim — fitur ini publik & tiap panggilan buka browser Playwright
+        // (berat), tanpa batas orang bisa spam dan bikin server keteteran/boros resource.
+        const now = Date.now();
+        const lastCall = cekskinCooldown.get(senderJid) || 0;
+        if (now - lastCall < CEKSKIN_COOLDOWN_MS) {
+            const sisa = Math.ceil((CEKSKIN_COOLDOWN_MS - (now - lastCall)) / 1000);
+            return reply(`⏳ Tunggu ${sisa} detik lagi sebelum cek skin lagi ya.`);
+        }
+        cekskinCooldown.set(senderJid, now);
+
         await reply('⏳ Sedang mengecek skin untuk ID ' + gameId + '...\nProses memakan waktu sekitar 15-30 detik.');
         try {
             const hasil = await checkSkin(gameId);

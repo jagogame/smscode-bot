@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { encrypt, decrypt } = require('./crypto');
 
 // Produk & setting: selalu dari data/ (git), agar update produk langsung berlaku
@@ -14,7 +15,9 @@ const ORDERS_FILE = path.join(VOL_DIR, 'store-orders.json');
 const STOCK_FILE = path.join(VOL_DIR, 'store-stock.json');
 const VOUCHERS_FILE = path.join(VOL_DIR, 'store-vouchers.json');
 
-function randToken() { return Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6); }
+// Token akses pesanan (dipakai buka /api/store/order-status & lihat kredensial akun) —
+// wajib acak kriptografis: Math.random() bisa ditebak/direkonstruksi dari beberapa output.
+function randToken() { return crypto.randomBytes(24).toString('hex'); }
 
 function readJSON(file, def) {
     try { return JSON.parse(fs.readFileSync(file, 'utf8')); }
@@ -30,8 +33,9 @@ function saveProducts(p) { writeJSON(PRODUCTS_FILE, p); }
 
 function addProduct(data) {
     const products = getProducts();
+    const type = data.type === 'game_topup' ? 'game_topup' : 'account';
     const product = {
-        id: Date.now().toString(),
+        id: data.id || Date.now().toString(),
         name: data.name,
         description: data.description || '',
         category: data.category || 'Umum',
@@ -39,8 +43,17 @@ function addProduct(data) {
         stock: data.stock === undefined ? -1 : Number(data.stock), // -1 = unlimited
         autoDeliver: data.autoDeliver === true || data.autoDeliver === 'true',
         image: data.image || '',
-        active: true,
-        createdAt: new Date().toISOString(),
+        active: data.active === undefined ? true : !!data.active,
+        createdAt: data.createdAt || new Date().toISOString(),
+        type, // 'account' (stok kredensial) | 'game_topup' (kirim otomatis via Digiflazz)
+        // Field khusus type=game_topup:
+        game: data.game || '',                                   // nama game (untuk grup & label form)
+        digiSku: data.digiSku || null,                            // 1 SKU Digiflazz
+        digiSkus: Array.isArray(data.digiSkus) ? data.digiSkus : null, // atau beberapa SKU: [{sku, qty}]
+        requiresGameId: type === 'game_topup' ? (data.requiresGameId !== false) : false,
+        requiresServerId: type === 'game_topup' ? !!data.requiresServerId : false,
+        gameIdLabel: data.gameIdLabel || 'User ID',
+        serverIdLabel: data.serverIdLabel || 'Zone ID / Server',
     };
     products.push(product);
     saveProducts(products);
@@ -172,6 +185,15 @@ function createOrder(data) {
     const product = products.find(p => p.id === data.productId);
     if (!product) throw new Error('Produk tidak ditemukan');
     if (!product.active) throw new Error('Produk tidak tersedia');
+    if (!data.customerEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.customerEmail)) throw new Error('Email wajib diisi dengan format yang valid');
+
+    // Topup game: wajib isi Game ID (& Server ID bila game-nya butuh)
+    const gameId = String(data.gameId || '').trim();
+    const serverId = String(data.serverId || '').trim();
+    if (product.type === 'game_topup') {
+        if (product.requiresGameId && !gameId) throw new Error(`${product.gameIdLabel || 'Game ID'} wajib diisi`);
+        if (product.requiresServerId && !serverId) throw new Error(`${product.serverIdLabel || 'Server ID'} wajib diisi`);
+    }
 
     // Diskon: ambil yang TERBAIK antara voucher / flash sale / loyalty
     const base = product.price;
@@ -210,9 +232,13 @@ function createOrder(data) {
         finalPrice,
         category: product.category,
         customerName: data.customerName,
-        customerWA: data.customerWA,
+        customerEmail: data.customerEmail || '',
+        customerWA: data.customerWA || '',
         notes: data.notes || '',
-        status: 'PENDING',          // PENDING -> PAID -> DELIVERED (atau PAID_NO_STOCK)
+        productType: product.type,
+        gameId: product.type === 'game_topup' ? gameId : null,
+        serverId: product.type === 'game_topup' ? serverId : null,
+        status: 'PENDING',          // PENDING -> PAID -> DELIVERED (atau PAID_NO_STOCK / PAID_TOPUP_FAILED)
         paymentStatus: 'UNPAID',
         credential: null,
         createdAt: new Date().toISOString(),

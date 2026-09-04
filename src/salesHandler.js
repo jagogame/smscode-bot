@@ -350,13 +350,31 @@ async function handleSales(sock, msg, text) {
     }
 
     // ── Daftar kasir (simpan JID → nama) ─────────────────────────────────────
+    // Tanpa verifikasi, siapa pun bisa klaim jadi "Arshil"/dst cuma dengan ngetik ini,
+    // lalu submit laporan penjualan palsu (manipulasi komisi/leaderboard). Kalau nomor
+    // kasir sudah dikunci via env var KASIR_<NAMA>_WA, wajib cocok. Kalau belum, tetap
+    // dibolehkan (biar onboarding gak ribet) tapi admin selalu dikabari setiap registrasi baru.
     if (lower.startsWith('daftar kasir ')) {
         const nama = text.slice(13).trim();
         const valid = KASIR_LIST.find(k => k.toLowerCase() === nama.toLowerCase());
         if (!valid) return reply(`❌ Nama tidak valid. Pilih: ${KASIR_LIST.join(', ')}`);
+        const senderNum = senderJid.replace(/@.*/, '').replace(/\D/g, '');
+        const envKey = `KASIR_${valid.toUpperCase()}_WA`;
+        const allowedNums = (process.env[envKey] || '').split(',').map(n => n.trim().replace(/\D/g, '')).filter(Boolean);
+        if (allowedNums.length && !allowedNums.includes(senderNum)) {
+            return reply(`❌ Nomor ini belum terdaftar sebagai *${valid}*. Hubungi admin dulu.`);
+        }
         const map = loadKasirJid();
         map[senderJid] = valid;
         saveKasirJid(map);
+        try {
+            const settings = require('./store').getSettings();
+            if (settings.whatsapp) {
+                sock.sendMessage(`${settings.whatsapp.replace(/\D/g, '')}@s.whatsapp.net`,
+                    { text: `ℹ️ Registrasi kasir: nomor ${senderNum} daftar sebagai *${valid}*.\nBukan kamu yang daftarin? Segera cek — bisa dipakai kirim laporan palsu.` }
+                ).catch(() => {});
+            }
+        } catch {}
         return reply(`✅ Berhasil daftar sebagai kasir *${valid}*!\n\n• Kirim foto + caption username pembeli → laporan YT G2G\n• Ketik *on* / *off* → absensi kerja`);
     }
 

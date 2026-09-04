@@ -8,12 +8,14 @@ const { Boom } = require('@hapi/boom');
 const qrcode = require('qrcode-terminal');
 const QRCode = require('qrcode');
 const express = require('express');
+const compression = require('compression');
 const pino = require('pino');
 const { handleMessage } = require('./src/handler');
 const apiRouter = require('./src/api');
 const wa = require('./src/wa');
 const backup = require('./src/backup');
 const store = require('./src/store');
+const auth = require('./src/auth');
 require('dotenv').config();
 
 // ── Peringatan konfigurasi keamanan ──────────────────────────────────────────
@@ -29,6 +31,7 @@ require('dotenv').config();
     if (!process.env.KASIR_DEWO_PASSWORD) warnings.push('KASIR_DEWO_PASSWORD belum di-set → password default (dewo123)');
     if (!process.env.ENCRYPTION_KEY) warnings.push('ENCRYPTION_KEY belum di-set → kredensial akun customer DISIMPAN TANPA ENKRIPSI di data/store-orders.json');
     if (String(process.env.ADMIN_2FA || 'false') !== 'true') warnings.push('ADMIN_2FA belum aktif → login admin tanpa verifikasi OTP WhatsApp kedua');
+    if (!process.env.DIGIFLAZZ_USERNAME || !process.env.DIGIFLAZZ_APIKEY) warnings.push('DIGIFLAZZ_USERNAME / DIGIFLAZZ_APIKEY belum di-set → produk topup game akan gagal terkirim otomatis (pesanan tetap masuk, tapi butuh kirim manual)');
 
     if (warnings.length) {
         console.warn('\n⚠️  PERINGATAN KEAMANAN' + (isProd ? ' (PRODUCTION)' : '') + ':');
@@ -62,11 +65,23 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 let currentQR = null;
 
-app.use(express.json());
+app.use(compression()); // katalog produk (topup game) sekarang ribuan item -> kompres respons JSON
+app.use(express.json({ verify: (req, _res, buf) => { if (req.url === '/api/store/tripay/callback') req.rawBody = buf.toString('utf8'); } }));
 app.use('/', require('./src/appApi')); // API Aplikasi Kasir (PWA) — additive
 app.use('/', apiRouter);
 
+// KRITIS: QR pairing WhatsApp wajib admin-only — siapapun yang scan QR ini bisa
+// bajak sesi WhatsApp bisnis (link device asing) sebelum admin sempat scan.
 app.get('/qr', async (req, res) => {
+    const session = auth.getSession(req.query.token);
+    if (!session || session.role !== 'admin') {
+        return res.status(401).send(`
+            <html><body style="font-family:sans-serif;text-align:center;padding:50px;background:#0f172a;color:#e2e8f0">
+            <h2>🔒 Khusus admin</h2>
+            <p style="color:#94a3b8">Login dulu di <a href="/admin" style="color:#6366f1">/admin</a>, lalu buka halaman ini via tombol di dashboard.</p>
+            </body></html>
+        `);
+    }
     if (!currentQR) {
         return res.send(`
             <html><body style="font-family:sans-serif;text-align:center;padding:50px;background:#0f172a;color:#e2e8f0">

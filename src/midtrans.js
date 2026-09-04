@@ -14,13 +14,15 @@ function getClientKey() { return CLIENT_KEY; }
 function isProduction() { return IS_PRODUCTION; }
 
 // Buat transaksi Snap, kembalikan { token, redirect_url }
-async function createTransaction({ orderId, amount, customerName, productName }) {
+async function createTransaction({ orderId, amount, customerName, customerEmail, productName }) {
     if (!isConfigured()) throw new Error('Midtrans belum dikonfigurasi (set MIDTRANS_SERVER_KEY & MIDTRANS_CLIENT_KEY)');
     const auth = Buffer.from(SERVER_KEY + ':').toString('base64');
+    const customer = { first_name: String(customerName || 'Pelanggan').slice(0, 50) };
+    if (customerEmail) customer.email = String(customerEmail).slice(0, 100);
     const body = {
         transaction_details: { order_id: orderId, gross_amount: Math.round(amount) },
         item_details: [{ id: orderId, price: Math.round(amount), quantity: 1, name: String(productName || 'Produk').slice(0, 50) }],
-        customer_details: { first_name: String(customerName || 'Pelanggan').slice(0, 50) },
+        customer_details: customer,
         credit_card: { secure: true },
     };
     const res = await fetch(SNAP_BASE, {

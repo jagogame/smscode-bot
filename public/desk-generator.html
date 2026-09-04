@@ -112,6 +112,15 @@
     }
     .summary b { color: #fbbf24; }
 
+    .skin-gallery { display:grid; grid-template-columns:repeat(auto-fill,minmax(100px,1fr)); gap:10px; margin-bottom:16px; }
+    .skin-card { background:#0f0f14; border:1px solid #2a2a35; border-radius:8px; overflow:hidden; text-align:center; }
+    .skin-card img { width:100%; aspect-ratio:1; object-fit:cover; }
+    .no-img { width:100%; aspect-ratio:1; background:#26262f; display:flex; align-items:center; justify-content:center; color:#6b6b76; font-size:.7em; }
+    .scard-name { padding:4px 6px 0; font-size:.72em; color:#e5e5e5; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .scard-hero { padding:0 6px; font-size:.68em; color:#9ca3af; }
+    .scard-rarity { padding:2px 6px 6px; font-size:.65em; font-weight:700; }
+    .r-supreme { color:#ff6b6b; } .r-grand { color:#c084fc; } .r-exquisite { color:#60a5fa; }
+
     .copied-toast {
         position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
         background: #22c55e; color: #04240f; padding: 10px 20px;
@@ -137,9 +146,8 @@
         </div>
         <textarea id="input" placeholder='{"total":526,"skins":[{"heroName":"Alucard","skinName":"Obsidian Blade","rarity":"Supreme","tag":"Legend"}, ...]}'></textarea>
 
-        <div class="row">
-            <label class="opt"><input type="checkbox" id="excludeBasic" checked> Sembunyikan skin standar (Normal/Elite/Season Reward)</label>
-            <label class="opt"><input type="checkbox" id="sortByValue" checked> Urutkan grup by kelangkaan</label>
+        <div class="hint">
+            Urutan otomatis: <b>Legend</b> → <b>Grand</b> → <b>Exquisite</b>. Rarity lain (Deluxe/Exceptional/Common) disembunyikan.
         </div>
 
         <div class="row">
@@ -153,6 +161,7 @@
     <div class="card" id="resultCard" style="display:none">
         <h2>2. Hasil Deskripsi</h2>
         <div class="summary" id="summary"></div>
+        <div class="skin-gallery" id="gallery"></div>
         <div class="output-wrap">
             <div id="output"></div>
         </div>
@@ -165,11 +174,16 @@
 <div class="copied-toast" id="toast">Deskripsi berhasil di-copy!</div>
 
 <script>
-    // Tag standar/gratis yang tidak perlu ditampilkan di deskripsi jual akun
-    const BASIC_TAGS = new Set(['Normal', 'Elite', 'Season Reward']);
+    function skinPriority(s) {
+        if (s.rarity === 'Supreme') return 1;
+        if (s.rarity === 'Grand') return 2;
+        if (s.rarity === 'Exquisite') return 3;
+        return null;
+    }
 
-    // Urutan prioritas rarity cekskin.com (makin tinggi makin langka/mahal)
-    const RARITY_WEIGHT = { 'Grand': 6, 'Supreme': 5, 'Exquisite': 4, 'Deluxe': 3, 'Exceptional': 2, 'Common': 1 };
+    function getTag(s) {
+        return s.tag || (Array.isArray(s.tags) && s.tags[0]) || s.skinName || s.rarity;
+    }
 
     let rawText = '';
 
@@ -230,45 +244,56 @@
         }
         if (!skins.length) { showError('Data skin kosong.'); return; }
 
-        const excludeBasic = document.getElementById('excludeBasic').checked;
-        const sortByValue = document.getElementById('sortByValue').checked;
+        let filtered = skins.filter(s => s.heroName && skinPriority(s) !== null);
 
-        let filtered = skins.filter(s => s.heroName && s.tag);
-        if (excludeBasic) filtered = filtered.filter(s => !BASIC_TAGS.has(s.tag));
-
-        // Group by tag
         const groups = {};
         const groupOrderSeen = [];
         for (const s of filtered) {
-            if (!groups[s.tag]) { groups[s.tag] = []; groupOrderSeen.push(s.tag); }
-            groups[s.tag].push(s);
+            const tag = getTag(s);
+            if (!groups[tag]) { groups[tag] = []; groupOrderSeen.push(tag); }
+            groups[tag].push(s);
         }
 
-        let tagOrder = groupOrderSeen;
-        if (sortByValue) {
-            const maxWeight = tag => Math.max(...groups[tag].map(s => RARITY_WEIGHT[s.rarity] || 0));
-            tagOrder = [...groupOrderSeen].sort((a, b) => maxWeight(b) - maxWeight(a));
+        const tagPriority = tag => Math.min(...groups[tag].map(s => skinPriority(s)));
+        const tagOrder = [...groupOrderSeen].sort((a, b) => tagPriority(a) - tagPriority(b));
+
+        const supreme = filtered.filter(s => s.rarity === 'Supreme').length;
+        const grand = filtered.filter(s => s.rarity === 'Grand').length;
+        const exquisite = filtered.filter(s => s.rarity === 'Exquisite').length;
+
+        const galleryEl = document.getElementById('gallery');
+        galleryEl.innerHTML = '';
+        for (const s of filtered) {
+            const img = s.imageUrl || '';
+            const card = document.createElement('div');
+            card.className = 'skin-card';
+            card.innerHTML = (img ? `<img src="${img}" alt="${s.skinName}" loading="lazy">` : `<div class="no-img">No img</div>`) +
+                `<div class="scard-name">${s.skinName}</div>` +
+                `<div class="scard-hero">${s.heroName}</div>` +
+                `<div class="scard-rarity r-${s.rarity.toLowerCase()}">${s.rarity}</div>`;
+            galleryEl.appendChild(card);
         }
 
         const outputEl = document.getElementById('output');
         outputEl.innerHTML = '';
-        let lineCount = 0;
 
         for (const tag of tagOrder) {
             const heroes = groups[tag];
             for (const s of heroes) {
                 const line = document.createElement('span');
-                line.textContent = `${tag} ${s.heroName}`;
+                line.textContent = `${getTag(s)} ${s.heroName}`;
                 outputEl.appendChild(line);
                 outputEl.appendChild(document.createElement('br'));
-                lineCount++;
             }
         }
 
-        rawText = tagOrder.flatMap(tag => groups[tag].map(s => `${tag} ${s.heroName}`)).join('\n');
+        rawText = tagOrder.flatMap(tag => groups[tag].map(s => `${getTag(s)} ${s.heroName}`)).join('\n');
 
         document.getElementById('summary').innerHTML =
-            `Total skin: <b>${skins.length}</b> &nbsp;•&nbsp; Ditampilkan: <b>${lineCount}</b> &nbsp;•&nbsp; Grup tag: <b>${tagOrder.length}</b>`;
+            `Total: <b>${skins.length}</b> &nbsp;•&nbsp; Rare: <b>${filtered.length}</b> &nbsp;•&nbsp; ` +
+            `Legend: <b style="color:#ff6b6b">${supreme}</b> &nbsp;•&nbsp; ` +
+            `Grand: <b style="color:#c084fc">${grand}</b> &nbsp;•&nbsp; ` +
+            `Exquisite: <b style="color:#60a5fa">${exquisite}</b>`;
 
         document.getElementById('resultCard').style.display = 'block';
     }

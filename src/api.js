@@ -7,6 +7,8 @@ const sms = require('./smscode');
 const { submitForm, getRekapHariIni, getRekapSemua, getRekapByKasir } = require('./sales');
 const store = require('./store');
 const midtrans = require('./midtrans');
+const tripay = require('./tripay');
+const digiflazz = require('./digiflazz');
 const wa = require('./wa');
 const backup = require('./backup');
 const otp = require('./otp');
@@ -17,6 +19,78 @@ const router = express.Router();
 // Kunci untuk cegah double-delivery order yang sama (mis. webhook ganda)
 const delivering = new Set();
 
+// Kirim invoice sukses + notif admin (dipakai oleh kedua jalur pengiriman)
+async function notifySuccess(order, detailText) {
+    const settings = store.getSettings();
+    if (order.customerWA && wa.isReady()) {
+        const rp = n => 'Rp ' + Number(n || 0).toLocaleString('id-ID');
+        let inv = `✅ *PEMBAYARAN BERHASIL — Jago Game*\n\nTerima kasih ${order.customerName}! 🎉\n\n🧾 *INVOICE*\nID: ${order.id}\nProduk: ${order.productName}\nHarga: ${rp(order.productPrice)}`;
+        if (order.discount > 0) inv += `\nDiskon${order.voucherCode ? ' (' + order.voucherCode + ')' : ''}: -${rp(order.discount)}`;
+        inv += `\n*Total Bayar: ${rp(order.finalPrice != null ? order.finalPrice : order.productPrice)}*\nStatus: LUNAS ✅\n\n━━━━━━━━━━━━━━\n${detailText}\n━━━━━━━━━━━━━━\n\nAda kendala? Balas chat ini. 🙏`;
+        wa.sendText(order.customerWA, inv).catch(() => {});
+    }
+    const contact = order.customerEmail || order.customerWA || '';
+    if (settings.whatsapp && wa.isReady()) {
+        wa.sendText(settings.whatsapp, `💰 TERJUAL!\n${order.productName}\nRp ${Number(order.productPrice).toLocaleString('id-ID')}\nPembeli: ${order.customerName} (${contact})`).catch(() => {});
+    }
+    try { require('./push').send({ title: '💰 Transaksi selesai', body: `${order.productName} — ${order.customerName}`, url: '/app' }, u => u.role === 'admin').catch(() => {}); } catch (_) {}
+}
+
+// Kirim topup game otomatis via Digiflazz
+async function deliverTopup(order) {
+    const settings = store.getSettings();
+    const product = store.getProducts().find(p => p.id === order.productId);
+    const customerNo = String(order.gameId || '') + String(order.serverId || '');
+
+    if (!digiflazz.isConfigured()) {
+        const updated = store.patchOrder(order.id, { status: 'PAID_NO_STOCK', paymentStatus: 'PAID', paidAt: new Date().toISOString() });
+        if (settings.whatsapp && wa.isReady()) {
+            wa.sendText(settings.whatsapp, `⚠️ TOPUP MANUAL DIPERLUKAN\nDigiflazz belum dikonfigurasi.\nPesanan ${order.id} (${order.productName}) sudah LUNAS.\nID: ${order.gameId}${order.serverId ? ' / ' + order.serverId : ''}\nPembeli: ${order.customerName} (${order.customerEmail || order.customerWA})`).catch(() => {});
+        }
+        return updated;
+    }
+    if (!product || !customerNo) {
+        const updated = store.patchOrder(order.id, { status: 'PAID_NO_STOCK', paymentStatus: 'PAID', paidAt: new Date().toISOString() });
+        if (settings.whatsapp && wa.isReady()) {
+            wa.sendText(settings.whatsapp, `⚠️ TOPUP GAGAL — data tidak lengkap\nPesanan ${order.id} (${order.productName}) sudah LUNAS tapi produk/Game ID tidak valid. Kirim manual.\nPembeli: ${order.customerName} (${order.customerEmail || order.customerWA})`).catch(() => {});
+        }
+        return updated;
+    }
+
+    const baseRefId = `jg-store-${order.id}-${Date.now()}`;
+    let result;
+    try {
+        result = await digiflazz.multiTopup(product, customerNo, baseRefId);
+    } catch (err) {
+        result = { success: false, results: [{ status: 'Error', message: err.message }], totalPurchases: 0 };
+    }
+
+    const okCount = result.results.filter(r => r.status === 'Sukses').length;
+    const pendingCount = result.results.filter(r => r.status === 'Pending').length;
+    const failed = result.results.filter(r => r.status !== 'Sukses' && r.status !== 'Pending');
+
+    if (okCount > 0 && failed.length === 0) {
+        // Semua sukses (Pending dianggap masih diproses Digiflazz, tetap tandai terkirim)
+        const sns = result.results.map(r => r.sn).filter(Boolean).join(', ');
+        const updated = store.patchOrder(order.id, {
+            status: 'DELIVERED', paymentStatus: 'PAID',
+            credential: encrypt(`Topup ke ID ${order.gameId}${order.serverId ? ' (' + order.serverId + ')' : ''}${sns ? ' — SN: ' + sns : ''}`),
+            paidAt: new Date().toISOString(), deliveredAt: new Date().toISOString(),
+        });
+        if (order.voucherCode) store.useVoucher(order.voucherCode);
+        await notifySuccess(order, `📦 *TOPUP BERHASIL*\n\nID: ${order.gameId}${order.serverId ? ' / Server: ' + order.serverId : ''}\nProduk sudah masuk ke akun kamu.${pendingCount ? '\n(Sebagian item masih diproses sistem, akan otomatis masuk beberapa menit lagi.)' : ''}`);
+        return updated;
+    }
+
+    // Gagal total atau sebagian gagal -> perlu tindakan admin
+    const updated = store.patchOrder(order.id, { status: 'PAID_NO_STOCK', paymentStatus: 'PAID', paidAt: new Date().toISOString() });
+    if (settings.whatsapp && wa.isReady()) {
+        const errMsg = failed.map(f => f.message).filter(Boolean).join('; ') || 'Tidak diketahui';
+        wa.sendText(settings.whatsapp, `❌ TOPUP GAGAL (${okCount} sukses, ${failed.length} gagal)\nPesanan ${order.id} — ${order.productName}\nID: ${order.gameId}${order.serverId ? ' / ' + order.serverId : ''}\nPembeli: ${order.customerName} (${order.customerEmail || order.customerWA})\nError: ${errMsg}\n\nCek saldo Digiflazz & kirim manual bila perlu.`).catch(() => {});
+    }
+    return updated;
+}
+
 // Kirim produk otomatis setelah pembayaran lunas
 async function deliverOrder(order) {
     // Selalu baca status terbaru dari penyimpanan
@@ -25,13 +99,16 @@ async function deliverOrder(order) {
     if (delivering.has(order.id)) return fresh;
     delivering.add(order.id);
     try {
+    if (order.productType === 'game_topup' || fresh.productType === 'game_topup') {
+        return await deliverTopup({ ...fresh, ...order });
+    }
     const cred = store.popStock(order.productId);
     const settings = store.getSettings();
     if (!cred) {
         const updated = store.patchOrder(order.id, { status: 'PAID_NO_STOCK', paymentStatus: 'PAID', paidAt: new Date().toISOString() });
         // Beritahu admin agar kirim manual
         if (settings.whatsapp && wa.isReady()) {
-            wa.sendText(settings.whatsapp, `⚠️ STOK HABIS!\nPesanan ${order.id} (${order.productName}) sudah LUNAS tapi stok akun kosong.\nPembeli: ${order.customerName} (${order.customerWA})\nSegera kirim manual & isi stok.`).catch(() => {});
+            wa.sendText(settings.whatsapp, `⚠️ STOK HABIS!\nPesanan ${order.id} (${order.productName}) sudah LUNAS tapi stok akun kosong.\nPembeli: ${order.customerName} (${order.customerEmail || order.customerWA})\nSegera kirim manual & isi stok.`).catch(() => {});
         }
         return updated;
     }
@@ -40,20 +117,10 @@ async function deliverOrder(order) {
         credential: encrypt(cred), paidAt: new Date().toISOString(), deliveredAt: new Date().toISOString(),
     });
     if (order.voucherCode) store.useVoucher(order.voucherCode);
-    // Kirim invoice + akun ke WhatsApp pembeli
-    if (wa.isReady()) {
-        const rp = n => 'Rp ' + Number(n || 0).toLocaleString('id-ID');
-        let inv = `✅ *PEMBAYARAN BERHASIL — Jago Game*\n\nTerima kasih ${order.customerName}! 🎉\n\n🧾 *INVOICE*\nID: ${order.id}\nProduk: ${order.productName}\nHarga: ${rp(order.productPrice)}`;
-        if (order.discount > 0) inv += `\nDiskon${order.voucherCode ? ' (' + order.voucherCode + ')' : ''}: -${rp(order.discount)}`;
-        inv += `\n*Total Bayar: ${rp(order.finalPrice != null ? order.finalPrice : order.productPrice)}*\nStatus: LUNAS ✅\n\n━━━━━━━━━━━━━━\n📦 *DETAIL AKUN KAMU:*\n\n${cred}\n━━━━━━━━━━━━━━\n\nSimpan baik-baik & segera ganti email/password. Ada kendala? Balas chat ini. 🙏`;
-        wa.sendText(order.customerWA, inv).catch(() => {});
-    }
-    // Beritahu admin
+    await notifySuccess(order, `📦 *DETAIL AKUN KAMU:*\n\n${cred}\n\nSimpan baik-baik & segera ganti email/password.`);
     if (settings.whatsapp && wa.isReady()) {
-        wa.sendText(settings.whatsapp, `💰 TERJUAL!\n${order.productName}\nRp ${Number(order.productPrice).toLocaleString('id-ID')}\nPembeli: ${order.customerName} (${order.customerWA})\nSisa stok: ${store.getStockCount(order.productId)}`).catch(() => {});
+        wa.sendText(settings.whatsapp, `Sisa stok: ${store.getStockCount(order.productId)}`).catch(() => {});
     }
-    // Notif HP (PWA) ke admin: transaksi selesai
-    try { require('./push').send({ title: '💰 Transaksi selesai', body: `${order.productName} — ${order.customerName}`, url: '/app' }, u => u.role === 'admin').catch(() => {}); } catch (_) {}
     return updated;
     } finally {
         delivering.delete(order.id);
@@ -103,14 +170,12 @@ router.use((req, res, next) => {
     next();
 });
 
-// Subdomain cekskin.jagogame.store: root diarahkan ke tool deskripsi skin,
-// bukan homepage toko akun ML. Domain lain tidak terpengaruh.
 router.get('/', (req, res, next) => {
     const host = String(req.hostname || '').toLowerCase();
     if (host === 'cekskin.jagogame.store') {
         return res.sendFile(path.join(__dirname, '../public/desk-bookmarklet.html'));
     }
-    next();
+    return res.sendFile(path.join(__dirname, '../public/store.html'));
 });
 
 // Static files
@@ -122,6 +187,11 @@ router.get('/admin', (req, res) => {
     res.sendFile(path.join(__dirname, '../public/admin.html'));
 });
 
+// Toko topup (Codashop-style)
+router.get('/store', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/store.html'));
+});
+
 // Halaman lacak pesanan
 router.get('/lacak', (req, res) => {
     res.sendFile(path.join(__dirname, '../public/lacak.html'));
@@ -131,6 +201,9 @@ router.get('/lacak', (req, res) => {
 router.get('/kebijakan', (req, res) => {
     res.sendFile(path.join(__dirname, '../public/kebijakan.html'));
 });
+router.get('/syarat-ketentuan', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/syarat-ketentuan.html'));
+});
 
 // SEO: robots.txt & sitemap.xml
 const SITE = 'https://www.jagogame.store';
@@ -138,7 +211,7 @@ router.get('/robots.txt', (req, res) => {
     res.type('text/plain').send(`User-agent: *\nAllow: /\nDisallow: /admin\nSitemap: ${SITE}/sitemap.xml\n`);
 });
 router.get('/sitemap.xml', (req, res) => {
-    const urls = [`${SITE}/`, `${SITE}/lacak`, `${SITE}/kebijakan`];
+    const urls = [`${SITE}/`, `${SITE}/lacak`, `${SITE}/syarat-ketentuan`, `${SITE}/kebijakan`];
     const today = new Date().toISOString().slice(0, 10);
     const body = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
         urls.map(u => `  <url><loc>${u}</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq></url>`).join('\n') +
@@ -300,13 +373,14 @@ router.get('/api/store/products', (req, res) => {
 
 router.post('/api/store/orders', rateLimiter({ windowMs: 60 * 1000, max: 10, message: 'Terlalu banyak pesanan. Tunggu sebentar.' }), (req, res) => {
     try {
-        // Tolak bila produk auto-deliver tapi stok habis
+        // Tolak bila produk auto-deliver tapi stok habis (tidak berlaku untuk topup game,
+        // yang stoknya bergantung ke saldo Digiflazz, bukan stok kredensial lokal)
         const product = store.getProducts().find(p => p.id === req.body.productId);
-        if (product && product.autoDeliver && store.getStockCount(product.id) <= 0) {
+        if (product && product.type !== 'game_topup' && product.autoDeliver && store.getStockCount(product.id) <= 0) {
             return res.status(400).json({ error: 'Stok produk ini sedang habis. Silakan chat WhatsApp kami.' });
         }
-        // Verifikasi OTP WhatsApp bila diaktifkan
-        if (store.getSettings().otpRequired && wa.isReady() && !otp.isVerified(req.body.customerWA)) {
+        // Verifikasi OTP WhatsApp bila diaktifkan dan customer mengisi WA
+        if (req.body.customerWA && store.getSettings().otpRequired && wa.isReady() && !otp.isVerified(req.body.customerWA)) {
             return res.status(400).json({ error: 'Nomor WhatsApp belum diverifikasi. Minta & masukkan kode OTP dulu.', needOtp: true });
         }
         const order = store.createOrder(req.body);
@@ -343,6 +417,7 @@ router.get('/api/store/config', (req, res) => {
         midtransEnabled: midtrans.isConfigured(),
         clientKey: midtrans.getClientKey(),
         isProduction: midtrans.isProduction(),
+        tripayEnabled: tripay.isConfigured(),
         otpRequired: !!store.getSettings().otpRequired && wa.isReady(),
     });
 });
@@ -357,6 +432,7 @@ router.post('/api/store/pay', rateLimiter({ windowMs: 60 * 1000, max: 15, messag
             orderId: order.id,
             amount: order.finalPrice != null ? order.finalPrice : order.productPrice,
             customerName: order.customerName,
+            customerEmail: order.customerEmail,
             productName: order.productName,
         });
         res.json({ token: tx.token, redirect_url: tx.redirect_url });
@@ -387,8 +463,63 @@ router.post('/api/store/midtrans/notification', async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// Buat transaksi Tripay untuk sebuah order -> kembalikan checkout_url
+router.post('/api/store/tripay/pay', rateLimiter({ windowMs: 60 * 1000, max: 15, message: 'Terlalu banyak percobaan pembayaran. Tunggu sebentar.' }), async (req, res) => {
+    try {
+        const order = store.getOrderById(req.body.orderId);
+        if (!order) return res.status(404).json({ error: 'Order tidak ditemukan' });
+        if (!tripay.isConfigured()) return res.status(400).json({ error: 'Tripay belum dikonfigurasi' });
+        const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+        const host = req.headers['x-forwarded-host'] || req.get('host');
+        const baseUrl = protocol + '://' + host;
+        const tx = await tripay.createTransaction({
+            orderId: order.id,
+            amount: order.finalPrice != null ? order.finalPrice : order.productPrice,
+            customerName: order.customerName,
+            customerEmail: order.customerEmail,
+            productName: order.productName,
+            method: req.body.method || 'QRIS',
+            callbackUrl: baseUrl + '/api/store/tripay/callback',
+            returnUrl: baseUrl + '/store.html',
+        });
+        store.patchOrder(order.id, { tripayRef: tx.reference });
+        res.json({ checkout_url: tx.checkout_url, reference: tx.reference });
+    } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+// Daftar payment channels Tripay
+router.get('/api/store/tripay/channels', async (req, res) => {
+    try {
+        const channels = await tripay.getPaymentChannels();
+        const active = channels.filter(c => c.active).map(c => ({
+            code: c.code, name: c.name, group: c.group, fee_flat: c.total_fee?.flat || 0,
+            fee_percent: c.total_fee?.percent || 0, icon: c.icon_url,
+        }));
+        res.json(active);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Webhook callback dari Tripay
+router.post('/api/store/tripay/callback', async (req, res) => {
+    try {
+        if (!tripay.isConfigured()) return res.status(503).json({ error: 'Tripay not configured' });
+        const rawBody = req.rawBody || JSON.stringify(req.body);
+        const sig = req.headers['x-callback-signature'];
+        if (!tripay.verifyCallback(rawBody, sig)) return res.status(403).json({ error: 'Invalid signature' });
+        const n = req.body;
+        const order = store.getOrderById(n.merchant_ref);
+        if (!order) return res.status(404).json({ error: 'Order tidak ditemukan' });
+        if (tripay.isPaid(n)) {
+            await deliverOrder(order);
+        } else if (['EXPIRED', 'FAILED', 'REFUND'].includes(n.status)) {
+            store.patchOrder(order.id, { paymentStatus: n.status });
+        }
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // Cek status order (untuk halaman sukses) - butuh accessToken
-router.get('/api/store/order-status', (req, res) => {
+router.get('/api/store/order-status', rateLimiter({ windowMs: 60 * 1000, max: 30, message: 'Terlalu banyak percobaan.' }), (req, res) => {
     const order = store.getOrderById(req.query.id);
     if (!order || order.accessToken !== req.query.token) return res.status(404).json({ error: 'Order tidak ditemukan' });
     res.json({
@@ -401,11 +532,13 @@ router.get('/api/store/order-status', (req, res) => {
 
 // Lacak pesanan pakai ID + nomor WhatsApp (untuk pembeli yang tutup browser)
 router.post('/api/store/track', rateLimiter({ windowMs: 60 * 1000, max: 15 }), (req, res) => {
-    const { orderId, wa: waNum } = req.body;
+    const { orderId, wa: waNum, email } = req.body;
     const order = store.getOrderById((orderId || '').trim());
     const norm = s => String(s || '').replace(/\D/g, '').replace(/^0/, '62');
-    if (!order || norm(order.customerWA) !== norm(waNum)) {
-        return res.status(404).json({ error: 'Pesanan tidak ditemukan. Pastikan ID & nomor WhatsApp benar.' });
+    const emailMatch = email && order && order.customerEmail && order.customerEmail.toLowerCase() === email.toLowerCase();
+    const waMatch = waNum && order && order.customerWA && norm(order.customerWA) === norm(waNum);
+    if (!order || (!emailMatch && !waMatch)) {
+        return res.status(404).json({ error: 'Pesanan tidak ditemukan. Pastikan ID & email/WhatsApp benar.' });
     }
     res.json({
         id: order.id,
@@ -487,6 +620,16 @@ router.get('/api/admin/backup/list', requireAuth, requireAdmin, (req, res) => re
 // Status koneksi WhatsApp
 router.get('/api/admin/wa-status', requireAuth, requireAdmin, (req, res) => res.json(wa.getStatus()));
 
+// Saldo Digiflazz (buat topup game otomatis)
+router.get('/api/admin/digiflazz/balance', requireAuth, requireAdmin, async (req, res) => {
+    if (!digiflazz.isConfigured()) return res.json({ configured: false, balance: null });
+    try {
+        const balance = await digiflazz.getBalance();
+        res.json({ configured: true, balance });
+    } catch (e) { res.status(500).json({ configured: true, error: e.message }); }
+});
+
+
 // Laporan penjualan
 router.get('/api/admin/report', requireAuth, requireAdmin, (req, res) => {
     const orders = store.getOrders();
@@ -514,11 +657,11 @@ router.get('/api/admin/report', requireAuth, requireAdmin, (req, res) => {
 router.get('/api/admin/orders/export.csv', requireAuth, requireAdmin, (req, res) => {
     const orders = store.getOrders();
     const esc = v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
-    const head = ['ID', 'Tanggal', 'Produk', 'Harga', 'Diskon', 'Total', 'Voucher', 'Customer', 'WhatsApp', 'Status', 'Pembayaran'];
+    const head = ['ID', 'Tanggal', 'Produk', 'Harga', 'Diskon', 'Total', 'Voucher', 'Customer', 'Email', 'WhatsApp', 'Status', 'Pembayaran'];
     const rows = orders.map(o => [
         o.id, o.createdAt, o.productName, o.productPrice, o.discount || 0,
         o.finalPrice != null ? o.finalPrice : o.productPrice, o.voucherCode || '',
-        o.customerName, o.customerWA, o.status, o.paymentStatus,
+        o.customerName, o.customerEmail || '', o.customerWA || '', o.status, o.paymentStatus,
     ].map(esc).join(','));
     const csv = '﻿' + [head.map(esc).join(','), ...rows].join('\n');
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
