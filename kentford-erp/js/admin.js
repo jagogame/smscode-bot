@@ -72,6 +72,11 @@ const Crud={
      if(k==='partners'&&!rec){if(!v.province)throw new Error(t('partner.err_province_required'));v.code=PartnerCode.next(v.province)}
      if(k==='partners'&&rec)delete v.code;
      if(k==='partners')delete v.rating; // rating hanya diubah otomatis dari evaluasi (lihat Partners.recalcRating)
+     // Ekstraksi otomatis koordinat dari Link Google Maps bila ada
+     if((k==='partners'||k==='partner_prospects')&&v.gmapsLink){
+      const geo=typeof parseGoogleMapsCoords==='function'?parseGoogleMapsCoords(v.gmapsLink):null;
+      if(geo){v.lat=geo.lat;v.lng=geo.lng;}
+     }
      if(k==='partner_evaluations'){const ks=['scoreSpeed','scorePunctual','scoreTech','scoreTools','scoreQuality','scoreReport','scoreComm','scoreSatisfaction','scoreCost','scoreSop'];v.avgScore=+(sum(ks.map(x=>num(v[x])),x=>x)/ks.length).toFixed(2)}
      if(k==='partner_payments')v.total=num(v.serviceFee)+num(v.transportCost)+num(v.accomCost)+num(v.partsCost)-num(v.taxDeduction);
      if(k==='products'&&!v.barcode)v.barcode=v.sku;

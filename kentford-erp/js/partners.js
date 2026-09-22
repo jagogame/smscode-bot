@@ -43,6 +43,41 @@ const PROVINCE_CAPITAL={'DKI Jakarta':[-6.2088,106.8456],'Jawa Barat':[-6.9175,1
  'Sulawesi Barat':[-2.6742,118.8987],'Bali':[-8.6705,115.2126],'Nusa Tenggara Barat':[-8.5833,116.1167],'Nusa Tenggara Timur':[-10.1772,123.6070],
  'Maluku':[-3.6954,128.1814],'Maluku Utara':[0.7833,127.3667],'Papua':[-2.5333,140.7167],'Papua Barat':[-0.8615,134.0620]};
 
+/* Ekstraksi otomatis koordinat latitude & longitude dari Link Google Maps atau teks koordinat */
+function parseGoogleMapsCoords(link){
+ if(!link||typeof link!=='string')return null;
+ const s=link.trim();
+ // 1. Pola @lat,lng mis. google.com/maps/@-6.2088,106.8456,15z
+ let m=s.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+ if(m)return {lat:+m[1],lng:+m[2]};
+ // 2. Pola q=lat,lng atau ll=lat,lng atau query=lat,lng
+ m=s.match(/[?&](?:q|ll|query)=(-?\d+\.\d+)[,\s]+(-?\d+\.\d+)/);
+ if(m)return {lat:+m[1],lng:+m[2]};
+ // 3. Pola /place/.../@lat,lng atau /place/lat,lng
+ m=s.match(/\/place\/[^/]*@?(-?\d+\.\d+)[,\s]+(-?\d+\.\d+)/);
+ if(m)return {lat:+m[1],lng:+m[2]};
+ // 4. Pola !3dlat!4dlng (URL sematan/embed/place share Google Maps)
+ const mLat=s.match(/!3d(-?\d+\.\d+)/),mLng=s.match(/!4d(-?\d+\.\d+)/);
+ if(mLat&&mLng)return {lat:+mLat[1],lng:+mLng[1]};
+ // 5. Format koordinat langsung "lat, lng" atau "-6.2088, 106.8456"
+ m=s.match(/^(-?\d+\.\d+)[,\s]+(-?\d+\.\d+)$/);
+ if(m)return {lat:+m[1],lng:+m[2]};
+ return null;
+}
+
+/* Dapatkan koordinat untuk partner: utamakan parse dari gmapsLink, fallback ke lat/lng lama bila ada, atau fallback ke ibu kota provinsi */
+function getPartnerCoords(r){
+ if(!r)return null;
+ const parsed=parseGoogleMapsCoords(r.gmapsLink);
+ if(parsed)return parsed;
+ if(num(r.lat)&&num(r.lng))return {lat:num(r.lat),lng:num(r.lng)};
+ if(r.province&&PROVINCE_CAPITAL[r.province]){
+  const cap=PROVINCE_CAPITAL[r.province];
+  return {lat:cap[0],lng:cap[1],isApprox:true};
+ }
+ return null;
+}
+
 /* ---------- Utilitas jarak (haversine, tanpa library) ---------- */
 const Haversine=(lat1,lng1,lat2,lng2)=>{
  const R=6371,dLat=(lat2-lat1)*Math.PI/180,dLng=(lng2-lng1)*Math.PI/180;
@@ -93,8 +128,8 @@ const Partners={
  },
  /* B. haversine ke semua partner berkoordinat, urut terdekat — dipakai peta & rekomendasi service order (H) */
  nearest(lat,lng,limit=10,opts={}){
-  const rows=this.all().filter(r=>num(r.lat)&&num(r.lng)&&(!opts.activeOnly||r.status==='Active'));
-  return rows.map(r=>({partner:r,distKm:+Haversine(lat,lng,num(r.lat),num(r.lng)).toFixed(1)})).sort((a,b)=>a.distKm-b.distKm).slice(0,limit);
+  const rows=this.all().map(r=>({partner:r,coords:getPartnerCoords(r)})).filter(x=>x.coords&&(!opts.activeOnly||x.partner.status==='Active'));
+  return rows.map(x=>({partner:x.partner,distKm:+Haversine(lat,lng,x.coords.lat,x.coords.lng).toFixed(1)})).sort((a,b)=>a.distKm-b.distKm).slice(0,limit);
  },
  /* Ringkasan per provinsi: jumlah partner aktif/prospek/inactive, prospek, dan partner terdekat bila kosong. */
  provinceSummary(){
@@ -147,7 +182,8 @@ const Partners={
    score+=num(p.rating)*5;
    if(p.contractEndDate&&p.contractEndDate>=today())score+=10;
    let distKm=null;
-   if(lat&&lng&&num(p.lat)&&num(p.lng)){distKm=+Haversine(lat,lng,num(p.lat),num(p.lng)).toFixed(1);score+=Math.max(0,20-distKm/10)}
+   const geo=getPartnerCoords(p);
+   if(lat&&lng&&geo){distKm=+Haversine(lat,lng,geo.lat,geo.lng).toFixed(1);score+=Math.max(0,20-distKm/10)}
    return {partner:p,score:+score.toFixed(1),distKm};
   }).sort((a,b)=>b.score-a.score);
   return rows.slice(0,limit);
@@ -242,9 +278,11 @@ function mountLeafletMap(el){
  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:18}).addTo(_leafMap);
  _leafMarkers=[];
  const colorHex={green:'#2e7d32',blue:'#1565c0',yellow:'#f9a825',grey:'#9e9e9e',red:'#c62828'};
- Partners.all().filter(r=>num(r.lat)&&num(r.lng)).forEach(r=>{
+ Partners.all().forEach(r=>{
+  const geo=getPartnerCoords(r);
+  if(!geo)return;
   const col=colorHex[Partners.markerColor(r)];
-  const m=L.circleMarker([num(r.lat),num(r.lng)],{radius:8,color:col,fillColor:col,fillOpacity:0.85,weight:1}).addTo(_leafMap);
+  const m=L.circleMarker([geo.lat,geo.lng],{radius:8,color:col,fillColor:col,fillOpacity:0.85,weight:1}).addTo(_leafMap);
   m.bindPopup(partnerPopupHtml(r));
   m._pname=(r.name||'').toLowerCase();m._pprov=(r.province||'').toLowerCase();m._pcity=(r.city||'').toLowerCase();m._pcode=(r.code||'').toLowerCase();
   _leafMarkers.push(m);
@@ -313,8 +351,8 @@ ACT['prospect-convert']=async el=>{
  const ok=await UI.confirm({title:t('partner.convert_title'),msg:t('partner.convert_confirm',{name:esc(p.name)})});
  if(!ok)return;
  const code=PartnerCode.next(p.province);
- const partner=DB.insert('partners',{code,name:p.name,pic:p.pic||'',whatsapp:p.whatsapp||'',province:p.province||'',city:p.city||'',lat:p.lat||0,lng:p.lng||0,
-  techCount:p.techCount||0,techNotes:p.techCapability||'',brands:p.brands||'',hasTools:!!p.toolList,workshopPhotos:p.workshopPhotos||[],
+ const partner=DB.insert('partners',{code,name:p.name,pic:p.pic||'',whatsapp:p.whatsapp||'',province:p.province||'',city:p.city||'',
+  gmapsLink:p.gmapsLink||'',techCount:p.techCount||0,techNotes:p.techCapability||'',brands:p.brands||'',hasTools:!!p.toolList,workshopPhotos:p.workshopPhotos||[],
   status:'Under Evaluation',evalNotes:p.notes||'',coverageAreas:[]});
  DB.update('partner_prospects',p.id,{converted:true,status:'Diterima'},t('partner.convert_action'),t('partner.convert_action'));
  UI.toast(t('partner.convert_success',{code:partner.code}));Router.go('partners/'+partner.id);
