@@ -91,6 +91,12 @@ if (smtpConfigured) {
   console.warn('[kentford-erp-auth] SMTP not configured — reset link logged instead of emailed (see pending-resets.log). Set SMTP_HOST/SMTP_PORT/SMTP_USER/SMTP_PASS/SMTP_FROM in .env to enable real email.');
 }
 
+/* CATATAN: sempat dicoba fallback "kirim langsung" (MX lookup + koneksi langsung ke mail server
+   tujuan tanpa SMTP terkonfigurasi) supaya tidak perlu menunggu kredensial. Dibatalkan — itu
+   mengharuskan menonaktifkan verifikasi sertifikat TLS ke server tujuan yang tidak dikenal, yang
+   melemahkan keamanan koneksi tanpa jaminan hasil (kemungkinan besar tetap masuk spam/ditolak
+   provider besar). Sampai SMTP_HOST/dst diisi di .env, jalur aman adalah mencatat ke pending-resets.log
+   untuk dikirim manual oleh admin. */
 async function sendResetEmail(email, link) {
   const line = `${nowISO()}\t${email}\t${link}\n`;
   if (!transporter) {
