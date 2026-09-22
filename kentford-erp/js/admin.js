@@ -67,9 +67,20 @@ const Crud={
     try{
      if(e.autoCode&&!rec)v[e.autoCode.k]=Num.next(e.autoCode.type);
      if(e.autoCode&&rec)delete v[e.autoCode.k];
+     // Kode partner: format {PULAU}-{PROVINSI}-{URUT} (lihat js/partners.js PartnerCode), bukan lewat Num
+     // biasa karena penomorannya per pulau+provinsi, bukan per bulan/tahun.
+     if(k==='partners'&&!rec){if(!v.province)throw new Error(t('partner.err_province_required'));v.code=PartnerCode.next(v.province)}
+     if(k==='partners'&&rec)delete v.code;
+     if(k==='partners')delete v.rating; // rating hanya diubah otomatis dari evaluasi (lihat Partners.recalcRating)
+     if(k==='partner_evaluations'){const ks=['scoreSpeed','scorePunctual','scoreTech','scoreTools','scoreQuality','scoreReport','scoreComm','scoreSatisfaction','scoreCost','scoreSop'];v.avgScore=+(sum(ks.map(x=>num(v[x])),x=>x)/ks.length).toFixed(2)}
+     if(k==='partner_payments')v.total=num(v.serviceFee)+num(v.transportCost)+num(v.accomCost)+num(v.partsCost)-num(v.taxDeduction);
      if(k==='products'&&!v.barcode)v.barcode=v.sku;
      if(k==='products'&&DB.all('products').some(p=>p.sku===v.sku&&p.id!==id))throw new Error(t('admin.sku_used'));
      if(k==='approvalLimits'&&num(v.step)<1)throw new Error(t('admin.step_min1'));
+     // Aftersales partner: General Admin/HR/Sales Support boleh input data awal & follow-up, tapi
+     // TIDAK boleh "menyetujui" partner (mengubah status jadi Active) — itu wewenang Admin Aftersales/
+     // Direksi (spec section M). Berlaku hanya saat status BERUBAH menjadi Active oleh role ini.
+     if(k==='partners'&&isRole('admin_hr_sales')&&v.status==='Active'&&(!rec||rec.status!=='Active'))throw new Error(t('partner.err_hr_cannot_activate'));
      if(rec){DB.update(e.col,id,v,'')}else{DB.insert(e.col,v)}
      m.close();UI.toast(t('admin.data_saved'));Crud.refresh();
     }catch(er){UI.toast(er.message,'err')}

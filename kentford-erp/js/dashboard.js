@@ -62,6 +62,18 @@ PAGES.dashboard.render=async v=>{
    <div class="card"><h3>${t('dashboard.sales_performance')}</h3>${bars(groupSum(sos,s=>userName(s.salesId),s=>s.dpp))}</div>
    <div class="card"><h3>${t('dashboard.orders_by_stage')}</h3>${bars(byStage,n=>t('dashboard.n_orders',{n}))}</div></div>`;
  }
+ /* ----- K. Aftersales Partner Network (hanya role dengan akses modul partner) ----- */
+ if(isRole('director','deputy_director','admin_aftersales','tech_manager')&&typeof PartnerDash!=='undefined'){
+  const ps=PartnerDash.summary();
+  h+=`<div class="card"><h3>${t('nav.partners_map')}</h3><div class="grid g4">
+   ${kpi(t('partner.col_active'),ps.active)}${kpi(t('partner.col_prospect'),ps.prospect)}${kpi(t('partner.col_inactive'),ps.inactive)}
+   ${kpi(t('partner.coverage_by_province'),ps.provincesCovered+'/'+ps.provincesTotal)}
+   ${kpi(t('partner.rating'),ps.topRated?esc(ps.topRated.name)+' ('+(num(ps.topRated.rating)||'-')+')':'-')}
+   ${kpi(t('common.notes'),ps.expiring.length,ps.expiring.length?ps.expiring.slice(0,2).map(p=>esc(p.name)).join(', '):'','warn')}
+   ${kpi(t('partner.evaluate_btn'),ps.notEvaluated.length,'',ps.notEvaluated.length?'warn':'')}
+   ${kpi(t('partner.region_priority'),ps.priorityRegions.length,ps.priorityRegions.slice(0,2).map(r=>esc(r.province)).join(', '),ps.priorityRegions.length?'bad':'')}
+   </div><p class="mut" style="margin-top:6px"><a href="#/partners_map">${t('partner.view_map')} ›</a></p></div>`;
+ }
  v.innerHTML=h;
 };
 ACT['go']=el=>{location.hash='#/'+el.dataset.h};

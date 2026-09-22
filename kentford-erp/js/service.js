@@ -69,11 +69,16 @@ function svcDetail(v,r){
  }
  if(r.status==='Selesai'&&isRole('tech_manager','admin_aftersales','deputy_director','director')&&can('svc_req','w'))acts.push(`<button class="btn" data-act="svc-close" data-id="${r.id}">Tutup tiket</button>`);
  if(r.warrantyStatus==='Dalam Garansi'&&!wOk&&!wPend&&canOps)acts.push(`<button class="btn btn-o" data-act="svc-warranty" data-id="${r.id}">Ajukan service gratis (warranty)</button>`);
+ // H. Rekomendasi Aftersales Partner (lihat js/partners.js Partners.recommend) — hanya Admin Aftersales/Manager Teknisi/Direksi
+ if(canEnt(ENT.partners)&&isRole('admin_aftersales','tech_manager','deputy_director','director'))acts.push(`<button class="btn btn-o" data-act="svc-assign-partner" data-id="${r.id}">${esc(t('partner.assign_btn'))}</button>`);
+ // I. Buat evaluasi partner setelah service request selesai & sudah ada partner ditugaskan
+ if(r.partnerId&&['Selesai','Ditutup'].includes(r.status)&&can('partner_evaluations','w'))acts.push(`<button class="btn btn-o" data-act="partner-eval-new" data-id="${r.id}">${esc(t('partner.evaluate_btn'))}</button>`);
  v.innerHTML=UI.pghead('Service '+r.no,acts.join(''))+`<div class="card"><div class="ch"><span>${esc(custName(r.customerId))} — ${esc(r.unitDesc)}</span>${UI.badge(r.status)}</div><div class="stepper">${stepper}</div>
   ${wPend?`<div class="warnbox">Pengajuan servis gratis <a href="#" data-act="appr-open" data-id="${wPend.id}">${esc(wPend.no)}</a> menunggu approval Manager.</div>`:''}${wOk?'<div class="info">Servis GRATIS (warranty) — disetujui.</div>':''}</div>
   <div class="grid split"><div>
   <div class="card">${UI.kv([['Jenis',esc(r.type)],['Prioritas',UI.badge(r.priority)],['Status warranty',esc(r.warrantyStatus)],['Serial',esc(r.serialNumber||'-')],['Lokasi',esc(r.location)],['Keluhan',esc(r.complaint)],
-   ['Teknisi',esc(userName(r.technicianId)||'-')],['Jadwal',r.scheduledDate?fdate(r.scheduledDate):'-']])}</div>
+   ['Teknisi',esc(userName(r.technicianId)||'-')],['Jadwal',r.scheduledDate?fdate(r.scheduledDate):'-'],
+   [t('partner.assigned_partner'),r.partnerId?`${esc(r.partnerCode||'')} — ${esc(r.partnerName||'')} <small class="mut">(${esc(r.partnerPic||'-')}, ${phoneOrHidden(r.partnerContact)})</small>`:'-']])}</div>
   <div class="card"><h3>Diagnosis & rekomendasi</h3>${canTech?`<div id="svdiag">${Form.render([F.ta('diagnosis','Hasil diagnosis'),F.ta('recommendation','Rekomendasi'),F.m('laborCost','Biaya jasa (Rp)')],r)}</div><div class="acts" style="margin-top:8px"><button class="btn btn-o btn-sm" data-act="svc-savediag" data-id="${r.id}">Simpan</button></div>`:UI.kv([['Diagnosis',esc(r.diagnosis||'-')],['Rekomendasi',esc(r.recommendation||'-')],['Biaya jasa',rp(r.laborCost)]])}</div>
   <div class="card"><h3>Spare part</h3>${(r.parts||[]).length?`<div class="tblw"><table><tr><th>Produk</th><th class="num">Qty</th><th>Gudang</th><th>Status</th><th></th></tr>${r.parts.map((p,i)=>`<tr><td>${esc(DB.get('products',p.productId)?.name)}</td><td class="num">${nf(p.qty)}</td><td>${esc(whName(p.whId))}</td><td>${UI.badge(p.status)}</td><td>${p.status==='Diminta'&&can('gi','w')?`<button class="btn btn-sm" data-act="svc-part-ready" data-id="${r.id}" data-i="${i}">Siapkan (gudang)</button>`:''}</td></tr>`).join('')}</table></div>`:'<div class="empty">Belum ada permintaan spare part.</div>'}</div>
   <div class="card"><h3>Foto & tanda tangan</h3><div class="fg"><div class="fld full"><label>Foto sebelum</label><div class="files" data-files="photosBefore" data-ro="${canTech?0:1}"></div></div><div class="fld full"><label>Foto sesudah</label><div class="files" data-files="photosAfter" data-ro="${canTech?0:1}"></div></div>
@@ -173,6 +178,42 @@ PAGES.pm.render=async v=>{
   `<div class="card"><h3>Jatuh tempo PM</h3>${rows.filter(due).length?rows.filter(due).map(r=>`<div style="padding:6px 0;border-bottom:1px solid var(--bd)">${UI.badge('Jatuh tempo')} ${esc(custName(r.customerId))} — ${esc(r.unitDesc)} <button class="btn btn-sm" data-act="pm-create-svc" data-id="${r.id}" style="float:right">Buat Service Request</button></div>`).join(''):'<div class="empty">Tidak ada PM yang jatuh tempo.</div>'}</div>
   <div class="card" id="pml"></div>`;
  Crud.list($('#pml'),'pm_schedules');
+};
+/* ---------------- H. Rekomendasi & penugasan Aftersales Partner ke Service Request ---------------- */
+ACT['svc-assign-partner']=el=>{
+ const r=DB.get('svc_req',el.dataset.id);
+ const recs=Partners.recommend(r,8);
+ if(!recs.length)return UI.toast(t('partner.no_recommendation'),'err');
+ const body=`<div class="tblw"><table><tr><th></th><th>${t('partner.col_name')}</th><th>${t('partner.col_score')}</th><th>${t('partner.col_dist')}</th><th>${t('partner.rating')}</th><th>${t('common.status')}</th></tr>
+  ${recs.map(x=>`<tr><td><button class="btn btn-sm" data-act="svc-partner-pick" data-id="${r.id}" data-pid="${x.partner.id}">${esc(t('partner.pick_btn'))}</button></td>
+   <td>${esc(x.partner.code)} — ${esc(x.partner.name)}</td><td>${x.score}</td><td>${x.distKm!=null?x.distKm+' km':'-'}</td><td>${num(x.partner.rating)||'-'}</td><td>${UI.badge(x.partner.status)}</td></tr>`).join('')}
+  </table></div><p class="mut" style="margin-top:8px">${t('partner.pick_other_hint')}</p>
+  <div class="fld full" style="margin-top:6px"><label>${t('partner.pick_other_label')}</label>${Form.select('id="svcOtherPartner"',{t:'ref',ref:'partners'},'','','')}</div>
+  <div class="fld full"><label>${t('partner.override_reason')}</label><textarea id="svcOverrideReason" rows="2"></textarea></div>
+  <div class="acts" style="margin-top:8px"><button class="btn btn-o" data-act="svc-partner-pick-other" data-id="${r.id}">${esc(t('partner.assign_other_btn'))}</button></div>`;
+ UI.modal({title:t('partner.recommend_title'),wide:true,body,foot:`<button class="btn btn-o" data-x="c">${t('admin.close')}</button>`}).el.addEventListener('click',e=>{
+  if(e.target.closest('[data-x="c"]'))e.target.closest('.ov')._m.close();
+ });
+};
+function assignPartnerToSvc(svcId,partnerId,reason){
+ const p=DB.get('partners',partnerId);if(!p)return UI.toast(t('err.notfound'),'err');
+ const r=DB.get('svc_req',svcId);
+ DB.update('svc_req',svcId,{partnerId:p.id,partnerCode:p.code,partnerName:p.name,partnerPic:p.pic,partnerContact:p.whatsapp,partnerAssignReason:reason||''},reason||'','Partner ditugaskan');
+ UI.toast(t('partner.assigned_success',{name:p.name}));
+ $$('.ov').forEach(o=>o._m&&o._m.close());
+ Router.render();
+}
+ACT['svc-partner-pick']=el=>assignPartnerToSvc(el.dataset.id,el.dataset.pid);
+ACT['svc-partner-pick-other']=el=>{
+ const sel=$('#svcOtherPartner'),reason=$('#svcOverrideReason')?.value.trim();
+ if(!sel||!sel.value)return UI.toast(t('partner.pick_other_required'),'err');
+ if(!reason)return UI.toast(t('partner.override_reason_required'),'err');
+ assignPartnerToSvc(el.dataset.id,sel.value,reason);
+};
+/* ---------------- I. Evaluasi partner dari Service Request selesai ---------------- */
+ACT['partner-eval-new']=async el=>{
+ const r=DB.get('svc_req',el.dataset.id);if(!r.partnerId)return;
+ Crud.open('partner_evaluations',null,{partnerId:r.partnerId,svcReqId:r.id});
 };
 ACT['pm-create-svc']=el=>{
  const p=DB.get('pm_schedules',el.dataset.id);

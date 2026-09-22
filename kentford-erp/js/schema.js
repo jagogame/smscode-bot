@@ -11,6 +11,7 @@ const PAGE_GROUPS=[
  {gk:'admin',pages:['company_docs','leave']},
  {gk:'rental',pages:['rent_units','rent_contracts','rent_schedule','hourmeter','overtime','deposit','rent_return']},
  {gk:'service',pages:['svc_req','survey','wo','tech_sched','install','pm','warranty','svc_report']},
+ {gk:'aftersales_partners',pages:['partners','partners_map','partner_prospects','partner_evaluations','partner_payments']},
  {gk:'approval',pages:['approvals_pending','approvals_done','approvals_rejected','approvals_history']},
  {gk:'other',pages:['reports','master','users','audit','settings']}
 ];
@@ -21,6 +22,7 @@ const PAGES={};
  'invoices','ar','si','ap','payreq','bank','petty','tax','recon','coa','journal',
  'rent_units','rent_contracts','rent_schedule','hourmeter','overtime','deposit','rent_return',
  'svc_req','survey','wo','tech_sched','install','pm','warranty','svc_report',
+ 'partners','partners_map','partner_prospects','partner_evaluations','partner_payments',
  'approvals_pending','approvals_done','approvals_rejected','approvals_history',
  'company_docs','leave',
  'reports','master','users','audit','settings'
@@ -37,6 +39,9 @@ const F={
  c:(k,l,o={})=>({k,l,t:'check',...o}),fl:(k,l,o={})=>({k,l,t:'files',...o}),pc:(k,l,o={})=>({k,l,t:'percent',...o})
 };
 const salesUsers=u=>['sales','sales_manager','admin_hr_sales'].includes(u.roleId);
+// Kosakata status kerjasama partner aftersales persis dari spesifikasi bisnis (bukan diterjemahkan lewat t(),
+// mengikuti konvensi opsi select lain di file ini yang berupa string literal statis).
+const PARTNER_STATUS_OPTS=['Prospect','Contacted','Follow-up','Surveyed','Under Evaluation','Waiting for Agreement','Active','Temporarily Inactive','Blacklisted','Contract Ended'];
 const ENT={
  users:{col:'users',label:r=>r.name},
  roles:{col:'roles',label:r=>r.name},
@@ -116,7 +121,39 @@ const ENT={
  quotations:{col:'quotations',page:'quotations',owner:'salesId',custom:true,label:r=>r.no},
  salesorders:{col:'salesorders',page:'salesorders',owner:'salesId',custom:true,label:r=>r.no},
  invoices:{col:'invoices',page:'invoices',owner:'salesId',custom:true,label:r=>r.no},
- orders:{col:'orders',page:'orders',owner:'salesId',custom:true,label:r=>r.no}
+ orders:{col:'orders',page:'orders',owner:'salesId',custom:true,label:r=>r.no},
+ partners:{col:'partners',page:'partners',title:'Aftersales Partner',label:r=>`${r.code||''} — ${r.name||''}`,status:'status',
+  wr:['admin_aftersales','admin_hr_sales','deputy_director','director'],
+  fields:[F.t('code','Kode Partner',{ro:true,list:true,hint:'Otomatis: PULAU-PROVINSI-NOMOR'}),F.t('name','Nama Perusahaan / Bengkel',{req:true,list:true}),F.t('pic','Nama PIC',{req:true,list:true}),
+   F.t('whatsapp','No. WhatsApp',{t:'phone',req:true,list:true}),F.t('phone','No. Telepon',{t:'phone'}),F.t('email','Email',{t:'email'}),F.ta('address','Alamat Lengkap',{req:true}),
+   F.t('province','Provinsi',{req:true,list:true}),F.t('city','Kota / Kabupaten',{req:true,list:true}),F.t('district','Kecamatan'),F.t('postalCode','Kode Pos'),
+   F.n('lat','Latitude',{req:true,list:true,hint:'Wajib diisi untuk tampil di peta'}),F.n('lng','Longitude',{req:true,list:true}),F.t('gmapsLink','Link Google Maps',{hint:'Kosongkan = otomatis dari koordinat'}),
+   F.n('radiusKm','Radius Layanan (km)',{list:true}),F.n('techCount','Jumlah Teknisi',{list:true}),F.ta('techNotes','Kemampuan / Catatan Teknisi'),
+   F.t('brands','Merek / Jenis Mesin Ditangani',{list:true,hint:'Pisahkan dengan koma'}),F.c('hasTools','Ketersediaan Alat Kerja'),F.c('hasVehicle','Ketersediaan Kendaraan Servis'),F.c('hasSparepart','Ketersediaan Spare Part'),
+   F.c('isFullService','Partner Resmi (Kemampuan Servis Lengkap)',{hint:'Menentukan marker biru pada peta'}),
+   F.s('status','Status Kerjasama',PARTNER_STATUS_OPTS,{req:true,def:'Prospect',list:true,badge:true}),
+   F.d('coopStartDate','Tanggal Mulai Kerjasama'),F.d('contractEndDate','Tanggal Berakhir Kontrak',{list:true}),F.fl('contractDoc','Dokumen Kontrak'),F.fl('workshopPhotos','Foto Bengkel'),
+   F.ta('evalNotes','Catatan Evaluasi'),F.n('rating','Rating Rata-rata',{ro:true,list:true,hint:'Otomatis dari Evaluasi Partner'}),
+   {k:'coverageAreas',l:'Wilayah Cakupan',t:'lines',w:'full',cols:[{k:'area',l:'Provinsi/Kota',t:'text',w:'160px'},{k:'transportCost',l:'Biaya Transport (Rp)',t:'number',w:'120px'},{k:'etaHours',l:'Estimasi Tiba (jam)',t:'number',w:'100px'},{k:'notes',l:'Catatan (akomodasi/luar kota/emergency 24 jam)',t:'text'}]}]},
+ partner_prospects:{col:'partner_prospects',page:'partner_prospects',title:'Prospek Partner',label:r=>r.name||'-',status:'status',wr:['admin_aftersales','admin_hr_sales','deputy_director','director'],
+  fields:[F.t('name','Nama Perusahaan / Bengkel',{req:true,list:true}),F.t('pic','PIC',{list:true}),F.t('whatsapp','No. WhatsApp',{t:'phone',list:true}),F.t('province','Provinsi',{list:true}),F.t('city','Kota',{list:true}),
+   F.n('lat','Latitude'),F.n('lng','Longitude'),F.t('source','Sumber Informasi',{list:true}),F.d('firstContactDate','Tanggal Kontak Pertama',{def:()=>today()}),F.r('followupBy','Staff Follow-up','users',{list:true,def:()=>Auth.uid()}),
+   F.ta('commResult','Hasil Komunikasi'),F.ta('techCapability','Kemampuan Teknis'),F.n('techCount','Jumlah Teknisi'),F.c('hasWorkshop','Punya Bengkel'),F.ta('toolList','Daftar Alat'),
+   F.ta('experience','Pengalaman Servis Genset'),F.t('brands','Merek yang Biasa Ditangani'),F.fl('legalDocs','Dokumen Legal'),F.fl('workshopPhotos','Foto Bengkel'),
+   F.s('status','Status Follow-up',['Baru','Dihubungi','Dijadwalkan Survey','Disurvey','Dalam Evaluasi','Diterima','Ditolak'],{def:'Baru',list:true,badge:true}),F.d('nextFollowupDate','Follow-up Berikutnya',{list:true}),
+   F.ta('notes','Catatan'),F.ta('rejectReason','Alasan Diterima/Ditolak'),F.c('converted','Sudah Dikonversi',{ro:true})]},
+ partner_evaluations:{col:'partner_evaluations',page:'partner_evaluations',title:'Evaluasi Partner',label:r=>`${fdate(r.date)} — ${DB.get('partners',r.partnerId)?.name||''}`,wr:['tech_manager','admin_aftersales','director','deputy_director'],
+  fields:[F.r('partnerId','Partner','partners',{req:true,list:true}),F.r('svcReqId','Service Request Terkait','svc_req'),F.d('date','Tanggal Evaluasi',{def:()=>today(),req:true,list:true}),
+   F.n('scoreSpeed','Kecepatan Respons (1-5)',{req:true,def:3}),F.n('scorePunctual','Ketepatan Waktu (1-5)',{req:true,def:3}),F.n('scoreTech','Kemampuan Teknis (1-5)',{req:true,def:3}),
+   F.n('scoreTools','Kelengkapan Alat (1-5)',{req:true,def:3}),F.n('scoreQuality','Kualitas Pekerjaan (1-5)',{req:true,def:3}),F.n('scoreReport','Kelengkapan Laporan (1-5)',{req:true,def:3}),
+   F.n('scoreComm','Komunikasi (1-5)',{req:true,def:3}),F.n('scoreSatisfaction','Kepuasan Customer (1-5)',{req:true,def:3}),F.n('scoreCost','Kewajaran Biaya (1-5)',{req:true,def:3}),
+   F.n('scoreSop','Kepatuhan SOP (1-5)',{req:true,def:3}),F.n('avgScore','Rata-rata',{ro:true,list:true}),F.ta('notes','Catatan')]},
+ partner_payments:{col:'partner_payments',page:'partner_payments',title:'Pembayaran Partner',label:r=>`${DB.get('partners',r.partnerId)?.name||''} — ${fdate(r.paymentDate)||''}`,wr:['finance','admin_aftersales','tech_manager','director','deputy_director'],
+  fields:[F.r('svcReqId','Service Request','svc_req',{req:true,list:true}),F.r('partnerId','Partner','partners',{req:true,list:true}),F.m('serviceFee','Biaya Jasa (Rp)',{list:true}),F.m('transportCost','Biaya Transport (Rp)'),
+   F.m('accomCost','Biaya Akomodasi (Rp)'),F.m('partsCost','Biaya Spare Part (Rp)'),F.m('taxDeduction','Potongan Pajak (Rp)'),F.m('total','Total Pembayaran (Rp)',{ro:true,list:true}),
+   F.fl('partnerInvoice','Invoice Partner'),F.fl('workProof','Bukti Pekerjaan'),F.t('serviceReportNo','No. Service Report',{list:true}),
+   F.c('techManagerApproved','Disetujui Manager Teknisi',{ro:true,list:true}),F.c('adminAftersalesApproved','Disetujui Admin Aftersales',{ro:true,list:true}),
+   F.s('paymentStatus','Status Pembayaran',['Menunggu Approval','Siap Dibayar','Dibayar'],{def:'Menunggu Approval',list:true,badge:true}),F.d('paymentDate','Tanggal Bayar'),F.fl('transferProof','Bukti Transfer')]}
 };
 function wireEntTitle(k){const orig=ENT[k].title;delete ENT[k].title;Object.defineProperty(ENT[k],'title',{enumerable:true,get:()=>t('ent.'+k)||orig});}
 Object.keys(ENT).forEach(wireEntTitle);
@@ -147,28 +184,29 @@ const G_ADM=['company_docs','leave'];
 const G_RENT=['rent_units','rent_contracts','rent_schedule','hourmeter','overtime','deposit','rent_return'];
 const G_SVC=['svc_req','survey','wo','tech_sched','install','pm','warranty','svc_report'];
 const G_APR=['approvals_pending','approvals_done','approvals_rejected','approvals_history'];
+const G_PTN=['partners','partners_map','partner_prospects','partner_evaluations','partner_payments'];
 const permOf=(r,w=[])=>{const o={};r.forEach(k=>o[k]='r');w.forEach(k=>o[k]='w');return o};
 const ROLE_SEED=[
  // 1. Direktur — akses penuh, approval final, kelola user/role/departemen, lock periode, tidak bisa hapus audit log (tidak ada UI hapus audit)
- {id:'director',name:'Direktur',seeCost:true,scopeOwn:false,perm:permOf(ALLK,[...G_APR,'orders','quotations','master','settings','leads','customers','followups','suppliers','invoices','salesorders','users','coa','journal',...G_ADM])},
+ {id:'director',name:'Direktur',seeCost:true,scopeOwn:false,perm:permOf(ALLK,[...G_APR,'orders','quotations','master','settings','leads','customers','followups','suppliers','invoices','salesorders','users','coa','journal',...G_ADM,...G_PTN])},
  // 2. Asisten Direktur — luas seperti Direktur, approve sesuai limit (bukan final sign-off), kelola user/role/departemen
- {id:'deputy_director',name:'Asisten Direktur',seeCost:true,scopeOwn:false,perm:permOf(ALLK.filter(k=>!['settings'].includes(k)),[...G_APR,'orders','quotations','master','leads','customers','followups','suppliers','invoices','salesorders','users'])},
+ {id:'deputy_director',name:'Asisten Direktur',seeCost:true,scopeOwn:false,perm:permOf(ALLK.filter(k=>!['settings'].includes(k)),[...G_APR,'orders','quotations','master','leads','customers','followups','suppliers','invoices','salesorders','users',...G_PTN])},
  // 3. Finance, Accounting & Tax — gabungan finance+accounting+tax, tidak bisa approve final payment
- {id:'finance',name:'Finance, Accounting & Tax',seeCost:true,scopeOwn:false,perm:permOf(['dashboard','customers','quotations','salesorders','orders','followups','suppliers','po','products','stock_genset','stock_parts','reports','master',...G_FIN,...G_APR,'rent_contracts','deposit','overtime'],[...G_FIN,'invoices'])},
+ {id:'finance',name:'Finance, Accounting & Tax',seeCost:true,scopeOwn:false,perm:permOf(['dashboard','customers','quotations','salesorders','orders','followups','suppliers','po','products','stock_genset','stock_parts','reports','master',...G_FIN,...G_APR,'rent_contracts','deposit','overtime',...G_PTN],[...G_FIN,'invoices','partner_payments'])},
  // 4. General Admin, HR & Sales Support — gabungan general admin + HR + sales support + eks-purchasing (tidak lihat cost/margin/tax/bank)
- {id:'admin_hr_sales',name:'General Admin, HR & Sales Support',seeCost:false,scopeOwn:false,perm:permOf(['dashboard',...G_CRM,...G_PUR,'products','stock_genset','stock_parts','invoices','ar','reports','master','users',...G_APR,...G_RENT,...G_SVC,...G_ADM],['customers','followups','quotations','salesorders','orders','invoices','leads',...G_SVC,...G_PUR,'master',...G_ADM])},
+ {id:'admin_hr_sales',name:'General Admin, HR & Sales Support',seeCost:false,scopeOwn:false,perm:permOf(['dashboard',...G_CRM,...G_PUR,'products','stock_genset','stock_parts','invoices','ar','reports','master','users',...G_APR,...G_RENT,...G_SVC,...G_ADM,...G_PTN],['customers','followups','quotations','salesorders','orders','invoices','leads',...G_SVC,...G_PUR,'master',...G_ADM,'partners','partner_prospects'])},
  // 5. Admin Aftersales — service request/WO/warranty/spare part/service report, tidak approve teknis/final biaya service
- {id:'admin_aftersales',name:'Admin Aftersales',seeCost:false,scopeOwn:false,perm:permOf(['dashboard','customers','products','stock_genset','stock_parts','reports',...G_SVC,...G_APR],['svc_req','survey','install','pm','svc_report'])},
+ {id:'admin_aftersales',name:'Admin Aftersales',seeCost:false,scopeOwn:false,perm:permOf(['dashboard','customers','products','stock_genset','stock_parts','reports',...G_SVC,...G_APR,...G_PTN],['svc_req','survey','install','pm','svc_report','partners','partners_map','partner_prospects','partner_evaluations','partner_payments'])},
  // 6. Admin Gudang — master produk/genset/spare part, barcode, stok, DO; tidak boleh ubah harga jual/beli, tidak approve stock adjust sendiri
- {id:'warehouse',name:'Admin Gudang',seeCost:false,scopeOwn:false,perm:permOf(['dashboard','orders','products','stock_genset','stock_parts','reports','master','svc_req','wo',...G_INV,...G_APR],[...G_INV.filter(k=>k!=='products')])},
+ {id:'warehouse',name:'Admin Gudang',seeCost:false,scopeOwn:false,perm:permOf(['dashboard','orders','products','stock_genset','stock_parts','reports','master','svc_req','wo',...G_INV,...G_APR,'partners','partners_map'],[...G_INV.filter(k=>k!=='products')])},
  // 7. Manager Teknisi — jadwal/penugasan teknisi, approve survey/diagnosa/kebutuhan part/laporan servis, tidak sentuh keuangan
- {id:'tech_manager',name:'Manager Teknisi',seeCost:false,scopeOwn:false,perm:permOf(['dashboard','products','stock_genset','stock_parts','reports',...G_SVC,...G_APR],[...G_SVC])},
+ {id:'tech_manager',name:'Manager Teknisi',seeCost:false,scopeOwn:false,perm:permOf(['dashboard','products','stock_genset','stock_parts','reports',...G_SVC,...G_APR,...G_PTN],[...G_SVC,'partner_evaluations'])},
  // 8. Staff Teknisi — hanya tugas yang di-assign (scopeOwn)
  {id:'technician',name:'Staff Teknisi',seeCost:false,scopeOwn:true,perm:permOf(['dashboard','orders','products','stock_genset','stock_parts',...G_SVC,...G_APR],[...G_SVC])},
  // 9. Manager Sales — lihat seluruh tim sales, reassign lead/PIC, approve quotation/diskon sesuai limit, lihat margin
- {id:'sales_manager',name:'Manager Sales',seeCost:true,scopeOwn:false,perm:permOf(['dashboard',...G_CRM,'products','stock_genset','stock_parts','invoices','reports','master',...G_APR],[...G_CRM])},
+ {id:'sales_manager',name:'Manager Sales',seeCost:true,scopeOwn:false,perm:permOf(['dashboard',...G_CRM,'products','stock_genset','stock_parts','invoices','reports','master',...G_APR,'partners','partners_map'],[...G_CRM])},
  // 10. Staff Sales — hanya lead/customer/quotation/order milik sendiri (scopeOwn)
- {id:'sales',name:'Staff Sales',seeCost:false,scopeOwn:true,perm:permOf(['dashboard','leads','customers','followups','quotations','salesorders','orders','products','stock_genset','stock_parts','invoices','reports',...G_APR],['leads','customers','followups','quotations','orders'])}
+ {id:'sales',name:'Staff Sales',seeCost:false,scopeOwn:true,perm:permOf(['dashboard','leads','customers','followups','quotations','salesorders','orders','products','stock_genset','stock_parts','invoices','reports',...G_APR,'partners','partners_map'],['leads','customers','followups','quotations','orders'])}
 ];
 
 /* ---------- Data contoh ---------- */

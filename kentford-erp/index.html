@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>KENTFORD ERP</title>
 <link rel="stylesheet" href="css/app.css">
+<!-- Leaflet (peta interaktif Aftersales Partner Coverage Map). CSS di head (ringan, tidak blocking render
+     berarti); script pakai `defer` supaya download tidak memblokir parsing HTML bila CDN lambat/blocked —
+     window.L baru benar-benar dipakai saat halaman partners_map dibuka (lihat js/partners.js). -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
 </head>
 <body>
 <div id="root"><div class="loading">Memuat KENTFORD ERP…</div></div>
@@ -20,6 +25,7 @@
 <script src="js/finance.js"></script>
 <script src="js/rental.js"></script>
 <script src="js/service.js"></script>
+<script src="js/partners.js"></script>
 <script src="js/neworder.js"></script>
 <script src="js/dashboard.js"></script>
 <script src="js/reports.js"></script>
