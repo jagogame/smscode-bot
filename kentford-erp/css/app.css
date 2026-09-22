@@ -155,9 +155,9 @@ details.sec>div{padding:0 12px 12px}
 .login-logo svg{width:34px;height:34px;flex-shrink:0;color:var(--g5)}
 .login-logo img{height:30px;width:auto;display:block;filter:drop-shadow(0 2px 6px rgba(0,0,0,.35))}
 .login-logo-sm img{height:26px}
-.login-logo-3d{perspective:700px;width:fit-content}
+.login-logo-3d{perspective:700px;width:fit-content;max-width:100%}
 .login-logo-3d img{
- height:44px;transform-style:preserve-3d;will-change:transform;
+ height:44px;max-width:100%;width:auto;transform-style:preserve-3d;will-change:transform;
  transition:transform .35s cubic-bezier(.2,.8,.2,1),filter .35s;
  filter:drop-shadow(0 10px 22px rgba(0,0,0,.45)) drop-shadow(0 2px 4px rgba(0,0,0,.3));
  animation:logoFloat 5s ease-in-out infinite;
@@ -180,6 +180,10 @@ details.sec>div{padding:0 12px 12px}
  .login-visual-overlay{padding:20px 22px;justify-content:center}
  .login-points{display:none}
  .login-panel{padding:20px 16px 32px}
+ /* width:420px + max-width:100% masih bisa meluber di beberapa mesin render (100% dari
+    containing block flex kadang tidak konsisten dipatuhi) — width:100% eksplisit di sini
+    memastikan box tidak pernah lebih lebar dari panelnya sendiri di layar sempit. */
+ .login .box{width:100%}
 }
 
 /* print */
@@ -205,7 +209,15 @@ details.sec>div{padding:0 12px 12px}
 }
 @media(max-width:600px){
  .fg,.g2,.g3,.g4{grid-template-columns:1fr}
- .top{padding:8px 12px;gap:8px}.top .ttl{display:none}
+ /* Search di .top dulu ikut flex:1 di baris yang sama dengan burger/bahasa/notifikasi/profil —
+    di layar sempit ruangnya kehabisan duluan dan search kepepet jadi ~22px (kotak kosong tak
+    kepakai). flex-wrap + kasih search barisnya sendiri di bawah supaya tetap fungsional. */
+ .top{padding:8px 12px;gap:8px;flex-wrap:wrap}.top .ttl{display:none}
+ .search{order:3;flex:1 1 100%;max-width:100%}
  .kv{grid-template-columns:110px 1fr}
  .dlg-b{padding:12px}
+ /* Logo 44px tinggi (aspek ~9:1) lebar ~404px — meluber di layar HP (~375px), potong kiri-kanan.
+    Diperkecil di sini supaya lebarnya selalu muat dalam padding panel visual. */
+ .login-logo-3d img{height:26px}
+ .login-visual-overlay{padding:18px 18px}
 }
