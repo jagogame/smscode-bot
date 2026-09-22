@@ -335,7 +335,7 @@ const App={closed:new Set(),
   Router.render();
  },
  nav(){
-  let h=`<div class="brand"><b>KENTFORD ERP</b><small>PT Kentford Group Indonesia</small></div>`;
+  let h=`<div class="brand"><img class="brand-logo" src="img/logo-kentford.png" alt="Kentford"><small>PT Kentford Group Indonesia</small></div>`;
   for(const g of PAGE_GROUPS){
    const items=g.pages.filter(k=>PAGES[k]&&can(k));
    if(!items.length)continue;
@@ -393,7 +393,6 @@ ACT['chpw']=async()=>{
 };
 
 /* ---------------- Login ---------------- */
-const LOGO_MARK=`<svg viewBox="0 0 48 48" width="1em" height="1em" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="46" height="46" rx="12" fill="currentColor"/><path d="M14 12h5.4v9.3L28 12h6.6l-9.8 10.6L35 36h-6.8l-6.9-9.7-2 2.2V36H14V12z" fill="#fff"/></svg>`;
 const Login={
  show(){
   $('#root').innerHTML=`<div class="login">
@@ -403,7 +402,7 @@ const Login={
      <div style="background-image:url('img/login-solar.png')"></div>
     </div>
     <div class="login-visual-overlay">
-     <div class="login-logo">${LOGO_MARK}<b>KENTFORD</b></div>
+     <div class="login-logo login-logo-3d" id="loginLogo3d"><img src="img/logo-kentford.png" alt="Kentford"></div>
      <p class="login-tag">${esc(t('login.tagline'))}</p>
      <ul class="login-points">
       <li>${esc(t('login.point1'))}</li>
@@ -414,7 +413,7 @@ const Login={
     <div id="loginGlassBadge" class="login-glass-badge"></div>
    </div>
    <div class="login-panel"><div class="box" id="loginbox">
-    <div class="login-logo login-logo-sm">${LOGO_MARK}<b>KENTFORD ERP</b></div>
+    <div class="login-logo login-logo-sm"><img src="img/logo-kentford.png" alt="Kentford ERP"></div>
     <div style="margin-bottom:10px">${App.langSwitcherHtml()}</div>
     <p class="mut">${esc(t('login.please_login'))}</p>
     <div class="fld"><label>${esc(t('login.email'))}</label><input id="lu" type="email" autocomplete="username"></div><div class="fld" style="margin-top:8px"><label>${esc(t('login.password'))}</label><input id="lp" type="password" autocomplete="current-password"></div>
@@ -424,6 +423,31 @@ const Login={
   </div>`;
   setTimeout(()=>$('#lu')?.focus(),50);
   this.mountGlassBadge();
+  this.mountLogo3d();
+ },
+ /* Tilt 3D ringan (CSS transform, bukan WebGL) di logo utama panel visual —
+    mengikuti posisi mouse/jari supaya terasa interaktif tanpa perlu extrude
+    gambar raster jadi mesh 3D beneran. */
+ mountLogo3d(){
+  const el=$('#loginLogo3d');if(!el)return;
+  const img=el.querySelector('img');if(!img)return;
+  const MAX=14;
+  const setTilt=(px,py)=>{
+   img.style.animation='none';
+   img.style.transform=`rotateY(${(px-0.5)*MAX*2}deg) rotateX(${(0.5-py)*MAX}deg) translateZ(10px)`;
+  };
+  const reset=()=>{img.style.animation='';img.style.transform=''};
+  el.addEventListener('mousemove',e=>{
+   const r=el.getBoundingClientRect();
+   setTilt((e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height);
+  });
+  el.addEventListener('mouseleave',reset);
+  el.addEventListener('touchmove',e=>{
+   const t=e.touches[0];if(!t)return;
+   const r=el.getBoundingClientRect();
+   setTilt((t.clientX-r.left)/r.width,(t.clientY-r.top)/r.height);
+  },{passive:true});
+  el.addEventListener('touchend',reset);
  },
  /* Badge dekoratif "SINGAPOWER" bergaya Apple Liquid Glass (WebGL asli, bukan cuma
     backdrop-filter) di pojok panel foto login — dari dashersw/liquid-glass-js (MIT).
@@ -472,7 +496,7 @@ const ResetPassword={
   const tok=this.token();
   $('#root').innerHTML=`<div class="login">
    <div class="login-panel" style="margin:0 auto"><div class="box" id="loginbox">
-    <div class="login-logo login-logo-sm">${LOGO_MARK}<b>KENTFORD ERP</b></div>
+    <div class="login-logo login-logo-sm"><img src="img/logo-kentford.png" alt="Kentford ERP"></div>
     <p class="mut">${esc(t('reset.title'))}</p>
     ${tok?`<div class="fld"><label>${esc(t('reset.new_password'))}</label><input id="rp1" type="password" autocomplete="new-password"></div>
     <div class="fld" style="margin-top:8px"><label>${esc(t('reset.confirm_password'))}</label><input id="rp2" type="password" autocomplete="new-password"></div>

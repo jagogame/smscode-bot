@@ -15,7 +15,7 @@ h1,h2,h3{margin:0}
 .app{display:flex;min-height:100vh}
 #side{width:var(--side);background:var(--g9);color:#d1fae5;flex-shrink:0;position:fixed;top:0;bottom:0;left:0;overflow-y:auto;z-index:30;transition:transform .2s}
 #side .brand{padding:18px 18px 14px;border-bottom:1px solid #ffffff22}
-#side .brand b{display:block;font-size:18px;color:#fff;letter-spacing:.5px}
+#side .brand .brand-logo{display:block;height:26px;width:auto;margin-bottom:6px}
 #side .brand small{color:#86efac;font-size:11px}
 #side .grp{padding:6px 0}
 #side .gh{display:flex;justify-content:space-between;padding:8px 18px;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:#86efac;cursor:pointer;user-select:none}
@@ -144,6 +144,18 @@ details.sec>div{padding:0 12px 12px}
 .login-visual-overlay{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;gap:10px;padding:48px 44px;background:linear-gradient(180deg,rgba(9,38,22,.35) 0%,rgba(9,38,22,.55) 45%,rgba(9,38,22,.92) 100%)}
 .login-logo{display:flex;align-items:center;gap:10px;color:#fff;font-size:22px;font-weight:800;letter-spacing:.2px}
 .login-logo svg{width:34px;height:34px;flex-shrink:0;color:var(--g5)}
+.login-logo img{height:30px;width:auto;display:block;filter:drop-shadow(0 2px 6px rgba(0,0,0,.35))}
+.login-logo-sm img{height:26px}
+.login-logo-3d{perspective:700px;width:fit-content}
+.login-logo-3d img{
+ height:44px;transform-style:preserve-3d;will-change:transform;
+ transition:transform .35s cubic-bezier(.2,.8,.2,1),filter .35s;
+ filter:drop-shadow(0 10px 22px rgba(0,0,0,.45)) drop-shadow(0 2px 4px rgba(0,0,0,.3));
+ animation:logoFloat 5s ease-in-out infinite;
+}
+.login-logo-3d:hover img{animation-play-state:paused}
+@keyframes logoFloat{0%,100%{transform:translateY(0) rotateX(0) rotateY(0)}50%{transform:translateY(-4px) rotateX(2deg) rotateY(-2deg)}}
+@media(prefers-reduced-motion:reduce){.login-logo-3d img{animation:none}}
 .login-tag{color:#d1fae5;font-size:14px;margin:0}
 .login-points{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
 .login-points li{color:#ecfdf3;font-size:13px;padding-left:18px;position:relative}
