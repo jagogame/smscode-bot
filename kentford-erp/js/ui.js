@@ -399,8 +399,8 @@ const Login={
   $('#root').innerHTML=`<div class="login">
    <div class="login-visual">
     <div class="login-visual-imgs">
-     <div style="background-image:url('https://picsum.photos/seed/kentford-genset-unit/900/700')"></div>
-     <div style="background-image:url('https://picsum.photos/seed/kentford-genset-service/900/700')"></div>
+     <div style="background-image:url('img/login-genset.png')"></div>
+     <div style="background-image:url('img/login-solar.png')"></div>
     </div>
     <div class="login-visual-overlay">
      <div class="login-logo">${LOGO_MARK}<b>KENTFORD</b></div>
