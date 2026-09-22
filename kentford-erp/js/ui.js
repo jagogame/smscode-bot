@@ -426,16 +426,35 @@ const Login={
  /* Scene 3D "Energy Core" (Three.js) di panel visual login — inti bercahaya +
     cincin orbit + partikel energi, bisa diputar (drag) & di-zoom (scroll).
     Kalau CDN three.js belum sempat ke-load (script defer), dilewati diam-diam
-    dan panel tetap pakai gradient hijau polos di belakangnya (lihat CSS). */
+    dan panel tetap pakai gradient hijau polos di belakangnya (lihat CSS).
+    Dibuat sengaja start SETELAH badge glass (juga WebGL) supaya dua-duanya
+    tidak rebutan bikin context bersamaan. Kalau context creation tetap gagal
+    ("Error creating WebGL context"), PENTING: sekali sebuah elemen <canvas>
+    gagal dapat context, elemen itu "mati" permanen — retry di canvas yang
+    sama akan gagal terus walau browser sebenarnya sanggup (dibuktikan lewat
+    devtools: canvas baru selalu berhasil). Makanya tiap retry ganti elemen
+    canvas-nya dulu (cloneNode) sebelum coba lagi. */
  mountScene3d(){
   const canvas=$('#loginGL');if(!canvas)return;
-  let tries=0;
-  const tryInit=()=>{
-   if(typeof THREE==='undefined'){if(++tries<40)return setTimeout(tryInit,150);return}
+  let waitTries=0;
+  const waitLib=()=>{
+   if(typeof THREE==='undefined'){if(++waitTries<40)return setTimeout(waitLib,150);return}
    if(!$('#loginGL'))return;
-   try{ this._initScene3d(canvas) }catch(e){console.warn('[login] scene3d skipped:',e.message)}
+   setTimeout(()=>this._tryInitScene3d($('#loginGL'),0),350);
   };
-  tryInit();
+  waitLib();
+ },
+ _tryInitScene3d(canvas,attempt){
+  if(!canvas||!canvas.isConnected)return; // halaman sudah pindah
+  try{ this._initScene3d(canvas) }
+  catch(e){
+   console.warn('[login] scene3d attempt',attempt,'failed:',e.message);
+   if(attempt<5){
+    const fresh=canvas.cloneNode(false);
+    canvas.replaceWith(fresh);
+    setTimeout(()=>this._tryInitScene3d(fresh,attempt+1),400+attempt*300);
+   }
+  }
  },
  _initScene3d(canvas){
   const wrap=canvas.parentElement;
