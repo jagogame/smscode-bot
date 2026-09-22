@@ -187,48 +187,61 @@ PAGES.users.render=async(v,param)=>{
  v.innerHTML=UI.pghead(t('admin.user_access'))+`<div class="tabs"><a href="#/users" class="${tab==='user'?'on':''}">${t('admin.users_tab')}</a><a href="#/users/akses" class="${tab==='akses'?'on':''}">${t('admin.role_access_tab')}</a></div><div id="ub"></div>`;
  tab==='user'?Users.render($('#ub')):Users.roles($('#ub'));
 };
+/* Users: identitas login kini dikelola oleh backend terpisah kentford-erp-auth/ (lihat
+   Auth.apiFetch di js/core.js) — bukan lagi koleksi `users` lokal di IndexedDB. UI/field/tabel
+   yang sudah ada dipertahankan persis sama; hanya lapisan penyimpanan di bawahnya yang diganti
+   ke panggilan /api/admin/users/*. Field `username` dihapus (backend login pakai email saja). */
 const Users={
+ _cache:[],
+ async load(){
+  const r=await Auth.apiFetch('/api/admin/users');
+  this._cache=r.ok&&r.users?r.users:[];
+  return this._cache;
+ },
+ byId(id){return this._cache.find(u=>u.id===id)||null},
  fields(rec){
-  return [F.t('name',t('admin.full_name'),{req:true}),F.t('username',t('admin.username'),{req:true,hint:t('admin.username_hint')}),F.t('email','Email',{t:'email'}),
+  return [F.t('name',t('admin.full_name'),{req:true}),F.t('email','Email',{req:true,t:'email'}),
    F.s('roleId',t('admin.role'),()=>DB.all('roles').map(r=>({v:r.id,l:r.name})),{req:true}),F.r('deptId',t('admin.department'),'departments'),F.t('phone',t('admin.phone'),{t:'phone'}),
    F.t('jabatan',t('admin.position')),F.t('location',t('admin.work_location')),
-   F.r('approverId',t('admin.approver'),'users',{filter:u=>!rec||u.id!==rec.id}),
+   F.s('approverId',t('admin.approver'),()=>this._cache.filter(u=>!rec||u.id!==rec.id).map(u=>({v:u.id,l:u.name}))),
    F.n('approvalLimit',t('admin.approval_limit'),{hint:t('admin.approval_limit_hint')}),
-   F.r('delegateTo',t('admin.delegate_to'),'users',{filter:u=>!rec||u.id!==rec.id,hint:t('admin.delegate_to_hint')}),
+   F.s('delegateTo',t('admin.delegate_to'),()=>this._cache.filter(u=>!rec||u.id!==rec.id).map(u=>({v:u.id,l:u.name})),{hint:t('admin.delegate_to_hint')}),
    F.s('status',t('admin.account_status'),[{v:'active',l:t('admin.status_active')},{v:'inactive',l:t('admin.status_inactive')},{v:'suspended',l:t('admin.status_suspended')}],{req:true,def:'active'}),
    {k:'password',l:rec?t('admin.password_new_hint'):t('admin.password_min_hint'),t:'password',req:!rec,auto:true},
    // Tanda tangan tersimpan milik user (dipakai sbg default cepat saat serah terima New Order — lihat neworder.js ord-handover)
    {k:'savedSignature',l:t('admin.saved_signature'),t:'sig',hint:t('admin.saved_signature_hint')}];
  },
- render(el){
+ async render(el){
   const w=can('users','w');
-  el.innerHTML='<div class="card" id="ul"></div>';
-  new DT($('#ul'),{title:t('admin.users_tab'),rows:()=>DB.all('users'),onRow:id=>w&&Users.edit(id),
+  el.innerHTML='<div class="card" id="ul">'+t('common.loading')+'</div>';
+  await this.load();
+  new DT($('#ul'),{title:t('admin.users_tab'),rows:()=>this._cache,onRow:id=>w&&Users.edit(id),
    toolbar:w?`<button class="btn btn-sm" data-act="user-new">${t('admin.new_user')}</button>`:'',
    filters:[{k:'role',l:t('admin.role'),opts:()=>DB.all('roles').map(r=>r.name),get:r=>DB.get('roles',r.roleId)?.name}],
-   cols:[{k:'name',l:t('admin.full_name')},{k:'username',l:t('admin.username')},{k:'role',l:t('admin.role'),text:r=>DB.get('roles',r.roleId)?.name},{k:'email',l:'Email'},
+   cols:[{k:'name',l:t('admin.full_name')},{k:'role',l:t('admin.role'),text:r=>DB.get('roles',r.roleId)?.name},{k:'email',l:'Email'},
     {k:'status',l:t('common.status'),text:r=>t('admin.status_'+Auth.userStatus(r)),html:r=>UI.badge(t('admin.status_'+Auth.userStatus(r)))},
     {k:'hist',l:t('admin.login_history'),html:r=>`<button class="btn btn-sm btn-o" data-act="user-history" data-id="${r.id}" onclick="event.stopPropagation()">${esc(t('admin.login_history'))}</button>`}]});
  },
  async edit(id){
-  const rec=id?DB.get('users',id):null,fields=this.fields(rec);
+  const rec=id?this.byId(id):null,fields=this.fields(rec);
   const v=await UI.ask({title:rec?t('admin.edit_user'):t('admin.new_user_title'),fields,vals:rec||{status:'active'},wide:true});
   if(!v)return;
-  v.username=v.username.toLowerCase().replace(/\s+/g,'');
-  if(!/^[a-z0-9._-]{3,}$/.test(v.username))return UI.toast(t('admin.username_min'),'err');
-  if(DB.all('users').some(u=>u.username===v.username&&u.id!==id))return UI.toast(t('admin.username_taken'),'err');
-  if(v.password&&v.password.length<6)return UI.toast(t('admin.password_min'),'err');
+  if(v.password&&v.password.length<8)return UI.toast(t('admin.password_min'),'err');
   if(rec&&id===Auth.user.id&&(v.status!=='active'||v.roleId!==rec.roleId))return UI.toast(t('admin.cannot_change_self'),'err');
-  v.active=v.status==='active';
   const pw=v.password;delete v.password;
-  if(rec)DB.update('users',id,v,'',t('admin.edit_user'));else{const u=DB.insert('users',{...v});id=u.id}
-  if(pw)await Auth.setPassword(id,pw);
-  UI.toast(t('admin.user_saved'));Router.render();
+  let r;
+  if(rec)r=await Auth.apiFetch('/api/admin/users/'+id,{method:'PUT',body:JSON.stringify(v)});
+  else r=await Auth.apiFetch('/api/admin/users',{method:'POST',body:JSON.stringify({...v,password:pw})});
+  if(!r.ok)return UI.toast(r.msg||t('admin.user_saved'),'err');
+  id=r.user?.id||id;
+  if(rec&&pw){const pr=await Auth.apiFetch('/api/admin/users/'+id+'/password',{method:'PUT',body:JSON.stringify({password:pw})});if(!pr.ok)return UI.toast(pr.msg||t('admin.password_min'),'err')}
+  UI.toast(t('admin.user_saved'));await this.load();Router.render();
  },
- /* Riwayat login & aktivitas seorang user, diambil dari Audit log (sudah mencatat semua create/update/
-    remove/login/logout). Dipanggil dari tombol pada baris tabel user (lihat DT toolbar/onRow di render()). */
+ /* Riwayat login & aktivitas seorang user, diambil dari Audit log lokal (audit log tetap
+    tersimpan di IndexedDB, per browser tempat aktivitas terjadi — bukan lagi indikasi lengkap
+    lintas-device sejak login pindah ke backend, lihat catatan di laporan deploy). */
  history(id){
-  const u=DB.get('users',id);if(!u)return;
+  const u=this.byId(id);if(!u)return;
   const rows=DB.col('audit').filter(a=>a.userId===id).sort((a,b)=>b.at.localeCompare(a.at)).slice(0,300);
   UI.modal({title:t('admin.login_history_title',{name:u.name}),wide:true,body:`<div class="tblw"><table><thead><tr><th>${t('admin.time')}</th><th>${t('admin.action')}</th><th>${t('admin.data')}</th></tr></thead><tbody>
    ${rows.map(r=>`<tr><td>${fdt(r.at)}</td><td>${esc(r.action)}</td><td>${esc(r.col||'')} ${esc(r.label||'')}</td></tr>`).join('')||`<tr><td colspan="3" class="mut">${t('admin.no_history')}</td></tr>`}

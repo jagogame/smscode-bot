@@ -382,13 +382,14 @@ ACT['pop']=el=>{const p=$('#'+el.dataset.p),was=p.classList.contains('hide');$$(
 ACT['lang-set']=el=>Lang.set(el.dataset.l);
 ACT['notif-open']=el=>{const n=DB.get('notifications',el.dataset.id);if(n){n.read=true;DB.save('notifications');App.refreshBell();$('#pn').classList.add('hide');if(n.link)location.hash=n.link}};
 ACT['notif-read']=()=>{Notify.mine().forEach(n=>n.read=true);DB.save('notifications');App.refreshBell()};
-ACT['logout']=()=>{Auth.logout();location.hash='';Login.show()};
+ACT['logout']=async()=>{await Auth.logout();location.hash='';Login.show()};
 ACT['chpw']=async()=>{
  const v=await UI.ask({title:t('common.change_password'),fields:[{k:'old',l:t('common.old_password'),t:'password',req:true},{k:'n1',l:t('common.new_password_hint'),t:'password',req:true},{k:'n2',l:t('common.repeat_new_password'),t:'password',req:true}]});
  if(!v)return;
- if(await Auth.hash(v.old,Auth.user.salt)!==Auth.user.pw)return UI.toast(t('common.old_password_wrong'),'err');
- if(v.n1.length<6||v.n1!==v.n2)return UI.toast(t('common.new_password_invalid'),'err');
- await Auth.setPassword(Auth.user.id,v.n1);Auth.set(DB.get('users',Auth.user.id));UI.toast(t('common.password_changed'));
+ if(v.n1.length<8||v.n1!==v.n2)return UI.toast(t('common.new_password_invalid'),'err');
+ const r=await Auth.apiFetch('/api/auth/password',{method:'PUT',body:JSON.stringify({oldPassword:v.old,newPassword:v.n1})});
+ if(!r.ok)return UI.toast(r.msg||t('common.old_password_wrong'),'err');
+ UI.toast(t('common.password_changed'));
 };
 
 /* ---------------- Login ---------------- */
@@ -428,6 +429,33 @@ ACT['login']=async()=>{
  if(!r.ok){UI.toast(r.msg||t('login.failed'),'err');return}
  if(!location.hash||location.hash==='#/')location.hash='#/dashboard';
  App.mount();
+};
+/* ---------------- Reset Password (via link #/reset-password?token=...) ---------------- */
+const ResetPassword={
+ token(){const m=/token=([^&]+)/.exec(location.hash||'');return m?decodeURIComponent(m[1]):''},
+ show(){
+  const tok=this.token();
+  $('#root').innerHTML=`<div class="login">
+   <div class="login-panel" style="margin:0 auto"><div class="box" id="loginbox">
+    <div class="login-logo login-logo-sm">${LOGO_MARK}<b>KENTFORD ERP</b></div>
+    <p class="mut">${esc(t('reset.title'))}</p>
+    ${tok?`<div class="fld"><label>${esc(t('reset.new_password'))}</label><input id="rp1" type="password" autocomplete="new-password"></div>
+    <div class="fld" style="margin-top:8px"><label>${esc(t('reset.confirm_password'))}</label><input id="rp2" type="password" autocomplete="new-password"></div>
+    <button class="btn" style="width:100%;margin-top:14px" data-act="reset-submit">${esc(t('reset.submit'))}</button>`
+    :`<p class="err">${esc(t('reset.invalid_token'))}</p>`}
+    <p class="right" style="margin-top:10px"><a href="#" data-act="reset-back">${esc(t('reset.back_to_login'))}</a></p>
+   </div></div>
+  </div>`;
+ }
+};
+ACT['reset-back']=()=>{location.hash='';Login.show()};
+ACT['reset-submit']=async()=>{
+ const p1=$('#rp1').value,p2=$('#rp2').value;
+ if(p1.length<8)return UI.toast(t('reset.too_short'),'err');
+ if(p1!==p2)return UI.toast(t('reset.mismatch'),'err');
+ const r=await Auth.resetPassword(ResetPassword.token(),p1);
+ if(!r.ok)return UI.toast(r.msg||t('reset.invalid_token'),'err');
+ UI.toast(t('reset.success'));location.hash='';Login.show();
 };
 ACT['forgot-password']=async()=>{
  const v=await UI.ask({title:t('login.forgot_password'),fields:[{k:'email',l:t('login.email'),t:'email',req:true}],ok:t('login.send_reset_link')});

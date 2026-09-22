@@ -235,6 +235,16 @@ const Seed={
    ['u_t1','teknisi1','Dimas Nugroho','technician','Staff Teknisi','d7','Jabodetabek','u_tm',0],
    ['u_sm','salesmgr','Maya Anggraini','sales_manager','Manager Sales','d2','Head Office Jakarta','u_wadir',100000000],
    ['u_s1','sales1','Rizky Pratama','sales','Staff Sales','d2','Head Office Jakarta','u_sm',0]];
+  /* PENTING: koleksi `users` lokal di bawah ini TIDAK LAGI dipakai untuk login/autentikasi
+     (lihat Auth di js/core.js — login sekarang selalu lewat backend kentford-erp-auth/, real
+     akun ada di server, bukan di sini). Tetap di-seed sebagai DATA REFERENSI READ-ONLY supaya
+     lookup non-auth yang sudah ada di codebase tetap jalan terhadap data contoh: nama sales/
+     approver/teknisi pada order & customer contoh (userName(), DB.all('users').find(...) di
+     berbagai file), filter user di reports/service, delegatesFor()/Notify.role() untuk approval
+     data contoh, dsb (lihat grep `DB.all('users')`/`DB.get('users'` di seluruh js/*.js). Akun
+     BARU yang dibuat lewat Admin > Users (backend) TIDAK otomatis muncul di koleksi lokal ini,
+     jadi lookup2 tsb tidak akan "melihat" user baru itu — keterbatasan yang diketahui, di luar
+     scope tugas ini (yang hanya memindahkan identitas login, bukan seluruh data bisnis). */
   const users=[];for(const [id,username,name,roleId,position,deptId,location,approverId,approvalLimit] of U)
    users.push({id,username,name,roleId,position,jabatan:position,deptId,location,approverId,approverId:approverId||'',approvalLimit:approvalLimit||0,delegateTo:'',status:'active',active:true,email:username+'@contoh.co.id',...await pw()});
   add('users',users);

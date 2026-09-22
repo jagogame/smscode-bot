@@ -7,7 +7,8 @@ window.addEventListener('unhandledrejection',e=>{try{UI.toast('Error: '+(e.reaso
   await Store.init();
   if(Seed.needed())await Seed.run();
   Quote.expire();
-  if(Auth.restore())App.mount();else Login.show();
+  if(/^#\/reset-password/.test(location.hash)){ResetPassword.show();return}
+  if(await Auth.restore())App.mount();else Login.show();
  }catch(e){
   console.error(e);
   document.getElementById('root').innerHTML='<div class="card errbox" style="margin:20px"><b>Aplikasi gagal dimuat.</b><br>'+String(e.message||e)+'</div>';

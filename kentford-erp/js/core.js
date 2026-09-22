@@ -152,51 +152,76 @@ const Num={
  }
 };
 
-/* ---------- Autentikasi & RBAC (sisi klien) ---------- */
-const Auth={user:null,role:null,sid:'',
+/* ---------- Autentikasi & RBAC ----------
+   Login/users/sessions kini ditangani oleh backend terpisah kentford-erp-auth/ (lihat repo,
+   folder sejajar dengan kentford-erp/), BUKAN lagi koleksi `users` lokal di IndexedDB —
+   itulah yang membuat satu akun bisa login dari device/browser manapun. Data bisnis lain
+   (customers, orders, dst) TETAP di IndexedDB lokal seperti sebelumnya; hanya identitas
+   login yang pindah ke server bersama. `Auth.user`/`Auth.role` di sini datang langsung dari
+   respons backend, terpisah dari `DB` lokal (lihat js/schema.js Seed.run() untuk koleksi
+   `users`/`roles` lokal yang tetap di-seed sebagai data referensi read-only, mis. untuk
+   menampilkan nama sales/approver pada data contoh). */
+const Auth={user:null,role:null,sid:'',token:'',
  uid(){return this.user?.id||'system'},
+ /* Dipakai HANYA untuk mengisi field pw/salt pada data referensi lokal (Seed.run() di
+    js/schema.js) — bukan lagi dipakai untuk verifikasi login sungguhan (lihat login() di
+    bawah, yang selalu lewat backend kentford-erp-auth/). */
  async hash(pw,salt){
   try{const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(salt+':'+pw));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
   catch(e){let h1=0xdeadbeef,h2=0x41c6ce57;for(const ch of salt+':'+pw){h1=Math.imul(h1^ch.charCodeAt(0),2654435761);h2=Math.imul(h2^ch.charCodeAt(0),1597334677)}return 'x'+(h1>>>0).toString(16)+(h2>>>0).toString(16)}
+ },
+ async apiFetch(path,opts={}){
+  let res;
+  try{
+   res=await fetch(path,{...opts,headers:{'Content-Type':'application/json',...(this.token?{'Authorization':'Bearer '+this.token}:{}),...(opts.headers||{})}});
+  }catch(e){return {ok:false,networkError:true,msg:t('login.network_error')}}
+  let body=null;try{body=await res.json()}catch(e){}
+  if(!res.ok)return {ok:false,status:res.status,msg:body?.msg||t('login.failed'),error:body?.error};
+  return body||{ok:true};
  },
  /* status akun 3-state: 'active'|'inactive'|'suspended'. Data lama tanpa field `status` dianggap
     'active' selama active!==false (kompatibilitas mundur), 'inactive' bila active===false. */
  userStatus(u){return u?.status||(u?.active===false?'inactive':'active')},
  isActive(u){return this.userStatus(u)==='active'},
- /* Login via email (bukan username lagi — lihat catatan keamanan di bawah). Untuk kompatibilitas
-    mundur dengan data seed lama yang mungkin belum punya email, dicoba juga cocok ke username. */
+ /* Login via email terhadap backend bersama (bukan lagi IndexedDB lokal). */
  async login(email,pw){
-  const q=String(email).trim().toLowerCase();
-  const u=DB.all('users').find(x=>(x.email||'').toLowerCase()===q||x.username.toLowerCase()===q);
-  if(!u)return {ok:false,msg:t('login.failed')};
-  if(!this.isActive(u))return {ok:false,msg:t('login.account_'+this.userStatus(u))};
-  if(await this.hash(pw,u.salt)!==u.pw)return {ok:false,msg:t('login.failed')};
-  this.set(u);
+  const r=await this.apiFetch('/api/auth/login',{method:'POST',body:JSON.stringify({email,password:pw})});
+  if(!r.ok)return {ok:false,msg:r.msg||t('login.failed')};
+  this.token=r.token;this.user=r.user;this.role=r.role;
   this.sid=uid()+' | '+(navigator.userAgent||'').slice(0,60);
-  try{localStorage.setItem('kerp_sess',JSON.stringify({id:u.id,sid:this.sid}))}catch(e){}
-  Audit.log(t('audit.login'),'users',u.id,null,null,'');
+  try{localStorage.setItem('kerp_sess',JSON.stringify({token:r.token}))}catch(e){}
+  Audit.log(t('audit.login'),'users',this.user.id,null,null,'');
   return {ok:true};
  },
- /* Lupa password: PENTING — app ini saat ini murni client-side (data user tersimpan per-browser di
-    IndexedDB, bukan di server bersama), jadi belum ada backend yang bisa benar-benar mengirim email.
-    Sampai backend auth terpisah di-deploy (lihat kentford-erp-auth/), fungsi ini TIDAK mengirim email
-    sungguhan — hanya mensimulasikan respons generik yang sama baik email ditemukan atau tidak (supaya
-    tidak membocorkan daftar email terdaftar), dan mencatat permintaan ke audit log untuk ditindaklanjuti
-    admin secara manual sementara ini. */
+ /* Lupa password: memanggil backend kentford-erp-auth/ (POST /api/auth/forgot-password), yang
+    SELALU mengembalikan respons generik yang sama baik email terdaftar atau tidak (mencegah
+    kebocoran daftar email). Bila email terdaftar dan SMTP belum dikonfigurasi di server, link
+    reset hanya dicatat ke pending-resets.log di VPS (belum benar-benar terkirim email). */
  async requestPasswordReset(email){
-  const q=String(email).trim().toLowerCase();
-  const u=DB.all('users').find(x=>(x.email||'').toLowerCase()===q);
-  if(u)Audit.log(t('audit.password_reset_requested'),'users',u.id,null,null,'');
-  return {ok:true,msg:t('login.reset_link_sent')};
+  const r=await this.apiFetch('/api/auth/forgot-password',{method:'POST',body:JSON.stringify({email})});
+  if(r.networkError)return {ok:false,msg:r.msg};
+  return {ok:true,msg:r.msg||t('login.reset_link_sent')};
  },
- set(u){this.user=u;this.role=DB.get('roles',u.roleId)||null},
- restore(){
+ async resetPassword(token,newPassword){
+  const r=await this.apiFetch('/api/auth/reset-password',{method:'POST',body:JSON.stringify({token,newPassword})});
+  return {ok:!!r.ok,msg:r.msg};
+ },
+ set(u,role){this.user=u;this.role=role||DB.get('roles',u.roleId)||null},
+ async restore(){
   try{const s=JSON.parse(localStorage.getItem('kerp_sess')||'null');
-   if(s){const u=DB.get('users',s.id);if(u&&!u.deletedAt&&this.isActive(u)){this.set(u);this.sid=s.sid;return true}}}catch(e){}
+   if(s?.token){
+    this.token=s.token;
+    const r=await this.apiFetch('/api/auth/session');
+    if(r.ok&&r.user){this.set(r.user,r.role);this.sid=s.token.slice(0,12);return true}
+   }}catch(e){}
+  this.token='';try{localStorage.removeItem('kerp_sess')}catch(e){}
   return false;
  },
- logout(){Audit.log(t('audit.logout'),'users',this.user?.id,null,null,'');this.user=null;this.role=null;try{localStorage.removeItem('kerp_sess')}catch(e){}},
- async setPassword(userId,pw){const salt=uid();const pwh=await this.hash(pw,salt);DB.update('users',userId,{salt,pw:pwh},t('common.change_password'),t('audit.change_password'))},
+ async logout(){
+  Audit.log(t('audit.logout'),'users',this.user?.id,null,null,'');
+  try{await this.apiFetch('/api/auth/logout',{method:'POST'})}catch(e){}
+  this.user=null;this.role=null;this.token='';try{localStorage.removeItem('kerp_sess')}catch(e){}
+ },
  /* Batas approval efektif seorang user: override per-user (users.approvalLimit) bila diisi (>0),
     kalau tidak pakai batas role (approvalLimits) sebagaimana biasa. Dipakai untuk menandai bahwa
     seorang user bisa mendapat hak approve lebih tinggi/lebih rendah dari role-nya secara individual. */
@@ -392,7 +417,8 @@ Object.assign(I18N.id,{
  'login.tagline':'Genset Industrial · Sales, Rental & Service','login.point1':'Approval & workflow New Order terkontrol','login.point2':'Rental & service genset dalam satu sistem','login.point3':'Stok, keuangan, dan laporan real-time',
  'login.please_login':'PT KENTFORD GROUP INDONESIA. Silakan masuk.','login.username':'Username','login.email':'Email','login.password':'Password','login.button':'Masuk','login.forgot_password':'Lupa password?','login.send_reset_link':'Kirim tautan reset','login.reset_link_sent':'Bila email terdaftar, tautan reset password telah dikirim.','audit.password_reset_requested':'Minta reset password',
  'login.failed':'Username atau password salah, atau akun nonaktif.','login.account_inactive':'Akun tidak aktif. Hubungi Direktur/Admin.','login.account_suspended':'Akun ditangguhkan (suspend). Hubungi Direktur/Admin.','lang.label':'Bahasa',
- 'common.reason':'Alasan','common.select':'pilih','common.all':'semua','common.excel':'Excel','common.print_pdf':'Cetak / PDF','common.no_data':'Belum ada data.',
+ 'login.network_error':'Tidak bisa menghubungi server. Periksa koneksi internet Anda dan coba lagi.','reset.title':'Atur Ulang Password','reset.new_password':'Password Baru','reset.confirm_password':'Konfirmasi Password','reset.submit':'Simpan Password Baru','reset.mismatch':'Konfirmasi password tidak sama.','reset.too_short':'Password minimal 8 karakter.','reset.success':'Password berhasil diubah. Silakan login.','reset.back_to_login':'Kembali ke login','reset.invalid_token':'Tautan reset tidak valid atau sudah kedaluwarsa.',
+ 'common.reason':'Alasan','common.select':'pilih','common.all':'semua','common.excel':'Excel','common.print_pdf':'Cetak / PDF','common.no_data':'Belum ada data.','common.loading':'Memuat...',
  'common.data_count_suffix':'data','common.prev':'Sebelumnya','common.page':'Hal','common.next':'Berikutnya','common.data_list':'Daftar Data',
  'common.comment':'Komentar','common.no_activity':'Belum ada aktivitas.','common.comment_placeholder':'Tulis komentar… gunakan @username untuk mention pengguna',
  'common.send_comment':'Kirim komentar','common.comment_empty':'Komentar masih kosong.','common.mention_notify':'{name} menyebut Anda: {text}',
@@ -598,7 +624,8 @@ Object.assign(I18N.en,{
  'login.tagline':'Industrial Genset · Sales, Rental & Service','login.point1':'Controlled New Order approval & workflow','login.point2':'Genset rental & service in one system','login.point3':'Real-time stock, finance, and reports',
  'login.please_login':'PT KENTFORD GROUP INDONESIA. Please sign in.','login.username':'Username','login.email':'Email','login.password':'Password','login.button':'Sign in','login.forgot_password':'Forgot password?','login.send_reset_link':'Send reset link','login.reset_link_sent':'If that email is registered, a password reset link has been sent.','audit.password_reset_requested':'Requested password reset',
  'login.failed':'Wrong username or password, or the account is inactive.','login.account_inactive':'Account is inactive. Contact Director/Admin.','login.account_suspended':'Account is suspended. Contact Director/Admin.','lang.label':'Language',
- 'common.reason':'Reason','common.select':'select','common.all':'All','common.excel':'Excel','common.print_pdf':'Print / PDF','common.no_data':'No data yet.',
+ 'login.network_error':'Could not reach the server. Check your internet connection and try again.','reset.title':'Reset Password','reset.new_password':'New Password','reset.confirm_password':'Confirm Password','reset.submit':'Save New Password','reset.mismatch':'Password confirmation does not match.','reset.too_short':'Password must be at least 8 characters.','reset.success':'Password changed successfully. Please log in.','reset.back_to_login':'Back to login','reset.invalid_token':'The reset link is invalid or has expired.',
+ 'common.reason':'Reason','common.select':'select','common.all':'All','common.excel':'Excel','common.print_pdf':'Print / PDF','common.no_data':'No data yet.','common.loading':'Loading...',
  'common.data_count_suffix':'records','common.prev':'Previous','common.page':'Page','common.next':'Next','common.data_list':'Data List',
  'common.comment':'Comment','common.no_activity':'No activity yet.','common.comment_placeholder':'Write a comment… use @username to mention a user',
  'common.send_comment':'Send comment','common.comment_empty':'Comment is still empty.','common.mention_notify':'{name} mentioned you: {text}',
@@ -804,7 +831,8 @@ Object.assign(I18N.zh,{
  'login.tagline':'工业发电机 · 销售、租赁与服务','login.point1':'受控的新订单审批与流程','login.point2':'发电机租赁与服务一体化管理','login.point3':'库存、财务与报表实时掌握',
  'login.please_login':'肯特福德集团印尼有限公司。请登录。','login.username':'用户名','login.email':'邮箱','login.password':'密码','login.button':'登录','login.forgot_password':'忘记密码？','login.send_reset_link':'发送重置链接','login.reset_link_sent':'如果该邮箱已注册，重置密码的链接已发送。','audit.password_reset_requested':'请求重置密码',
  'login.failed':'用户名或密码错误，或账号已停用。','login.account_inactive':'账号未启用，请联系管理员。','login.account_suspended':'账号已被暂停，请联系管理员。','lang.label':'语言',
- 'common.reason':'原因','common.select':'请选择','common.all':'全部','common.excel':'Excel','common.print_pdf':'打印/PDF','common.no_data':'暂无数据。',
+ 'login.network_error':'无法连接服务器，请检查网络连接后重试。','reset.title':'重置密码','reset.new_password':'新密码','reset.confirm_password':'确认密码','reset.submit':'保存新密码','reset.mismatch':'两次输入的密码不一致。','reset.too_short':'密码至少需要8个字符。','reset.success':'密码修改成功，请重新登录。','reset.back_to_login':'返回登录','reset.invalid_token':'重置链接无效或已过期。',
+ 'common.reason':'原因','common.select':'请选择','common.all':'全部','common.excel':'Excel','common.print_pdf':'打印/PDF','common.no_data':'暂无数据。','common.loading':'加载中...',
  'common.data_count_suffix':'条记录','common.prev':'上一页','common.page':'第','common.next':'下一页','common.data_list':'数据列表',
  'common.comment':'评论','common.no_activity':'暂无动态。','common.comment_placeholder':'写评论…使用 @用户名 提及用户',
  'common.send_comment':'发送评论','common.comment_empty':'评论内容不能为空。','common.mention_notify':'{name} 提及了您：{text}',
