@@ -140,7 +140,7 @@ details.sec>div{padding:0 12px 12px}
 .login-visual-imgs>div{background-size:cover;background-position:center;filter:saturate(.9)}
 .login-visual-overlay{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;gap:10px;padding:48px 44px;background:linear-gradient(180deg,rgba(9,38,22,.35) 0%,rgba(9,38,22,.55) 45%,rgba(9,38,22,.92) 100%)}
 .login-logo{display:flex;align-items:center;gap:10px;color:#fff;font-size:22px;font-weight:800;letter-spacing:.2px}
-.login-logo svg{width:34px;height:34px;flex-shrink:0}
+.login-logo svg{width:34px;height:34px;flex-shrink:0;color:var(--g5)}
 .login-tag{color:#d1fae5;font-size:14px;margin:0}
 .login-points{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
 .login-points li{color:#ecfdf3;font-size:13px;padding-left:18px;position:relative}
