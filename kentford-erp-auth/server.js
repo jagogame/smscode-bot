@@ -18,6 +18,7 @@ const PENDING_RESETS_LOG = path.join(__dirname, 'pending-resets.log');
 const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || 'http://69.161.221.210:8090';
 
 const app = express();
+app.set('trust proxy', 'loopback'); // di belakang nginx di localhost — percaya X-Forwarded-For dari situ saja
 app.use(helmet());
 app.use(express.json({ limit: '256kb' }));
 
