@@ -55,11 +55,11 @@ const Crud={
    const b=ev.target.closest('[data-x]');if(!b)return;const x=b.dataset.x;
    if(x==='c'){m.close();return}
    if(x==='h'){UI.modal({title:t('admin.history_title'),wide:true,body:Crud.history(e.col,id)});return}
-   if(x==='r'){DB.restore(e.col,id);m.close();UI.toast(t('admin.data_restored'));Crud.refresh();return}
+   if(x==='r'){await DB.restore(e.col,id);m.close();UI.toast(t('admin.data_restored'));Crud.refresh();return}
    if(x==='conv'){m.close();Crud.convertLead(rec);return}
    if(x==='d'){
     const r=await UI.confirm({title:t('admin.delete_title'),msg:t('admin.delete_confirm_msg',{name:esc(e.label(rec))}),reason:true,ok:t('admin.yes_delete'),danger:true});
-    if(!r)return;DB.remove(e.col,id,r.reason);m.close();UI.toast(t('admin.data_archived'));Crud.refresh();return;
+    if(!r)return;await DB.remove(e.col,id,r.reason);m.close();UI.toast(t('admin.data_archived'));Crud.refresh();return;
    }
    if(x==='s'){
     const {v,err}=Form.collect(m.body,fields);
@@ -67,10 +67,12 @@ const Crud={
     try{
      if(e.autoCode&&!rec)v[e.autoCode.k]=Num.next(e.autoCode.type);
      if(e.autoCode&&rec)delete v[e.autoCode.k];
-     // Kode partner: format {PULAU}-{PROVINSI}-{URUT} (lihat js/partners.js PartnerCode), bukan lewat Num
-     // biasa karena penomorannya per pulau+provinsi, bukan per bulan/tahun.
-     if(k==='partners'&&!rec){if(!v.province)throw new Error(t('partner.err_province_required'));v.code=PartnerCode.next(v.province)}
-     if(k==='partners'&&rec)delete v.code;
+     // Kode partner: format {PULAU}-{PROVINSI}-{URUT} — sekarang di-generate SERVER-SIDE saat
+     // POST /api/partners (lihat kentford-erp-auth/partners.js nextPartnerCode()), supaya nomor
+     // urut unik lintas device/browser. Validasi provinsi tetap dicek di sini agar gagal cepat
+     // sebelum roundtrip ke server; kode itu sendiri tidak pernah dikirim dari client.
+     if(k==='partners'&&!rec){if(!v.province)throw new Error(t('partner.err_province_required'))}
+     if(k==='partners')delete v.code;
      if(k==='partners')delete v.rating; // rating hanya diubah otomatis dari evaluasi (lihat Partners.recalcRating)
      // Ekstraksi otomatis koordinat dari Link Google Maps bila ada
      if((k==='partners'||k==='partner_prospects')&&v.gmapsLink){
@@ -86,7 +88,7 @@ const Crud={
      // TIDAK boleh "menyetujui" partner (mengubah status jadi Active) — itu wewenang Admin Aftersales/
      // Direksi (spec section M). Berlaku hanya saat status BERUBAH menjadi Active oleh role ini.
      if(k==='partners'&&isRole('admin_hr_sales')&&v.status==='Active'&&(!rec||rec.status!=='Active'))throw new Error(t('partner.err_hr_cannot_activate'));
-     if(rec){DB.update(e.col,id,v,'')}else{DB.insert(e.col,v)}
+     if(rec){await DB.update(e.col,id,v,'')}else{await DB.insert(e.col,v)}
      m.close();UI.toast(t('admin.data_saved'));Crud.refresh();
     }catch(er){UI.toast(er.message,'err')}
    }

@@ -312,6 +312,10 @@ app.delete('/api/admin/users/:id', authMiddleware, requireAdmin, async (req, res
   res.json({ ok: true });
 });
 
+/* ---------- Aftersales Partner Network (moved from browser-local IndexedDB to shared server
+   storage — see partners.js) ---------- */
+require('./partners')(app, { authMiddleware });
+
 app.get('/api/health', (req, res) => res.json({ ok: true, service: 'kentford-erp-auth', smtpConfigured }));
 
 app.use((req, res) => res.status(404).json({ ok: false, error: 'not_found' }));

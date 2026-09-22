@@ -9,6 +9,10 @@ window.addEventListener('unhandledrejection',e=>{try{UI.toast('Error: '+(e.reaso
   Quote.expire();
   if(/^#\/reset-password/.test(location.hash)){ResetPassword.show();return}
   if(await Auth.restore())App.mount();else Login.show();
+  // Partner network data kini di server (lihat js/partners.js PartnerAPI) — muat cache awal
+  // sekali di sini (paralel, tidak diblokir) supaya dashboard/rekomendasi partner di halaman
+  // lain sudah punya data walau user belum membuka halaman Partners secara langsung.
+  if(typeof PartnerAPI!=='undefined'&&Auth.user)PartnerAPI.syncAll().catch(e=>console.warn('[partners] sync awal gagal',e));
  }catch(e){
   console.error(e);
   document.getElementById('root').innerHTML='<div class="card errbox" style="margin:20px"><b>Aplikasi gagal dimuat.</b><br>'+String(e.message||e)+'</div>';

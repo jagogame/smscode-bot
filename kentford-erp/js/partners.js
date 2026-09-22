@@ -85,17 +85,88 @@ const Haversine=(lat1,lng1,lat2,lng2)=>{
  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 };
 
-/* ---------- Penomoran kode partner: {PULAU}-{PROVINSI}-{URUT3} ---------- */
+/* ---------- Penomoran kode partner: {PULAU}-{PROVINSI}-{URUT3} ----------
+   Kode sekarang dibuat SERVER-SIDE (lihat kentford-erp-auth/partners.js nextPartnerCode(), port
+   1:1 dari lookup() di sini) supaya nomor urut unik lintas device/browser, bukan lagi per-browser
+   lewat Store.mem.counters. `lookup()` tetap dipakai lokal murni untuk keperluan tampilan
+   (mis. pengelompokan pulau di reports.js), bukan untuk generate kode lagi. */
 const PartnerCode={
- lookup(province){return PROVINCE_MAP[province]||['LAINNYA',(province||'XX').slice(0,3).toUpperCase()]},
- next(province){
-  const [island,pcode]=this.lookup(province);
-  const ctr=Store.mem.counters||(Store.mem.counters={});
-  const key='PTN-'+island+'-'+pcode;
-  ctr[key]=(ctr[key]||0)+1;Store.put('counters');
-  return island==='PAPUA'?`${island}-${pad(ctr[key],3)}`:`${island}-${pcode}-${pad(ctr[key],3)}`;
+ lookup(province){return PROVINCE_MAP[province]||['LAINNYA',(province||'XX').slice(0,3).toUpperCase()]}
+};
+
+/* =========================================================
+   Partner Network API — data sekarang disimpan di server (kentford-erp-auth), BUKAN lagi di
+   IndexedDB lokal (itulah sebabnya dulu data partner hilang tiap browser storage dibersihkan).
+   Pola: cache in-memory (PCache) yang disinkron dari server via GET, dibaca SYNCHRONOUS oleh
+   DB.all/DB.get/DB.col (di-patch di bawah) supaya seluruh UI existing (Crud generik di admin.js,
+   peta Leaflet, dashboard, reports, service.js) tidak perlu ditulis ulang jadi async — hanya
+   sumber datanya yang diganti. Mutasi (insert/update/remove) memanggil API lalu memperbarui cache. */
+const PARTNER_COLLECTIONS={partners:'/api/partners',partner_prospects:'/api/partner-prospects',partner_evaluations:'/api/partner-evaluations',partner_payments:'/api/partner-payments'};
+const PCache={partners:[],partner_prospects:[],partner_evaluations:[],partner_payments:[]};
+const PartnerAPI={
+ async list(col){
+  const r=await Auth.apiFetch(PARTNER_COLLECTIONS[col]);
+  if(r.ok)PCache[col]=r.items||[];
+  else console.warn('[partners] gagal memuat',col,r.msg||r.error);
+  return PCache[col];
+ },
+ async syncAll(){await Promise.all(Object.keys(PARTNER_COLLECTIONS).map(c=>this.list(c)))},
+ async create(col,data){
+  const r=await Auth.apiFetch(PARTNER_COLLECTIONS[col],{method:'POST',body:JSON.stringify(data)});
+  if(!r.ok)throw new Error(r.msg||t('err.notfound'));
+  PCache[col].push(r.item);
+  return r.item;
+ },
+ async update(col,id,patch){
+  const r=await Auth.apiFetch(PARTNER_COLLECTIONS[col]+'/'+id,{method:'PUT',body:JSON.stringify(patch)});
+  if(!r.ok)throw new Error(r.msg||t('err.notfound'));
+  const i=PCache[col].findIndex(x=>x.id===id);if(i>-1)PCache[col][i]=r.item;else PCache[col].push(r.item);
+  return r.item;
+ },
+ async remove(col,id){
+  const r=await Auth.apiFetch(PARTNER_COLLECTIONS[col]+'/'+id,{method:'DELETE'});
+  if(!r.ok)throw new Error(r.msg||t('err.notfound'));
+  const i=PCache[col].findIndex(x=>x.id===id);if(i>-1)PCache[col][i]={...PCache[col][i],deletedAt:nowISO()};
+ },
+ async restore(col,id){
+  const r=await Auth.apiFetch(PARTNER_COLLECTIONS[col]+'/'+id+'/restore',{method:'POST'});
+  if(!r.ok)throw new Error(r.msg||t('err.notfound'));
+  const i=PCache[col].findIndex(x=>x.id===id);if(i>-1)PCache[col][i]=r.item;
+ },
+ async recalcRating(partnerId){
+  const r=await Auth.apiFetch('/api/partners/'+partnerId+'/recalc-rating',{method:'POST'});
+  if(r.ok){const i=PCache.partners.findIndex(x=>x.id===partnerId);if(i>-1)PCache.partners[i]=r.item;}
  }
 };
+
+/* Patch DB.col/all/get/insert/update/remove/restore: hanya untuk 4 koleksi partner di atas
+   dialihkan ke PCache + PartnerAPI (server); koleksi lain TETAP memakai IndexedDB lokal seperti
+   sebelumnya (customers, orders, dst — di luar scope migrasi ini). insert/update/remove untuk
+   4 koleksi ini sekarang mengembalikan Promise (bukan objek langsung) — setiap pemanggil di
+   admin.js/service.js sudah berada dalam handler async, jadi tinggal di-`await`. */
+(function(){
+ const origCol=DB.col.bind(DB),origAll=DB.all.bind(DB),origGet=DB.get.bind(DB);
+ const origInsert=DB.insert.bind(DB),origUpdate=DB.update.bind(DB),origRemove=DB.remove.bind(DB),origRestore=DB.restore.bind(DB);
+ DB.col=function(n){return PARTNER_COLLECTIONS[n]?PCache[n]:origCol(n)};
+ DB.all=function(n){return PARTNER_COLLECTIONS[n]?PCache[n].filter(r=>!r.deletedAt):origAll(n)};
+ DB.get=function(n,id){return PARTNER_COLLECTIONS[n]?PCache[n].find(r=>r.id===id):origGet(n,id)};
+ DB.insert=function(col,o,reason){
+  if(!PARTNER_COLLECTIONS[col])return origInsert(col,o,reason);
+  return PartnerAPI.create(col,o).then(async r=>{if(col==='partner_evaluations')await PartnerAPI.recalcRating(r.partnerId);return r});
+ };
+ DB.update=function(col,id,patch,reason,action){
+  if(!PARTNER_COLLECTIONS[col])return origUpdate(col,id,patch,reason,action);
+  return PartnerAPI.update(col,id,patch).then(async r=>{if(col==='partner_evaluations')await PartnerAPI.recalcRating(r.partnerId);return r});
+ };
+ DB.remove=function(col,id,reason){
+  if(!PARTNER_COLLECTIONS[col])return origRemove(col,id,reason);
+  return PartnerAPI.remove(col,id);
+ };
+ DB.restore=function(col,id){
+  if(!PARTNER_COLLECTIONS[col])return origRestore(col,id);
+  return PartnerAPI.restore(col,id);
+ };
+})();
 
 /* ---------- Partners: helper bisnis (rating, nearest, region priority) ---------- */
 const Partners={
@@ -201,6 +272,7 @@ crudPage('partners');
 (function(){
  const orig=PAGES.partners.render;
  PAGES.partners.render=async(v,param)=>{
+  await PartnerAPI.syncAll(); // muat data terbaru dari server sebelum render (lihat catatan PCache di atas)
   await orig(v,param);
   const dt=Object.values(DT.inst).filter(d=>document.body.contains(d.el)).pop();
   if(!dt)return;
@@ -246,6 +318,7 @@ const LeafletLoader={
 };
 
 PAGES.partners_map.render=async(v,param)=>{
+ await PartnerAPI.syncAll();
  v.innerHTML=UI.pghead(t('partner.map_title'),`<a class="btn btn-o btn-sm" href="#/partners">${t('partner.view_list')}</a>`)+
   `<div class="tabs"><a class="on" href="#/partners_map">${t('partner.view_map')}</a><a href="#/partners">${t('partner.view_list')}</a></div>
    <div class="card"><div class="fld"><input id="pmsearch" type="search" placeholder="${esc(t('partner.search_ph'))}" style="max-width:340px"></div></div>
@@ -339,6 +412,7 @@ crudPage('partner_prospects');
 (function(){
  const orig=PAGES.partner_prospects.render;
  PAGES.partner_prospects.render=async(v,param)=>{
+  await PartnerAPI.syncAll();
   await orig(v,param);
   const dt=Object.values(DT.inst).filter(d=>document.body.contains(d.el)).pop();
   if(dt)dt.cfg.cols.push({k:'_conv',l:'',html:r=>r.converted?UI.badge(t('partner.converted')):(canEnt(ENT.partner_prospects)?`<button class="btn btn-sm" data-act="prospect-convert" data-id="${r.id}" onclick="event.stopPropagation()">${esc(t('partner.convert_btn'))}</button>`:'')});
@@ -350,11 +424,11 @@ ACT['prospect-convert']=async el=>{
  if(p.converted)return UI.toast(t('partner.already_converted'),'err');
  const ok=await UI.confirm({title:t('partner.convert_title'),msg:t('partner.convert_confirm',{name:esc(p.name)})});
  if(!ok)return;
- const code=PartnerCode.next(p.province);
- const partner=DB.insert('partners',{code,name:p.name,pic:p.pic||'',whatsapp:p.whatsapp||'',province:p.province||'',city:p.city||'',
+ // code tidak lagi dibuat di client — server yang menetapkan lewat POST /api/partners (lihat PartnerAPI.create)
+ const partner=await DB.insert('partners',{name:p.name,pic:p.pic||'',whatsapp:p.whatsapp||'',province:p.province||'',city:p.city||'',
   gmapsLink:p.gmapsLink||'',techCount:p.techCount||0,techNotes:p.techCapability||'',brands:p.brands||'',hasTools:!!p.toolList,workshopPhotos:p.workshopPhotos||[],
   status:'Under Evaluation',evalNotes:p.notes||'',coverageAreas:[]});
- DB.update('partner_prospects',p.id,{converted:true,status:'Diterima'},t('partner.convert_action'),t('partner.convert_action'));
+ await DB.update('partner_prospects',p.id,{converted:true,status:'Diterima'},t('partner.convert_action'),t('partner.convert_action'));
  UI.toast(t('partner.convert_success',{code:partner.code}));Router.go('partners/'+partner.id);
 };
 
@@ -362,22 +436,13 @@ ACT['prospect-convert']=async el=>{
    I. Evaluasi partner
    ========================================================= */
 crudPage('partner_evaluations');
-/* Rating partner dihitung ulang otomatis setiap kali sebuah evaluasi dibuat/diubah, lewat wrapper
-   tipis di sekitar DB.insert/DB.update (bukan mengubah admin.js generik) — tetap lewat DB.update()
-   untuk field rating di partner sehingga audit log otomatis tercatat (lihat Partners.recalcRating). */
 (function(){
- const origInsert=DB.insert.bind(DB),origUpdate=DB.update.bind(DB);
- DB.insert=function(col,o,reason){
-  const r=origInsert(col,o,reason);
-  if(col==='partner_evaluations')Partners.recalcRating(r.partnerId);
-  return r;
- };
- DB.update=function(col,id,patch,reason,action){
-  const r=origUpdate(col,id,patch,reason,action);
-  if(col==='partner_evaluations')Partners.recalcRating(r.partnerId);
-  return r;
- };
+ const orig=PAGES.partner_evaluations.render;
+ PAGES.partner_evaluations.render=async(v,param)=>{await PartnerAPI.syncAll();await orig(v,param)};
 })();
+/* Rating partner kini dihitung ulang di SERVER setiap kali evaluasi dibuat/diubah — lihat
+   PartnerAPI.recalcRating() & patch DB.insert/DB.update di atas (memanggil
+   POST /api/partners/:id/recalc-rating setelah insert/update ke partner_evaluations berhasil). */
 
 /* =========================================================
    J. Pembayaran partner — gating: tidak bisa "Dibayar" tanpa service report
@@ -390,6 +455,7 @@ crudPage('partner_payments');
 (function(){
  const orig=PAGES.partner_payments.render;
  PAGES.partner_payments.render=async(v,param)=>{
+  await PartnerAPI.syncAll();
   await orig(v,param);
   const dt=Object.values(DT.inst).filter(d=>document.body.contains(d.el)).pop();
   if(!dt)return;
@@ -407,16 +473,16 @@ ACT['payment-mark-paid']=async el=>{
  if(!p.serviceReportNo)return UI.toast(t('partner.err_no_report'),'err');
  if(!p.techManagerApproved||!p.adminAftersalesApproved)return UI.toast(t('partner.err_approvals_incomplete'),'err');
  if(!isRole('finance','director','deputy_director'))return UI.toast(t('partner.err_not_finance'),'err');
- DB.update('partner_payments',p.id,{paymentStatus:'Dibayar',paymentDate:today()},'',t('partner.mark_paid'));
+ await DB.update('partner_payments',p.id,{paymentStatus:'Dibayar',paymentDate:today()},'',t('partner.mark_paid'));
  UI.toast(t('partner.paid_success'));Crud.refresh();
 };
-ACT['payment-approve-tm']=el=>{
+ACT['payment-approve-tm']=async el=>{
  if(!isRole('tech_manager','director','deputy_director'))return UI.toast(t('partner.err_not_authorized'),'err');
- DB.update('partner_payments',el.dataset.id,{techManagerApproved:true},'',t('partner.approved_tm'));UI.toast(t('partner.approved_tm'));Crud.refresh();
+ await DB.update('partner_payments',el.dataset.id,{techManagerApproved:true},'',t('partner.approved_tm'));UI.toast(t('partner.approved_tm'));Crud.refresh();
 };
-ACT['payment-approve-aa']=el=>{
+ACT['payment-approve-aa']=async el=>{
  if(!isRole('admin_aftersales','director','deputy_director'))return UI.toast(t('partner.err_not_authorized'),'err');
- DB.update('partner_payments',el.dataset.id,{adminAftersalesApproved:true},'',t('partner.approved_aa'));UI.toast(t('partner.approved_aa'));Crud.refresh();
+ await DB.update('partner_payments',el.dataset.id,{adminAftersalesApproved:true},'',t('partner.approved_aa'));UI.toast(t('partner.approved_aa'));Crud.refresh();
 };
 
 /* =========================================================

@@ -411,6 +411,7 @@ const Login={
       <li>${esc(t('login.point3'))}</li>
      </ul>
     </div>
+    <div id="loginGlassBadge" class="login-glass-badge"></div>
    </div>
    <div class="login-panel"><div class="box" id="loginbox">
     <div class="login-logo login-logo-sm">${LOGO_MARK}<b>KENTFORD ERP</b></div>
@@ -422,6 +423,31 @@ const Login={
    </div></div>
   </div>`;
   setTimeout(()=>$('#lu')?.focus(),50);
+  this.mountGlassBadge();
+ },
+ /* Badge dekoratif "SINGAPOWER" bergaya Apple Liquid Glass (WebGL asli, bukan cuma
+    backdrop-filter) di pojok panel foto login — dari dashersw/liquid-glass-js (MIT).
+    Murni hiasan, tidak interaktif; kalau CDN html2canvas/container.js belum sempat
+    ke-load (script defer), langsung dilewati tanpa error. */
+ mountGlassBadge(){
+  const slot=$('#loginGlassBadge');if(!slot)return;
+  let tries=0;
+  const tryMount=()=>{
+   if(typeof window.Container!=='function'){if(++tries<40)return setTimeout(tryMount,150);return}
+   if(!$('#loginGlassBadge'))return; // halaman sudah pindah (login sukses/berganti)
+   try{
+    const badge=new Container({borderRadius:999,type:'pill',tintOpacity:0.22});
+    badge.element.style.padding='10px 20px';
+    badge.element.style.color='#fff';
+    badge.element.style.fontWeight='700';
+    badge.element.style.letterSpacing='.06em';
+    badge.element.style.fontSize='13px';
+    badge.element.textContent='SINGAPOWER';
+    slot.appendChild(badge.element);
+    badge.updateSizeFromDOM?.();
+   }catch(e){console.warn('[login] glass badge skipped:',e.message)}
+  };
+  tryMount();
  }
 };
 ACT['login']=async()=>{
@@ -429,6 +455,7 @@ ACT['login']=async()=>{
  if(!r.ok){UI.toast(r.msg||t('login.failed'),'err');return}
  if(!location.hash||location.hash==='#/')location.hash='#/dashboard';
  App.mount();
+ if(typeof PartnerAPI!=='undefined')PartnerAPI.syncAll().catch(e=>console.warn('[partners] sync awal gagal',e));
 };
 /* ---------------- Reset Password (via link #/reset-password?token=...) ---------------- */
 const ResetPassword={
