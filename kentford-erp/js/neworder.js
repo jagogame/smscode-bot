@@ -6,26 +6,30 @@
 
 /* ---------- Tahapan New Order ---------- */
 const STAGES=[
- {key:'sales_input',short:'Input Sales',status:'Input Sales',roles:['sales','sales_support']},
- {key:'review',short:'Verifikasi Admin',status:'Dalam Review Sales Support',roles:['sales_support']},
- {key:'warehouse',short:'Cek Stok',status:'Pemeriksaan Gudang',roles:['warehouse']},
- {key:'finance',short:'Cek Finance',status:'Pemeriksaan Finance',roles:['finance']},
- {key:'director',short:'Approval Direktur',status:'Menunggu Approval Direktur',roles:['president_director']},
- {key:'prepare',short:'Persiapan Barang',status:'Persiapan Barang',roles:['warehouse']},
- {key:'shipping',short:'Pengiriman',status:'Dalam Pengiriman',roles:['warehouse','sales_support']},
- {key:'delivered',short:'Diterima Customer',status:'Diterima Customer',roles:['sales','sales_support']},
- {key:'install',short:'Instalasi',status:'Instalasi & Commissioning',roles:['technician']},
- {key:'handover',short:'Serah Terima',status:'Serah Terima & TTD',roles:['sales','sales_support']},
- {key:'invoice_final',short:'Invoice Final',status:'Penagihan Final',roles:['finance']},
- {key:'done',short:'Selesai',status:'Selesai',roles:[]}
+ {key:'sales_input',roles:['sales','admin_hr_sales']},
+ {key:'review',roles:['admin_hr_sales']},
+ {key:'warehouse',roles:['warehouse']},
+ {key:'finance',roles:['finance']},
+ {key:'director',roles:['director']},
+ {key:'prepare',roles:['warehouse']},
+ {key:'shipping',roles:['warehouse','admin_hr_sales']},
+ {key:'delivered',roles:['sales','admin_hr_sales']},
+ {key:'install',roles:['technician']},
+ {key:'handover',roles:['sales','admin_hr_sales']},
+ {key:'invoice_final',roles:['finance']},
+ {key:'done',roles:[]}
 ];
+STAGES.forEach(s=>{
+ Object.defineProperty(s,'short',{enumerable:true,get:()=>t('stage.'+s.key+'.short')});
+ Object.defineProperty(s,'status',{enumerable:true,get:()=>t('stage.'+s.key+'.status')});
+});
 const STAGE_IDX=k=>STAGES.findIndex(s=>s.key===k);
 const ORD_ITEM_COLS=[{k:'productId',l:'Produk','t':'ref',ref:'products',w:'220px'},{k:'desc',l:'Deskripsi',t:'text',w:'200px'},{k:'qty',l:'Qty',t:'number',w:'80px'}];
 
 /* ---------- Objek Order (API publik dipakai dashboard/reports/finance) ---------- */
 const Order={
  stageRoles(o){return (STAGES.find(s=>s.key===o.stage)||{}).roles||[]},
- canAct(o){return !o.cancelled&&o.stage!=='done'&&o.stage!=='director'&&isRole(...this.stageRoles(o),'manager','president_director')},
+ canAct(o){return !o.cancelled&&o.stage!=='done'&&o.stage!=='director'&&isRole(...this.stageRoles(o),'deputy_director','director','sales_manager','tech_manager')},
  late(o){
   if(o.cancelled||o.stage==='done')return false;
   const sla=num(S().slaDays)||3;
@@ -214,7 +218,7 @@ ACT['ord-finish']=el=>{
 /* ================= HALAMAN ================= */
 PAGES.orders.render=async(v,param)=>{
  if(!param){
-  const w=isRole('sales','sales_support','manager','president_director');
+  const w=isRole('sales','admin_hr_sales','sales_manager','deputy_director','director');
   v.innerHTML=UI.pghead('New Order Tracking',w?'<a class="btn" href="#/orders/new">+ New Order</a>':'')+'<div class="card" id="ordl"></div>';
   new DT($('#ordl'),{title:'New Order',size:15,rows:()=>Scope.rows('orders').slice().reverse(),onRow:id=>Router.go('orders/'+id),
    filters:[{k:'s',l:'Status',opts:()=>[...STAGES.map(s=>s.status),'Perlu Revisi Sales','Ditolak Direktur — Perlu Pelunasan','Dibatalkan'],get:r=>r.cancelled?'Dibatalkan':r.statusText},
@@ -225,7 +229,7 @@ PAGES.orders.render=async(v,param)=>{
   return;
  }
  if(param==='new'){
-  if(!isRole('sales','sales_support','manager','president_director')){v.innerHTML=UI.empty('Anda tidak berhak membuat New Order.');return}
+  if(!isRole('sales','admin_hr_sales','sales_manager','deputy_director','director')){v.innerHTML=UI.empty('Anda tidak berhak membuat New Order.');return}
   const fields=ORD_CREATE_FIELDS();Order._ctx={fields};
   v.innerHTML=UI.pghead('New Order baru',`<a class="btn btn-o" href="#/orders">‹ Batal</a>`)+
    `<div class="card"><div id="oform">${Form.render(fields,{})}</div><div class="acts" style="margin-top:12px"><button class="btn" data-act="ord-save">Simpan New Order</button></div></div>`;

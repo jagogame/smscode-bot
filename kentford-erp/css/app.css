@@ -39,6 +39,7 @@ h1,h2,h3{margin:0}
 .popm{position:absolute;right:0;top:110%;background:#fff;border:1px solid var(--bd2);border-radius:8px;box-shadow:var(--sh2);min-width:280px;max-width:92vw;z-index:40;max-height:70vh;overflow:auto}
 .popm .it{display:block;padding:9px 12px;border-bottom:1px solid var(--bd);text-decoration:none;color:var(--tx)}
 .popm .it.un{background:var(--g1)}
+.langsw .popm{min-width:160px}
 .bell{position:relative}
 .bell .n{position:absolute;top:-6px;right:-6px;background:var(--red);color:#fff;border-radius:9px;font-size:10px;padding:1px 5px}
 #view{padding:20px;max-width:1500px;width:100%}

@@ -51,8 +51,8 @@ function svcDetail(v,r){
  const stepper=SVC_STATUSES.map((s,i)=>`<div class="st ${i<idx?'done':i===idx?'cur':''}"><i>${i<idx?'✓':i+1}</i><div>${esc(s)}</div></div>`).join('');
  const isTech=Auth.user.roleId==='technician',mine=!r.technicianId||r.technicianId===Auth.uid();
  const canOps=can('svc_req','r')&&(!isTech||mine)&&r.status!=='Selesai'&&r.status!=='Ditutup';
- const canSchedule=canOps&&isRole('sales_support','manager','president_director')&&r.status==='Request masuk';
- const canTech=canOps&&(isTech||isRole('manager'));
+ const canSchedule=canOps&&isRole('admin_aftersales','tech_manager','deputy_director','director')&&r.status==='Request masuk';
+ const canTech=canOps&&(isTech||isRole('tech_manager'));
  const wApr=Approval.forRef('svc_req',r.id).filter(a=>a.type==='warranty_free');
  const wPend=wApr.find(a=>a.status==='Menunggu'),wOk=wApr.some(a=>a.status==='Disetujui');
  const partsDone=(r.parts||[]).every(p=>p.status==='Disiapkan');
@@ -67,7 +67,7 @@ function svcDetail(v,r){
   else acts.push(`<button class="btn btn-o" data-act="svc-status" data-id="${r.id}" data-s="Sedang dikerjakan">Customer setuju, lanjutkan</button>`);
   acts.push(`<button class="btn" data-act="svc-finish" data-id="${r.id}">Selesaikan pekerjaan</button>`);
  }
- if(r.status==='Selesai'&&isRole('manager','sales_support','president_director')&&can('svc_req','w'))acts.push(`<button class="btn" data-act="svc-close" data-id="${r.id}">Tutup tiket</button>`);
+ if(r.status==='Selesai'&&isRole('tech_manager','admin_aftersales','deputy_director','director')&&can('svc_req','w'))acts.push(`<button class="btn" data-act="svc-close" data-id="${r.id}">Tutup tiket</button>`);
  if(r.warrantyStatus==='Dalam Garansi'&&!wOk&&!wPend&&canOps)acts.push(`<button class="btn btn-o" data-act="svc-warranty" data-id="${r.id}">Ajukan service gratis (warranty)</button>`);
  v.innerHTML=UI.pghead('Service '+r.no,acts.join(''))+`<div class="card"><div class="ch"><span>${esc(custName(r.customerId))} — ${esc(r.unitDesc)}</span>${UI.badge(r.status)}</div><div class="stepper">${stepper}</div>
   ${wPend?`<div class="warnbox">Pengajuan servis gratis <a href="#" data-act="appr-open" data-id="${wPend.id}">${esc(wPend.no)}</a> menunggu approval Manager.</div>`:''}${wOk?'<div class="info">Servis GRATIS (warranty) — disetujui.</div>':''}</div>
@@ -157,10 +157,11 @@ ACT['svc-print']=el=>{
 };
 
 /* ================= PREVENTIVE MAINTENANCE ================= */
-ENT.pm_schedules={col:'pm_schedules',page:'pm',title:'Jadwal PM',label:r=>`${custName(r.customerId)} — ${r.unitDesc}`,wr:['manager','president_director','sales_support'],
+ENT.pm_schedules={col:'pm_schedules',page:'pm',title:'Jadwal PM',label:r=>`${custName(r.customerId)} — ${r.unitDesc}`,wr:['tech_manager','deputy_director','director','admin_aftersales'],
  fields:[F.r('customerId','Customer','customers',{req:true,list:true}),F.t('unitDesc','Unit / mesin',{req:true,list:true}),F.s('basis','Basis interval',['Tanggal','Hour Meter'],{req:true,def:'Tanggal',list:true}),
   F.n('intervalDays','Interval (hari)',{def:90,hide:()=>false}),F.n('intervalHours','Interval (jam)',{def:250}),F.r('rentContractId','Kontrak rental (bila basis Hour Meter)','rent_contracts'),
   F.d('lastDate','PM terakhir (tanggal)',{def:()=>today()}),F.n('lastHour','PM terakhir (hour meter)',{def:0}),F.c('active','Aktif',{def:true})]};
+wireEntTitle('pm_schedules');
 PAGES.pm.render=async v=>{
  const rows=DB.all('pm_schedules').filter(r=>!r.deletedAt);
  const due=r=>{

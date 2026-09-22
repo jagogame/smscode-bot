@@ -3,27 +3,29 @@
    KENTFORD ERP - skema: halaman, entitas, hak akses, data contoh
    ========================================================= */
 const PAGE_GROUPS=[
- {g:'',pages:['dashboard']},
- {g:'CRM & Sales',pages:['leads','customers','followups','quotations','salesorders','orders']},
- {g:'Purchasing',pages:['pr','sq','pc','po','suppliers','incoming']},
- {g:'Inventory',pages:['products','stock_genset','stock_parts','gr','gi','transfer','opname','barcode']},
- {g:'Finance',pages:['invoices','ar','si','ap','payreq','bank','petty','tax','recon']},
- {g:'Rental',pages:['rent_units','rent_contracts','rent_schedule','hourmeter','overtime','deposit','rent_return']},
- {g:'Service & Aftersales',pages:['svc_req','survey','wo','tech_sched','install','pm','warranty','svc_report']},
- {g:'Approval',pages:['approvals_pending','approvals_done','approvals_rejected','approvals_history']},
- {g:'Lainnya',pages:['reports','master','users','audit','settings']}
+ {gk:'',pages:['dashboard']},
+ {gk:'crm_sales',pages:['leads','customers','followups','quotations','salesorders','orders']},
+ {gk:'purchasing',pages:['pr','sq','pc','po','suppliers','incoming']},
+ {gk:'inventory',pages:['products','stock_genset','stock_parts','gr','gi','transfer','opname','barcode']},
+ {gk:'finance',pages:['invoices','ar','si','ap','payreq','bank','petty','tax','recon']},
+ {gk:'rental',pages:['rent_units','rent_contracts','rent_schedule','hourmeter','overtime','deposit','rent_return']},
+ {gk:'service',pages:['svc_req','survey','wo','tech_sched','install','pm','warranty','svc_report']},
+ {gk:'approval',pages:['approvals_pending','approvals_done','approvals_rejected','approvals_history']},
+ {gk:'other',pages:['reports','master','users','audit','settings']}
 ];
+PAGE_GROUPS.forEach(g=>Object.defineProperty(g,'g',{enumerable:true,get:()=>g.gk?t('grp.'+g.gk):''}));
 const PAGES={};
-[['dashboard','Dashboard'],
- ['leads','Leads'],['customers','Customers'],['followups','Follow-up'],['quotations','Quotation'],['salesorders','Sales Order'],['orders','New Order Tracking'],
- ['pr','Purchase Request'],['sq','Supplier Quotation'],['pc','Price Comparison'],['po','Purchase Order'],['suppliers','Supplier'],['incoming','Incoming Shipment'],
- ['products','Daftar Produk'],['stock_genset','Stok Genset'],['stock_parts','Stok Spare Part'],['gr','Barang Masuk'],['gi','Barang Keluar'],['transfer','Transfer Lokasi'],['opname','Stock Opname'],['barcode','Barcode'],
- ['invoices','Customer Invoice'],['ar','Account Receivable'],['si','Supplier Invoice'],['ap','Account Payable'],['payreq','Payment Request'],['bank','Bank & Cash'],['petty','Petty Cash'],['tax','Tax'],['recon','Bank Reconciliation'],
- ['rent_units','Unit Rental'],['rent_contracts','Kontrak Rental'],['rent_schedule','Jadwal Rental'],['hourmeter','Hour Meter'],['overtime','Overtime'],['deposit','Deposit'],['rent_return','Pengembalian Unit'],
- ['svc_req','Service Request'],['survey','Survey'],['wo','Work Order'],['tech_sched','Jadwal Teknisi'],['install','Installation'],['pm','Preventive Maintenance'],['warranty','Warranty Claim'],['svc_report','Service Report'],
- ['approvals_pending','Menunggu Persetujuan'],['approvals_done','Disetujui'],['approvals_rejected','Ditolak'],['approvals_history','Riwayat Approval'],
- ['reports','Reports'],['master','Master Data'],['users','User & Access'],['audit','Audit Log'],['settings','Settings']
-].forEach(([key,label,stage])=>{PAGES[key]={key,label,stage,render:null}});
+['dashboard','leads','customers','followups','quotations','salesorders','orders','pr','sq','pc','po','suppliers','incoming',
+ 'products','stock_genset','stock_parts','gr','gi','transfer','opname','barcode',
+ 'invoices','ar','si','ap','payreq','bank','petty','tax','recon',
+ 'rent_units','rent_contracts','rent_schedule','hourmeter','overtime','deposit','rent_return',
+ 'svc_req','survey','wo','tech_sched','install','pm','warranty','svc_report',
+ 'approvals_pending','approvals_done','approvals_rejected','approvals_history',
+ 'reports','master','users','audit','settings'
+].forEach(key=>{
+ PAGES[key]={key,stage:undefined,render:null};
+ Object.defineProperty(PAGES[key],'label',{enumerable:true,get:()=>t('nav.'+key)});
+});
 
 /* ---------- Definisi entitas (CRUD generik) ---------- */
 const F={
@@ -32,7 +34,7 @@ const F={
  s:(k,l,opts,o={})=>({k,l,t:'select',opts,...o}),r:(k,l,ref,o={})=>({k,l,t:'ref',ref,...o}),
  c:(k,l,o={})=>({k,l,t:'check',...o}),fl:(k,l,o={})=>({k,l,t:'files',...o}),pc:(k,l,o={})=>({k,l,t:'percent',...o})
 };
-const salesUsers=u=>['sales','sales_support','manager'].includes(u.roleId);
+const salesUsers=u=>['sales','sales_manager','admin_hr_sales'].includes(u.roleId);
 const ENT={
  users:{col:'users',label:r=>r.name},
  roles:{col:'roles',label:r=>r.name},
@@ -42,15 +44,15 @@ const ENT={
    F.m('estValue','Estimasi nilai (Rp)',{list:true}),F.r('salesId','Sales PIC','users',{filter:salesUsers,req:true,list:true,def:()=>Auth.uid()}),
    F.s('status','Status',['Baru','Dihubungi','Kualifikasi','Quotation','Menang','Kalah'],{list:true,badge:true,def:'Baru',req:true}),F.ta('notes','Catatan kebutuhan')],
   wrPage:'leads'},
- customers:{col:'customers',page:'customers',title:'Customer',owner:'salesId',label:r=>r.name,autoCode:{k:'code',type:'CUS'},wr:['sales','sales_support','manager','president_director'],
+ customers:{col:'customers',page:'customers',title:'Customer',owner:'salesId',label:r=>r.name,autoCode:{k:'code',type:'CUS'},wr:['sales','sales_manager','admin_hr_sales','deputy_director','director'],
   fields:[F.t('code','Kode',{ro:true,list:true,hint:'Otomatis'}),F.t('name','Nama perusahaan',{req:true,list:true}),F.s('type','Jenis usaha',['Data Center','Manufaktur','Rumah Sakit','Konstruksi','Perkantoran','Pemerintah','Lainnya'],{list:true}),
    F.t('pic','PIC customer',{list:true}),F.t('phone','Telepon',{t:'phone',list:true}),F.t('email','Email',{t:'email'}),F.t('city','Kota'),F.t('npwp','NPWP'),
    F.r('salesId','Sales PIC','users',{filter:salesUsers,list:true,def:()=>isRole('sales')?Auth.uid():''}),F.r('paymentTermId','Payment terms','payterms'),F.m('creditLimit','Credit limit (Rp)'),
    F.ta('address','Alamat'),F.c('active','Aktif',{def:true}),F.ta('notes','Catatan')]},
- suppliers:{col:'suppliers',page:'suppliers',title:'Supplier',label:r=>r.name,autoCode:{k:'code',type:'SUP'},wr:['purchasing','manager','president_director'],
+ suppliers:{col:'suppliers',page:'suppliers',title:'Supplier',label:r=>r.name,autoCode:{k:'code',type:'SUP'},wr:['admin_hr_sales','deputy_director','director'],
   fields:[F.t('code','Kode',{ro:true,list:true,hint:'Otomatis'}),F.t('name','Nama supplier',{req:true,list:true}),F.t('pic','PIC',{list:true}),F.t('phone','Telepon',{t:'phone',list:true}),F.t('email','Email',{t:'email'}),
    F.t('country','Negara',{def:'Indonesia',list:true}),F.s('currency','Mata uang',['IDR','USD','CNY','EUR']),F.r('paymentTermId','Payment terms','payterms'),F.ta('address','Alamat'),F.ta('notes','Catatan')]},
- products:{col:'products',page:'products',title:'Produk',label:r=>`${r.sku} — ${r.name}`,wr:['manager','president_director','purchasing'],
+ products:{col:'products',page:'products',title:'Produk',label:r=>`${r.sku} — ${r.name}`,wr:['deputy_director','director','admin_hr_sales'],
   fields:[F.t('sku','SKU',{req:true,list:true}),F.t('name','Nama produk',{req:true,list:true}),
    F.s('kind','Jenis',['Genset','Engine','Alternator','Controller','Panel','Spare part','Kabel & material instalasi','Consumable','Aset rental'],{req:true,list:true}),
    F.r('catId','Kategori','categories'),F.r('brandId','Merek','brands',{list:true}),F.t('model','Model',{list:true}),F.t('capacity','Kapasitas',{list:true}),F.s('uom','Satuan',['unit','pcs','set','meter','liter','box'],{def:'pcs'}),
@@ -58,33 +60,33 @@ const ENT={
    F.n('warranty','Garansi (bulan)'),F.c('serialTracked','Wajib nomor seri',{cl:'Unit memakai serial number'}),F.s('condition','Kondisi',['Baru','Bekas layak','Perlu perbaikan'],{def:'Baru'}),
    F.t('barcode','Barcode / QR',{hint:'Kosongkan = otomatis dari SKU'}),F.fl('photos','Foto produk'),F.c('active','Aktif',{def:true})],
   costFields:['lastCost']},
- categories:{col:'categories',page:'master',title:'Kategori Produk',label:r=>r.name,wr:['manager','president_director','purchasing','warehouse'],fields:[F.t('name','Nama kategori',{req:true,list:true}),F.t('notes','Keterangan',{list:true})]},
- brands:{col:'brands',page:'master',title:'Brand',label:r=>r.name,wr:['manager','president_director','purchasing','warehouse'],fields:[F.t('name','Nama brand',{req:true,list:true}),F.t('origin','Asal negara',{list:true})]},
- warehouses:{col:'warehouses',page:'master',title:'Warehouse / Lokasi',label:r=>r.name,wr:['manager','president_director'],
+ categories:{col:'categories',page:'master',title:'Kategori Produk',label:r=>r.name,wr:['deputy_director','director','admin_hr_sales','warehouse'],fields:[F.t('name','Nama kategori',{req:true,list:true}),F.t('notes','Keterangan',{list:true})]},
+ brands:{col:'brands',page:'master',title:'Brand',label:r=>r.name,wr:['deputy_director','director','admin_hr_sales','warehouse'],fields:[F.t('name','Nama brand',{req:true,list:true}),F.t('origin','Asal negara',{list:true})]},
+ warehouses:{col:'warehouses',page:'master',title:'Warehouse / Lokasi',label:r=>r.name,wr:['deputy_director','director'],
   fields:[F.t('code','Kode',{req:true,list:true}),F.t('name','Nama lokasi',{req:true,list:true}),F.s('type','Jenis',['Gudang','Kantor','Customer Site','Transit','Rental','Service'],{list:true}),F.t('address','Alamat',{list:true})]},
- banks:{col:'banks',page:'master',title:'Rekening Bank',label:r=>`${r.bank} ${r.accNo}`,wr:['finance','president_director'],
+ banks:{col:'banks',page:'master',title:'Rekening Bank',label:r=>`${r.bank} ${r.accNo}`,wr:['finance','director'],
   fields:[F.t('name','Nama akun',{req:true,list:true}),F.t('bank','Bank',{req:true,list:true}),F.t('accNo','No. rekening',{req:true,list:true}),F.s('currency','Mata uang',['IDR','USD'],{def:'IDR'}),F.m('openingBalance','Saldo awal (Rp)')]},
- taxes:{col:'taxes',page:'master',title:'Pajak',label:r=>`${r.name} (${r.rate}%)`,wr:['finance','president_director'],
+ taxes:{col:'taxes',page:'master',title:'Pajak',label:r=>`${r.name} (${r.rate}%)`,wr:['finance','director'],
   fields:[F.t('name','Nama pajak',{req:true,list:true}),F.s('type','Jenis',['PPN','PPh 21','PPh 23','PPh 4(2)','Lainnya'],{list:true}),F.pc('rate','Tarif (%)',{req:true,list:true,hint:'Dapat diubah sesuai regulasi'}),F.c('active','Aktif',{def:true})]},
- payterms:{col:'payterms',page:'master',title:'Payment Terms',label:r=>r.name,wr:['finance','manager','president_director'],
+ payterms:{col:'payterms',page:'master',title:'Payment Terms',label:r=>r.name,wr:['finance','deputy_director','director'],
   fields:[F.t('name','Nama',{req:true,list:true}),F.pc('dpPct','DP (%)',{list:true}),F.n('days','Jatuh tempo (hari)',{list:true}),F.t('desc','Keterangan',{list:true})]},
- deliveryterms:{col:'deliveryterms',page:'master',title:'Delivery Terms',label:r=>r.name,wr:['finance','manager','president_director'],fields:[F.t('name','Nama',{req:true,list:true}),F.t('desc','Keterangan',{list:true})]},
- employees:{col:'employees',page:'master',title:'Karyawan',label:r=>r.name,wr:['hr_admin'],
+ deliveryterms:{col:'deliveryterms',page:'master',title:'Delivery Terms',label:r=>r.name,wr:['finance','deputy_director','director'],fields:[F.t('name','Nama',{req:true,list:true}),F.t('desc','Keterangan',{list:true})]},
+ employees:{col:'employees',page:'master',title:'Karyawan',label:r=>r.name,wr:['admin_hr_sales'],
   fields:[F.t('name','Nama',{req:true,list:true}),F.t('position','Jabatan',{list:true}),F.r('deptId','Departemen','departments',{list:true}),F.t('phone','Telepon',{t:'phone'}),F.t('email','Email',{t:'email'}),F.d('joinDate','Tanggal masuk'),F.r('userId','Akun pengguna','users'),F.c('active','Aktif',{def:true})]},
- departments:{col:'departments',page:'master',title:'Departemen',label:r=>r.name,wr:['hr_admin'],fields:[F.t('name','Nama departemen',{req:true,list:true}),F.t('head','Kepala departemen',{list:true})]},
- approvalLimits:{col:'approvalLimits',page:'master',title:'Batas Approval',label:r=>`${APPR_TYPES[r.type]||r.type} → ${r.role}`,wr:['president_director'],
+ departments:{col:'departments',page:'master',title:'Departemen',label:r=>r.name,wr:['admin_hr_sales'],fields:[F.t('name','Nama departemen',{req:true,list:true}),F.t('head','Kepala departemen',{list:true})]},
+ approvalLimits:{col:'approvalLimits',page:'master',title:'Batas Approval',label:r=>`${APPR_TYPES[r.type]||r.type} → ${r.role}`,wr:['director'],
   fields:[F.s('type','Jenis approval',()=>Object.entries(APPR_TYPES).map(([v,l])=>({v,l})),{req:true,list:true}),F.n('step','Urutan langkah',{req:true,list:true,def:1}),
-   F.s('role','Approver (role)',()=>DB.all('roles').filter(r=>r.id!=='hr_admin').map(r=>({v:r.id,l:r.name})),{req:true,list:true}),F.m('min','Berlaku bila nominal ≥ (Rp)',{list:true,hint:'0 = selalu berlaku'})]},
- numbering:{col:'numbering',page:'master',title:'Penomoran Dokumen',label:r=>r.name,wr:['president_director','manager'],
+   F.s('role','Approver (role)',()=>DB.all('roles').filter(r=>!['admin_hr_sales','admin_aftersales','warehouse','technician','sales'].includes(r.id)).map(r=>({v:r.id,l:r.name})),{req:true,list:true}),F.m('min','Berlaku bila nominal ≥ (Rp)',{list:true,hint:'0 = selalu berlaku'})]},
+ numbering:{col:'numbering',page:'master',title:'Penomoran Dokumen',label:r=>r.name,wr:['director','deputy_director'],
   fields:[F.t('type','Kode jenis',{req:true,list:true,ro:false}),F.t('name','Nama dokumen',{req:true,list:true}),F.t('prefix','Prefix',{req:true,list:true}),
    F.t('format','Format',{req:true,list:true,hint:'Token: {P} prefix, {YYYY}, {MM}, {N4} nomor urut 4 digit'}),F.s('reset','Reset nomor',['bulanan','tahunan','tidak'],{def:'bulanan'})]},
- uoms:{col:'uoms',page:'master',title:'Satuan (UoM)',label:r=>r.name,wr:['manager','president_director','purchasing','warehouse'],fields:[F.t('name','Satuan',{req:true,list:true}),F.t('desc','Keterangan',{list:true})]},
- vehicles:{col:'vehicles',page:'master',title:'Kendaraan',label:r=>`${r.plate} (${r.type})`,wr:['warehouse','manager','president_director'],
+ uoms:{col:'uoms',page:'master',title:'Satuan (UoM)',label:r=>r.name,wr:['deputy_director','director','admin_hr_sales','warehouse'],fields:[F.t('name','Satuan',{req:true,list:true}),F.t('desc','Keterangan',{list:true})]},
+ vehicles:{col:'vehicles',page:'master',title:'Kendaraan',label:r=>`${r.plate} (${r.type})`,wr:['warehouse','deputy_director','director'],
   fields:[F.t('plate','Nomor polisi',{req:true,list:true}),F.t('type','Jenis kendaraan',{list:true}),F.t('driver','Driver default',{list:true}),F.c('active','Aktif',{def:true})]},
- technicians:{col:'technicians',page:'master',title:'Teknisi',label:r=>userName(r.userId),wr:['manager','hr_admin'],
+ technicians:{col:'technicians',page:'master',title:'Teknisi',label:r=>userName(r.userId),wr:['tech_manager','admin_hr_sales'],
   fields:[F.r('userId','Akun pengguna','users',{filter:u=>u.roleId==='technician',req:true,list:true}),F.t('specialty','Keahlian',{list:true}),F.t('area','Area kerja',{list:true}),F.t('phone','Telepon',{t:'phone'})]},
- failcats:{col:'failcats',page:'master',title:'Kategori Kerusakan',label:r=>r.name,wr:['manager','president_director'],fields:[F.t('name','Kategori kerusakan',{req:true,list:true}),F.t('desc','Keterangan',{list:true})]},
- servicetypes:{col:'servicetypes',page:'master',title:'Jenis Service',label:r=>r.name,wr:['manager','president_director'],fields:[F.t('name','Jenis service',{req:true,list:true}),F.t('desc','Keterangan',{list:true})]},
+ failcats:{col:'failcats',page:'master',title:'Kategori Kerusakan',label:r=>r.name,wr:['deputy_director','director'],fields:[F.t('name','Kategori kerusakan',{req:true,list:true}),F.t('desc','Keterangan',{list:true})]},
+ servicetypes:{col:'servicetypes',page:'master',title:'Jenis Service',label:r=>r.name,wr:['deputy_director','director'],fields:[F.t('name','Jenis service',{req:true,list:true}),F.t('desc','Keterangan',{list:true})]},
  followups:{col:'followups',page:'followups',title:'Follow-up',owner:'salesId',label:r=>`${fdate(r.date)} ${r.type||''}`,
   fields:[F.r('customerId','Customer','customers',{req:true,list:true}),F.d('date','Tanggal',{req:true,list:true,def:()=>today()}),F.s('type','Jenis',['Telepon','WhatsApp','Email','Kunjungan','Meeting'],{list:true,req:true}),
    F.r('salesId','Sales PIC','users',{filter:salesUsers,req:true,list:true,def:()=>Auth.uid()}),F.s('status','Status',['Terjadwal','Selesai','Dibatalkan'],{def:'Terjadwal',req:true,list:true,badge:true}),
@@ -98,6 +100,8 @@ const ENT={
  invoices:{col:'invoices',page:'invoices',owner:'salesId',custom:true,label:r=>r.no},
  orders:{col:'orders',page:'orders',owner:'salesId',custom:true,label:r=>r.no}
 };
+function wireEntTitle(k){const orig=ENT[k].title;delete ENT[k].title;Object.defineProperty(ENT[k],'title',{enumerable:true,get:()=>t('ent.'+k)||orig});}
+Object.keys(ENT).forEach(wireEntTitle);
 const MASTER=['customers','suppliers','products','categories','brands','warehouses','banks','taxes','payterms','deliveryterms','employees','departments','approvalLimits','numbering','uoms','vehicles','technicians','failcats','servicetypes'];
 const canEnt=e=>e.wr?e.wr.includes(Auth.user?.roleId):can(e.page,'w');
 const Scope={
@@ -126,36 +130,61 @@ const G_SVC=['svc_req','survey','wo','tech_sched','install','pm','warranty','svc
 const G_APR=['approvals_pending','approvals_done','approvals_rejected','approvals_history'];
 const permOf=(r,w=[])=>{const o={};r.forEach(k=>o[k]='r');w.forEach(k=>o[k]='w');return o};
 const ROLE_SEED=[
- {id:'president_director',name:'President Director',seeCost:true,scopeOwn:false,perm:permOf(ALLK.filter(k=>!['users'].includes(k)),[...G_APR,'orders','quotations','master','settings','leads','customers','followups','suppliers','invoices','salesorders'])},
- {id:'manager',name:'Manager',seeCost:true,scopeOwn:false,perm:permOf(ALLK.filter(k=>!['users','settings'].includes(k)),[...G_CRM,...G_APR,'products','master','suppliers',...G_PUR,...G_INV.filter(k=>!['products'].includes(k)),...G_RENT,...G_SVC])},
- {id:'finance',name:'Finance & Accounting',seeCost:true,scopeOwn:false,perm:permOf(['dashboard','customers','quotations','salesorders','orders','followups','suppliers','po','products','stock_genset','stock_parts','reports','master',...G_FIN,...G_APR,'rent_contracts','deposit','overtime'],[...G_FIN,'invoices'])},
- {id:'sales',name:'Sales',seeCost:false,scopeOwn:true,perm:permOf(['dashboard','leads','customers','followups','quotations','salesorders','orders','products','stock_genset','stock_parts','invoices','reports',...G_APR],['leads','customers','followups','quotations','orders'])},
- {id:'sales_support',name:'Sales Support',seeCost:false,scopeOwn:false,perm:permOf(['dashboard',...G_CRM,'products','stock_genset','stock_parts','invoices','ar','reports','master',...G_APR,...G_RENT,...G_SVC],['customers','followups','quotations','salesorders','orders','invoices','leads',...G_SVC])},
- {id:'purchasing',name:'Purchasing',seeCost:false,scopeOwn:false,perm:permOf(['dashboard','orders',...G_PUR,'products','stock_genset','stock_parts','gr','reports','master',...G_APR],[...G_PUR])},
- {id:'warehouse',name:'Admin Warehouse',seeCost:false,scopeOwn:false,perm:permOf(['dashboard','orders','products','stock_genset','stock_parts','reports','master','svc_req','wo',...G_INV,...G_APR],[...G_INV.filter(k=>k!=='products')])},
- {id:'technician',name:'Teknisi',seeCost:false,scopeOwn:false,perm:permOf(['dashboard','orders','products','stock_genset','stock_parts',...G_SVC,...G_APR],[...G_SVC])},
- {id:'hr_admin',name:'HR & Admin',seeCost:false,scopeOwn:false,perm:permOf(['dashboard','users','audit','master','settings',...G_APR],['users','master'])}
+ // 1. Direktur — akses penuh, approval final, kelola user/role/departemen, lock periode, tidak bisa hapus audit log (tidak ada UI hapus audit)
+ {id:'director',name:'Direktur',seeCost:true,scopeOwn:false,perm:permOf(ALLK,[...G_APR,'orders','quotations','master','settings','leads','customers','followups','suppliers','invoices','salesorders','users'])},
+ // 2. Asisten Direktur — luas seperti Direktur, approve sesuai limit (bukan final sign-off), kelola user/role/departemen
+ {id:'deputy_director',name:'Asisten Direktur',seeCost:true,scopeOwn:false,perm:permOf(ALLK.filter(k=>!['settings'].includes(k)),[...G_APR,'orders','quotations','master','leads','customers','followups','suppliers','invoices','salesorders','users'])},
+ // 3. Finance, Accounting & Tax — gabungan finance+accounting+tax, tidak bisa approve final payment
+ {id:'finance',name:'Finance, Accounting & Tax',seeCost:true,scopeOwn:false,perm:permOf(['dashboard','customers','quotations','salesorders','orders','followups','suppliers','po','products','stock_genset','stock_parts','reports','master',...G_FIN,...G_APR,'rent_contracts','deposit','overtime'],[...G_FIN,'invoices'])},
+ // 4. General Admin, HR & Sales Support — gabungan general admin + HR + sales support + eks-purchasing (tidak lihat cost/margin/tax/bank)
+ {id:'admin_hr_sales',name:'General Admin, HR & Sales Support',seeCost:false,scopeOwn:false,perm:permOf(['dashboard',...G_CRM,...G_PUR,'products','stock_genset','stock_parts','invoices','ar','reports','master','users',...G_APR,...G_RENT,...G_SVC],['customers','followups','quotations','salesorders','orders','invoices','leads',...G_SVC,...G_PUR,'master'])},
+ // 5. Admin Aftersales — service request/WO/warranty/spare part/service report, tidak approve teknis/final biaya service
+ {id:'admin_aftersales',name:'Admin Aftersales',seeCost:false,scopeOwn:false,perm:permOf(['dashboard','customers','products','stock_genset','stock_parts','reports',...G_SVC,...G_APR],['svc_req','survey','install','pm','svc_report'])},
+ // 6. Admin Gudang — master produk/genset/spare part, barcode, stok, DO; tidak boleh ubah harga jual/beli, tidak approve stock adjust sendiri
+ {id:'warehouse',name:'Admin Gudang',seeCost:false,scopeOwn:false,perm:permOf(['dashboard','orders','products','stock_genset','stock_parts','reports','master','svc_req','wo',...G_INV,...G_APR],[...G_INV.filter(k=>k!=='products')])},
+ // 7. Manager Teknisi — jadwal/penugasan teknisi, approve survey/diagnosa/kebutuhan part/laporan servis, tidak sentuh keuangan
+ {id:'tech_manager',name:'Manager Teknisi',seeCost:false,scopeOwn:false,perm:permOf(['dashboard','products','stock_genset','stock_parts','reports',...G_SVC,...G_APR],[...G_SVC])},
+ // 8. Staff Teknisi — hanya tugas yang di-assign (scopeOwn)
+ {id:'technician',name:'Staff Teknisi',seeCost:false,scopeOwn:true,perm:permOf(['dashboard','orders','products','stock_genset','stock_parts',...G_SVC,...G_APR],[...G_SVC])},
+ // 9. Manager Sales — lihat seluruh tim sales, reassign lead/PIC, approve quotation/diskon sesuai limit, lihat margin
+ {id:'sales_manager',name:'Manager Sales',seeCost:true,scopeOwn:false,perm:permOf(['dashboard',...G_CRM,'products','stock_genset','stock_parts','invoices','reports','master',...G_APR],[...G_CRM])},
+ // 10. Staff Sales — hanya lead/customer/quotation/order milik sendiri (scopeOwn)
+ {id:'sales',name:'Staff Sales',seeCost:false,scopeOwn:true,perm:permOf(['dashboard','leads','customers','followups','quotations','salesorders','orders','products','stock_genset','stock_parts','invoices','reports',...G_APR],['leads','customers','followups','quotations','orders'])}
 ];
 
 /* ---------- Data contoh ---------- */
+/* sd(): pilih teks contoh sesuai bahasa aktif SAAT data contoh dibuat (sekali saja, lihat Seed.needed()).
+   Teks yang sudah dibuat tidak berubah retroaktif bila bahasa aplikasi diganti kemudian. */
+const sd=(id,en,zh)=>({id,en,zh}[Lang.cur()]||id);
 const Seed={
  needed(){return !Store.mem.roles||!Store.mem.roles.length},
  async run(){
   const ts=nowISO(),add=(col,arr)=>{Store.mem[col]=arr.map(o=>({createdAt:ts,createdBy:'seed',...o}))};
-  Store.mem.settings={company:{name:'PT KENTFORD GROUP INDONESIA',address:'Jakarta, Indonesia',phone:'',email:'',npwp:''},
+  Store.mem.settings={company:{name:sd('PT KENTFORD GROUP INDONESIA','Kentford Group Indonesia Inc.','肯特福德集团印尼有限公司'),address:sd('Jakarta, Indonesia','Jakarta, Indonesia','印度尼西亚雅加达'),phone:'',email:'',npwp:''},
    minMarginPct:10,maxDiscPct:5,lowMarginDirectorPct:5,quoteValidDays:14,defaultTaxPct:11,slaDays:3,
    rental:{minMonths:3,hoursPerMonth:280,depositMonths:2,prepayMonths:1}};
   Store.mem.counters={};
   add('roles',ROLE_SEED);
   const pw=async(name)=>{const salt=uid();return {salt,pw:await Auth.hash('kentford123',salt)}};
-  const U=[['u_dir','direktur','Hendra Kusuma','president_director'],['u_mgr','manager','Maya Anggraini','manager'],['u_fin','finance','Dewi Lestari','finance'],
-   ['u_s1','sales1','Rizky Pratama','sales'],['u_s2','sales2','Sinta Maharani','sales'],['u_sup','support','Andi Wijaya','sales_support'],['u_pur','purchasing','Bagus Setiawan','purchasing'],
-   ['u_wh','gudang','Yusuf Hidayat','warehouse'],['u_t1','teknisi1','Agus Salim','technician'],['u_t2','teknisi2','Dimas Nugroho','technician'],['u_hr','hr','Ratna Sari','hr_admin']];
-  const users=[];for(const [id,username,name,roleId] of U)users.push({id,username,name,roleId,active:true,email:username+'@contoh.co.id',...await pw()});
+  // [id,username,name,roleId,jabatan,deptId,location,approverId(atasan),approvalLimit]
+  const U=[
+   ['u_dir','direktur','Hendra Kusuma','director','Direktur Utama','d1','Head Office Jakarta',null,0],
+   ['u_wadir','wadirektur','Sri Wulandari','deputy_director','Asisten Direktur','d1','Head Office Jakarta','u_dir',250000000],
+   ['u_fin','finance','Dewi Lestari','finance','Manager Finance, Accounting & Tax','d3','Head Office Jakarta','u_wadir',25000000],
+   ['u_gas','genadmin','Ratna Sari','admin_hr_sales','Staff General Admin, HR & Sales Support','d4','Head Office Jakarta','u_wadir',0],
+   ['u_aft','aftersales','Bagus Setiawan','admin_aftersales','Admin Aftersales','d5','Head Office Jakarta','u_tm',0],
+   ['u_wh','gudang','Yusuf Hidayat','warehouse','Admin Gudang','d6','Cikarang DCP','u_wadir',0],
+   ['u_tm','teknisimgr','Agus Salim','tech_manager','Manager Teknisi','d7','Head Office Jakarta','u_wadir',15000000],
+   ['u_t1','teknisi1','Dimas Nugroho','technician','Staff Teknisi','d7','Jabodetabek','u_tm',0],
+   ['u_sm','salesmgr','Maya Anggraini','sales_manager','Manager Sales','d2','Head Office Jakarta','u_wadir',100000000],
+   ['u_s1','sales1','Rizky Pratama','sales','Staff Sales','d2','Head Office Jakarta','u_sm',0]];
+  const users=[];for(const [id,username,name,roleId,position,deptId,location,approverId,approvalLimit] of U)
+   users.push({id,username,name,roleId,position,jabatan:position,deptId,location,approverId,approverId:approverId||'',approvalLimit:approvalLimit||0,delegateTo:'',status:'active',active:true,email:username+'@contoh.co.id',...await pw()});
   add('users',users);
-  add('departments',[{id:'d1',name:'Direksi',head:'Hendra Kusuma'},{id:'d2',name:'Sales & Marketing',head:'Maya Anggraini'},{id:'d3',name:'Finance & Accounting',head:'Dewi Lestari'},{id:'d4',name:'Warehouse',head:'Yusuf Hidayat'},{id:'d5',name:'Teknik & Service',head:'Agus Salim'},{id:'d6',name:'HR & Admin',head:'Ratna Sari'}]);
-  add('employees',U.map(([id,un,name,role],i)=>({id:'e'+i,name,position:ROLE_SEED.find(r=>r.id===role).name,deptId:{president_director:'d1',manager:'d2',finance:'d3',sales:'d2',sales_support:'d2',purchasing:'d2',warehouse:'d4',technician:'d5',hr_admin:'d6'}[role],userId:id,active:true})));
-  add('technicians',[{id:'t1',userId:'u_t1',specialty:'Genset, panel ATS/AMF',area:'Jabodetabek'},{id:'t2',userId:'u_t2',specialty:'Engine, controller',area:'Jabodetabek & Jawa Barat'}]);
+  add('departments',[{id:'d1',name:'Direksi',head:'Hendra Kusuma'},{id:'d2',name:'Sales',head:'Maya Anggraini'},{id:'d3',name:'Finance, Accounting & Tax',head:'Dewi Lestari'},
+   {id:'d4',name:'General Admin, HR & Sales Support',head:'Ratna Sari'},{id:'d5',name:'Aftersales',head:'Bagus Setiawan'},{id:'d6',name:'Gudang',head:'Yusuf Hidayat'},{id:'d7',name:'Teknik',head:'Agus Salim'}]);
+  add('employees',U.map(([id,un,name,role,position,deptId],i)=>({id:'e'+i,name,position,deptId,userId:id,active:true})));
+  add('technicians',[{id:'t1',userId:'u_t1',specialty:'Genset, panel ATS/AMF',area:'Jabodetabek'}]);
   add('warehouses',[{id:'w_ho',code:'HO',name:'Head Office',type:'Kantor'},{id:'w_ckr',code:'CKR',name:'Cikarang DCP',type:'Gudang',address:'Cikarang, Bekasi'},{id:'w_plt',code:'PLT',name:'Pluit Warehouse',type:'Gudang',address:'Pluit, Jakarta Utara'},
    {id:'w_site',code:'SITE',name:'Customer Site',type:'Customer Site'},{id:'w_tr',code:'TRN',name:'Sedang Dikirim',type:'Transit'},{id:'w_rent',code:'RNT',name:'Sedang Disewa',type:'Rental'},{id:'w_svc',code:'SVC',name:'Sedang Diservice',type:'Service'}]);
   add('categories',[{id:'k1',name:'Genset'},{id:'k2',name:'Spare Part'},{id:'k3',name:'Panel & Kontrol'},{id:'k4',name:'Material Instalasi'},{id:'k5',name:'Consumable'}]);
@@ -171,46 +200,48 @@ const Seed={
   add('numbering',[['QUO','Quotation','QUO'],['ORD','New Order','ORD'],['SO','Sales Order','SO'],['INV','Customer Invoice','INV'],['APR','Approval','APR'],['DO','Delivery Order','DO'],['SJ','Surat Jalan','SJ'],['DR','Delivery Report','DR'],['CUS','Kode Customer','C','{P}-{N4}','tidak'],['SUP','Kode Supplier','S','{P}-{N4}','tidak'],['PR','Purchase Request','PR'],['PO','Purchase Order','PO'],
    ['SI','Supplier Invoice','SI'],['PQ','Payment Request','PQ'],['REC','Bank Reconciliation','REC'],['GR','Barang Masuk','GR'],['TR','Transfer Lokasi','TR'],['OP','Stock Opname','OP'],['RC','Kontrak Rental','RC'],['SR','Service Request','SR'],['SVR','Service Report','SVR']]
    .map(([type,name,prefix,format,reset],i)=>({id:'n'+i,type,name,prefix,format:format||'{P}/{YYYY}/{MM}/{N4}',reset:reset||'bulanan'})));
-  const AL=[['quotation',1,'manager',0],['quotation',2,'president_director',250000000],['ship_no_payment',1,'president_director',0],['stock_adjust',1,'manager',0],
-   ['cancellation',1,'manager',0],['cancellation',2,'president_director',50000000],['purchase_request',1,'manager',0],['purchase_order',1,'manager',0],['purchase_order',2,'president_director',50000000],
-   ['payment_request',1,'manager',0],['payment_request',2,'president_director',25000000],['petty_cash',1,'manager',0],['refund',1,'manager',0],['refund',2,'president_director',10000000],
-   ['deposit_return',1,'finance',0],['deposit_return',2,'manager',0],['warranty_free',1,'manager',0]];
+  const AL=[['quotation',1,'sales_manager',0],['quotation',2,'director',250000000],['ship_no_payment',1,'director',0],['stock_adjust',1,'tech_manager',0],
+   ['cancellation',1,'deputy_director',0],['cancellation',2,'director',50000000],['purchase_request',1,'deputy_director',0],['purchase_order',1,'deputy_director',0],['purchase_order',2,'director',50000000],
+   ['payment_request',1,'deputy_director',0],['payment_request',2,'director',25000000],['petty_cash',1,'deputy_director',0],['refund',1,'deputy_director',0],['refund',2,'director',10000000],
+   ['deposit_return',1,'finance',0],['deposit_return',2,'deputy_director',0],['warranty_free',1,'tech_manager',0]];
   add('approvalLimits',AL.map(([type,step,role,min],i)=>({id:'al'+i,type,step,role,min})));
   add('customers',[
-   ['c1','C-0001','PT Nusantara Data Center Indonesia','Data Center','Andi Pratama','Jakarta','u_s1','pt2',1500000000],['c2','C-0002','PT Cipta Digital Infrastruktur','Data Center','Melisa Tan','Bekasi','u_s1','pt1',800000000],
-   ['c3','C-0003','PT Mega Manufaktur Sejahtera','Manufaktur','Hadi Purnomo','Cikarang','u_s2','pt3',500000000],['c4','C-0004','RS Sehat Sentosa','Rumah Sakit','dr. Lina Marlina','Tangerang','u_s2','pt1',300000000],
-   ['c5','C-0005','PT Bangun Persada Konstruksi','Konstruksi','Ferry Gunawan','Jakarta','u_s1','pt4',200000000]]
+   ['c1','C-0001',sd('PT Nusantara Data Center Indonesia','Nusantara Data Center Inc.','努桑塔拉数据中心公司'),'Data Center','Andi Pratama','Jakarta','u_s1','pt2',1500000000],
+   ['c2','C-0002',sd('PT Cipta Digital Infrastruktur','Cipta Digital Infrastructure Inc.','西普塔数字基础设施公司'),'Data Center','Melisa Tan','Bekasi','u_s1','pt1',800000000],
+   ['c3','C-0003',sd('PT Mega Manufaktur Sejahtera','Mega Manufacturing Sejahtera Inc.','美嘉制造繁荣有限公司'),'Manufaktur','Hadi Purnomo','Cikarang','u_s1','pt3',500000000],
+   ['c4','C-0004',sd('RS Sehat Sentosa','Sehat Sentosa Hospital','塞哈特森托萨医院'),'Rumah Sakit','dr. Lina Marlina','Tangerang','u_s1','pt1',300000000],
+   ['c5','C-0005',sd('PT Bangun Persada Konstruksi','Bangun Persada Construction Inc.','邦滚佩尔萨达建筑有限公司'),'Konstruksi','Ferry Gunawan','Jakarta','u_s1','pt4',200000000]]
    .map(([id,code,name,type,pic,city,salesId,paymentTermId,creditLimit])=>({id,code,name,type,pic,city,salesId,paymentTermId,creditLimit,phone:'0812-0000-'+code.slice(-4),email:'kontak@'+id+'.co.id',active:true,address:city})));
   Store.mem.counters['CUS-all']=5;
-  add('suppliers',[{id:'s1',code:'S-0001',name:'Shenzhen Powerlink Trading Co., Ltd',pic:'Mr. Chen',country:'China',currency:'USD',paymentTermId:'pt2'},
-   {id:'s2',code:'S-0002',name:'PT Sumber Filter Abadi',pic:'Ibu Wati',country:'Indonesia',currency:'IDR',paymentTermId:'pt3'},
-   {id:'s3',code:'S-0003',name:'PT Kontrol Daya Nusantara',pic:'Pak Rudi',country:'Indonesia',currency:'IDR',paymentTermId:'pt3'}]);
+  add('suppliers',[{id:'s1',code:'S-0001',name:'Shenzhen Powerlink Trading Co., Ltd',pic:'Mr. Chen',country:sd('China','China','中国'),currency:'USD',paymentTermId:'pt2'},
+   {id:'s2',code:'S-0002',name:sd('PT Sumber Filter Abadi','Sumber Filter Abadi Inc.','苏姆贝尔过滤器有限公司'),pic:sd('Ibu Wati','Mrs. Wati','Wati 女士'),country:sd('Indonesia','Indonesia','印度尼西亚'),currency:'IDR',paymentTermId:'pt3'},
+   {id:'s3',code:'S-0003',name:sd('PT Kontrol Daya Nusantara','Kontrol Daya Nusantara Inc.','努桑塔拉动力控制有限公司'),pic:sd('Pak Rudi','Mr. Rudi','Rudi 先生'),country:sd('Indonesia','Indonesia','印度尼西亚'),currency:'IDR',paymentTermId:'pt3'}]);
   Store.mem.counters['SUP-all']=3;
   const P=(id,sku,name,kind,cat,brand,model,cap,uom,sup,cost,price,min,ser,war)=>({id,sku,name,kind,catId:cat,brandId:brand,model,capacity:cap,uom,supplierId:sup,lastCost:cost,price,minStock:min,serialTracked:ser,warranty:war,condition:'Baru',active:true,barcode:sku});
   add('products',[
-   P('pg1','GS-YC-250','Genset Yuchai 250 kW Silent 3 Phase','Genset','k1','b1','Silent Canopy','250 kW / 312,5 kVA','unit','s1',425000000,520000000,1,true,12),
-   P('pg2','GS-CM-500','Genset Cummins 500 kVA Open Type','Genset','k1','b2','Open Type','500 kVA','unit','s1',690000000,820000000,1,true,12),
-   P('pg3','GS-YC-500','Genset Yuchai 500 kW Silent','Genset','k1','b1','Silent Canopy','500 kW / 625 kVA','unit','s1',880000000,1050000000,1,true,12),
-   P('pr1','RN-CM-250','Genset Cummins 250 kW (Unit Rental)','Aset rental','k1','b2','Rental','250 kW','unit','s1',380000000,0,0,true,0),
-   P('sp1','SP-FO-001','Filter Oli Genset 250 kW','Spare part','k2','b4','','250 kW','pcs','s2',185000,260000,20,false,3),
-   P('sp2','SP-FS-001','Filter Solar Genset 250 kW','Spare part','k2','b4','','250 kW','pcs','s2',210000,295000,20,false,3),
-   P('sp3','SP-FU-001','Filter Udara Genset 250 kW','Spare part','k2','b4','','250 kW','pcs','s2',320000,450000,10,false,3),
-   P('sp4','SP-ACT-001','Actuator Governor','Spare part','k2','b4','','Universal','pcs','s3',3200000,4500000,3,false,6),
-   P('sp5','SP-AVR-001','AVR Alternator','Spare part','k2','b4','','Universal','pcs','s3',1400000,2100000,3,false,6),
-   P('sp6','SP-CTL-001','Controller Deep Sea 7320','Controller','k3','b3','7320','-','pcs','s3',6800000,9500000,2,true,12),
-   P('pn1','PN-ATS-400','Panel ATS 400A','Panel','k3','b4','ATS 400A','400 A','unit','s3',28000000,39000000,1,true,12),
-   P('mt1','MT-KBL-95','Kabel NYY 4x95 mm','Kabel & material instalasi','k4','b4','NYY 4x95','-','meter','s2',420000,560000,100,false,0),
-   P('cs1','CS-COOL-20','Coolant Genset (20 L)','Consumable','k5','b4','','20 L','pcs','s2',380000,520000,10,false,0)]);
+   P('pg1','GS-YC-250',sd('Genset Yuchai 250 kW Silent 3 Phase','Yuchai 250 kW Silent Genset, 3-Phase','裕柴 250 kW 静音三相发电机组'),'Genset','k1','b1','Silent Canopy','250 kW / 312,5 kVA','unit','s1',425000000,520000000,1,true,12),
+   P('pg2','GS-CM-500',sd('Genset Cummins 500 kVA Open Type','Cummins 500 kVA Open-Type Genset','康明斯 500 kVA 开放式发电机组'),'Genset','k1','b2','Open Type','500 kVA','unit','s1',690000000,820000000,1,true,12),
+   P('pg3','GS-YC-500',sd('Genset Yuchai 500 kW Silent','Yuchai 500 kW Silent Genset','裕柴 500 kW 静音发电机组'),'Genset','k1','b1','Silent Canopy','500 kW / 625 kVA','unit','s1',880000000,1050000000,1,true,12),
+   P('pr1','RN-CM-250',sd('Genset Cummins 250 kW (Unit Rental)','Cummins 250 kW Genset (Rental Unit)','康明斯 250 kW 发电机组（租赁设备）'),'Aset rental','k1','b2','Rental','250 kW','unit','s1',380000000,0,0,true,0),
+   P('sp1','SP-FO-001',sd('Filter Oli Genset 250 kW','Oil Filter for 250 kW Genset','250 kW 发电机组机油滤芯'),'Spare part','k2','b4','','250 kW','pcs','s2',185000,260000,20,false,3),
+   P('sp2','SP-FS-001',sd('Filter Solar Genset 250 kW','Fuel Filter for 250 kW Genset','250 kW 发电机组柴油滤芯'),'Spare part','k2','b4','','250 kW','pcs','s2',210000,295000,20,false,3),
+   P('sp3','SP-FU-001',sd('Filter Udara Genset 250 kW','Air Filter for 250 kW Genset','250 kW 发电机组空气滤芯'),'Spare part','k2','b4','','250 kW','pcs','s2',320000,450000,10,false,3),
+   P('sp4','SP-ACT-001',sd('Actuator Governor','Governor Actuator','调速器执行器'),'Spare part','k2','b4','','Universal','pcs','s3',3200000,4500000,3,false,6),
+   P('sp5','SP-AVR-001',sd('AVR Alternator','Alternator AVR','交流发电机自动调压器（AVR）'),'Spare part','k2','b4','','Universal','pcs','s3',1400000,2100000,3,false,6),
+   P('sp6','SP-CTL-001',sd('Controller Deep Sea 7320','Deep Sea 7320 Controller','Deep Sea 7320 控制器'),'Controller','k3','b3','7320','-','pcs','s3',6800000,9500000,2,true,12),
+   P('pn1','PN-ATS-400',sd('Panel ATS 400A','ATS Panel 400A','ATS 自动切换配电柜 400A'),'Panel','k3','b4','ATS 400A','400 A','unit','s3',28000000,39000000,1,true,12),
+   P('mt1','MT-KBL-95',sd('Kabel NYY 4x95 mm','NYY Cable 4x95 mm','NYY 电缆 4x95 mm'),'Kabel & material instalasi','k4','b4','NYY 4x95','-','meter','s2',420000,560000,100,false,0),
+   P('cs1','CS-COOL-20',sd('Coolant Genset (20 L)','Genset Coolant (20 L)','发电机组冷却液（20升）'),'Consumable','k5','b4','','20 L','pcs','s2',380000,520000,10,false,0)]);
   const st=[['pg1','w_ckr',2],['pg1','w_plt',1],['pg2','w_ckr',1],['pg3','w_plt',1],['pr1','w_ckr',2],['sp1','w_ckr',40],['sp1','w_plt',25],['sp2','w_ckr',35],['sp2','w_plt',8],['sp3','w_ckr',6],['sp3','w_plt',3],
    ['sp4','w_ckr',4],['sp5','w_plt',2],['sp6','w_ckr',3],['pn1','w_plt',2],['mt1','w_ckr',200],['cs1','w_ckr',30]];
   add('stock',st.map(([productId,whId,qty],i)=>({id:'st'+i,productId,whId,qty})));
   add('stock_moves',st.map(([productId,whId,qty],i)=>({id:'sm'+i,productId,whId,delta:qty,type:'Saldo awal',ref:'',note:'Data awal',at:ts,by:'seed',byName:'Sistem'})));
-  add('leads',[{id:'l1',name:'Bambang S.',company:'PT Digital Kreasi Sentra',phone:'0813-1111-2222',source:'Website',need:'Pembelian',estValue:1100000000,salesId:'u_s1',status:'Kualifikasi',notes:'Butuh genset 500 kW untuk data center tier 3.'},
-   {id:'l2',name:'Ibu Carolina',company:'Hotel Bintang Nusa',phone:'0811-3333-4444',source:'Referral',need:'Rental',estValue:180000000,salesId:'u_s2',status:'Baru',notes:'Rental genset 250 kW 6 bulan.'},
-   {id:'l3',name:'Pak Darmawan',company:'PT Logistik Prima',phone:'0812-5555-6666',source:'Pameran',need:'Spare part',estValue:45000000,salesId:'u_s1',status:'Dihubungi',notes:'Butuh AVR & controller.'}]);
-  add('followups',[{id:'fu1',customerId:'c1',date:addDays(today(),1),type:'Meeting',salesId:'u_s1',status:'Terjadwal',notes:'Presentasi penawaran 2 unit genset.'},
-   {id:'fu2',customerId:'c3',date:addDays(today(),-2),type:'Telepon',salesId:'u_s2',status:'Terjadwal',notes:'Tanya kelanjutan quotation spare part.'},
-   {id:'fu3',customerId:'c4',date:addDays(today(),-5),type:'Kunjungan',salesId:'u_s2',status:'Selesai',notes:'Survey kebutuhan awal, akan dibuat order.'}]);
+  add('leads',[{id:'l1',name:'Bambang S.',company:sd('PT Digital Kreasi Sentra','Digital Kreasi Sentra Inc.','数字创意中心有限公司'),phone:'0813-1111-2222',source:'Website',need:'Pembelian',estValue:1100000000,salesId:'u_s1',status:'Kualifikasi',notes:sd('Butuh genset 500 kW untuk data center tier 3.','Needs a 500 kW genset for a tier 3 data center.','需要一台 500 kW 发电机组，用于三级数据中心。')},
+   {id:'l2',name:sd('Ibu Carolina','Mrs. Carolina','Carolina 女士'),company:sd('Hotel Bintang Nusa','Bintang Nusa Hotel','宾丹努萨酒店'),phone:'0811-3333-4444',source:'Referral',need:'Rental',estValue:180000000,salesId:'u_s1',status:'Baru',notes:sd('Rental genset 250 kW 6 bulan.','Rents a 250 kW genset for 6 months.','租赁 250 kW 发电机组，为期6个月。')},
+   {id:'l3',name:sd('Pak Darmawan','Mr. Darmawan','Darmawan 先生'),company:sd('PT Logistik Prima','Logistik Prima Inc.','洛吉斯蒂克普里马物流有限公司'),phone:'0812-5555-6666',source:'Pameran',need:'Spare part',estValue:45000000,salesId:'u_s1',status:'Dihubungi',notes:sd('Butuh AVR & controller.','Needs an AVR & controller.','需要自动调压器（AVR）和控制器。')}]);
+  add('followups',[{id:'fu1',customerId:'c1',date:addDays(today(),1),type:'Meeting',salesId:'u_s1',status:'Terjadwal',notes:sd('Presentasi penawaran 2 unit genset.','Presentation of the offer for 2 genset units.','演示2台发电机组的报价方案。')},
+   {id:'fu2',customerId:'c3',date:addDays(today(),-2),type:'Telepon',salesId:'u_s1',status:'Terjadwal',notes:sd('Tanya kelanjutan quotation spare part.','Follow up on the spare part quotation.','跟进备件报价单的进展。')},
+   {id:'fu3',customerId:'c4',date:addDays(today(),-5),type:'Kunjungan',salesId:'u_s1',status:'Selesai',notes:sd('Survey kebutuhan awal, akan dibuat order.','Initial needs survey completed, an order will be created.','已完成初步需求调研，即将下单。')}]);
   add('quotations',[]);add('salesorders',[]);add('invoices',[]);add('orders',[]);add('approvals',[]);add('notifications',[]);add('comments',[]);add('audit',[]);
   // quotation & order contoh
   const cu=Auth.user;Auth.user={id:'u_s1',name:'Rizky Pratama',roleId:'sales'};
@@ -219,7 +250,7 @@ const Seed={
   Quote.applyCalc(q1);add('quotations',[{...q1,createdAt:ts,createdBy:'u_s1'}]);
   Store.mem.counters['QUO-'+today().slice(0,4)+today().slice(5,7)]=1;
   add('orders',[
-   {id:'o1',no:'ORD/'+today().slice(0,4)+'/'+today().slice(5,7)+'/0001',customerId:'c3',pic:'Hadi Purnomo',contact:'0812-0000-0003',items:[{productId:'sp1',desc:'Filter Oli Genset 250 kW',qty:10},{productId:'sp5',desc:'AVR Alternator',qty:2}],needType:'Spare part',capacity:'250 kW',engine:'Yuchai',alternator:'-',controller:'DSE',location:'Cikarang',purpose:'Penggantian berkala',targetDelivery:addDays(today(),7),installNeeded:false,notes:'Mohon kirim minggu depan.',files:[],salesId:'u_s2',stage:'review',statusText:'Dalam Review Sales Support',stageAt:ts,completed:['sales_input'],data:{},history:[{at:ts,by:'Sinta Maharani',stage:'sales_input',text:'Order dikirim ke Sales Support'}],createdAt:ts,createdBy:'u_s2'},
+   {id:'o1',no:'ORD/'+today().slice(0,4)+'/'+today().slice(5,7)+'/0001',customerId:'c3',pic:'Hadi Purnomo',contact:'0812-0000-0003',items:[{productId:'sp1',desc:'Filter Oli Genset 250 kW',qty:10},{productId:'sp5',desc:'AVR Alternator',qty:2}],needType:'Spare part',capacity:'250 kW',engine:'Yuchai',alternator:'-',controller:'DSE',location:'Cikarang',purpose:'Penggantian berkala',targetDelivery:addDays(today(),7),installNeeded:false,notes:'Mohon kirim minggu depan.',files:[],salesId:'u_s1',stage:'review',statusText:'Dalam Review Sales Support',stageAt:ts,completed:['sales_input'],data:{},history:[{at:ts,by:'Rizky Pratama',stage:'sales_input',text:'Order dikirim ke Sales Support'}],createdAt:ts,createdBy:'u_s1'},
    {id:'o2',no:'ORD/'+today().slice(0,4)+'/'+today().slice(5,7)+'/0002',customerId:'c1',pic:'Andi Pratama',contact:'0812-0000-0001',items:[{productId:'pg1',desc:'Genset Yuchai 250 kW Silent 3 Phase',qty:2}],needType:'Pembelian',capacity:'250 kW',engine:'Yuchai',alternator:'Stamford',controller:'Deep Sea 7320',location:'Data center, Jakarta Barat',purpose:'Backup daya data center',targetDelivery:addDays(today(),30),installNeeded:true,notes:'Termasuk panel ATS.',files:[],salesId:'u_s1',stage:'finance',statusText:'Pemeriksaan Finance',stageAt:ts,completed:['sales_input','review','warehouse'],quotationId:'q1',
     data:{review:{result:'Bisa langsung dibuatkan quotation',notes:'Data lengkap.'},warehouse:{availability:'Stok sebagian tersedia',location:'w_ckr',condition:'Baru',needBuy:'1 unit tambahan dari supplier'}},history:[{at:ts,by:'Rizky Pratama',stage:'sales_input',text:'Order dikirim ke Sales Support'}],createdAt:ts,createdBy:'u_s1'}]);
   Store.mem.counters['ORD-'+today().slice(0,4)+today().slice(5,7)]=2;

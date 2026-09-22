@@ -5,9 +5,10 @@
 const RENT_STAGES=['Draft','Aktif','Proses Pengembalian','Selesai','Dibatalkan'];
 
 /* ================= UNIT RENTAL (registry serial number) ================= */
-ENT.rent_units={col:'rent_units',page:'rent_units',title:'Unit Rental',label:r=>`${DB.get('products',r.productId)?.name||'-'} — ${r.serial}`,wr:['manager','president_director','warehouse'],
+ENT.rent_units={col:'rent_units',page:'rent_units',title:'Unit Rental',label:r=>`${DB.get('products',r.productId)?.name||'-'} — ${r.serial}`,wr:['deputy_director','director','warehouse'],
  fields:[F.r('productId','Produk (genset)','products',{req:true,list:true,filter:p=>p.kind==='Genset'||p.kind==='Aset rental'}),F.t('serial','Nomor seri',{req:true,list:true}),
   F.s('status','Status',['Tersedia','Disewa','Maintenance','Rusak'],{req:true,def:'Tersedia',list:true,badge:true}),F.r('whId','Lokasi saat ini','warehouses',{list:true,def:'w_ckr'}),F.n('hourMeter','Hour meter saat ini',{def:0,list:true}),F.ta('notes','Catatan kondisi')]};
+wireEntTitle('rent_units');
 crudPage('rent_units','Unit Rental');
 
 /* ================= KONTRAK RENTAL ================= */
