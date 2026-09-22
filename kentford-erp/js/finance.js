@@ -74,6 +74,7 @@ ACT['si-new']=async()=>{
  const v=await UI.ask({title:t('si.manual_invoice'),ok:t('common.save'),fields:[F.r('supplierId',t('common.supplier'),'suppliers',{req:true}),F.d('date',t('common.date'),{req:true,def:today()}),F.n('terms',t('inv.due_days'),{req:true,def:30}),
   F.m('amount',t('si.amount_dpp_rp'),{req:true}),F.pc('taxPct',t('quot.tax_pct'),{def:()=>S().defaultTaxPct??11}),F.ta('desc',t('common.description'),{req:true}),F.fl('files',t('si.invoice_attachment'))]});
  if(!v)return;if(!(num(v.amount)>0))return UI.toast(t('si.err_amount_positive'),'err');
+ try{PeriodLock.check(v.date)}catch(e){return UI.toast(e.message,'err')}
  const i=SInv.manual(v);UI.toast(t('si.created',{no:i.no}));Router.go('si/'+i.id);
 };
 ACT['si-fromPO']=async el=>{
@@ -82,7 +83,7 @@ ACT['si-fromPO']=async el=>{
   F.pc('pct',t('inv.dp_pct').replace(' — khusus jenis DP','').replace(' — DP type only',''),{def:po.dpPct||30}),F.d('date',t('inv.invoice_date'),{req:true,def:today()}),F.n('terms',t('inv.due_days'),{req:true,def:30})],
   pre:`<div class="info" style="margin-bottom:10px">${t('si.pre_po_summary',{total:rp(dppPO),used:rp(used),remaining:rp(dppPO-used)})}</div>`});
  if(!v)return;
- try{const i=SInv.fromPO(po,v);UI.toast(t('si.created',{no:i.no}));Router.render()}catch(e){UI.toast(e.message,'err')}
+ try{PeriodLock.check(v.date);const i=SInv.fromPO(po,v);UI.toast(t('si.created',{no:i.no}));Router.render()}catch(e){UI.toast(e.message,'err')}
 };
 PAGES.ap.render=async v=>{
  v.innerHTML=UI.pghead(t('nav.ap'))+'<div class="card" id="apb"></div>';
@@ -102,6 +103,7 @@ const PayReq={
   UI.toast(t('payreq.submitted'));
  },
  async pay(pr,{bankId,date,ref,files}){
+  PeriodLock.check(date);
   BankTx.add({bankId,date,type:'Keluar',amount:pr.amount,desc:pr.purpose,ref:pr.no,source:'Payment Request'});
   if(pr.refCol==='si'){
    const si=DB.get('si',pr.refId);
@@ -174,7 +176,7 @@ ACT['payreq-pay']=async el=>{
  if(!v)return;
  const bal=BankTx.balance(v.bankId);
  if(bal<r.amount&&!(await UI.confirm({title:t('payreq.balance_insufficient'),msg:t('payreq.balance_insufficient_msg',{bal:rp(bal),amt:rp(r.amount)}),danger:true})))return;
- await PayReq.pay(r,v);UI.toast(t('payreq.payment_recorded'));Router.render();
+ try{await PayReq.pay(r,v);UI.toast(t('payreq.payment_recorded'));Router.render()}catch(e){UI.toast(e.message,'err')}
 };
 
 /* ================= PETTY CASH ================= */
@@ -193,6 +195,7 @@ ACT['petty-out']=async()=>{
  if(!v)return;
  if(!(num(v.amount)>0))return UI.toast(t('quot.err_qty_positive'),'err');
  if(num(v.amount)>Petty.balance())return UI.toast(t('petty.err_exceeds_balance'),'err');
+ try{PeriodLock.check(v.date)}catch(e){return UI.toast(e.message,'err')}
  Approval.request({type:'petty_cash',refCol:'petty_ledger',refId:'',title:t('petty.expense_title',{desc:v.desc}),amount:v.amount,reason:v.desc,files:v.files,meta:{date:v.date,desc:v.desc,amount:v.amount}});
  UI.toast(t('common.action_submitted_reason'));Router.render();
 };
@@ -215,6 +218,7 @@ PAGES.bank.render=async(v,param)=>{
 ACT['bank-manual']=async el=>{
  const v=await UI.ask({title:t('bank.manual_tx'),ok:t('common.save'),fields:[F.s('type',t('common.type'),['Masuk','Keluar'],{req:true}),F.d('date',t('common.date'),{req:true,def:today()}),F.m('amount',t('petty.amount_rp'),{req:true}),F.ta('desc',t('common.description'),{req:true})]});
  if(!v)return;if(!(num(v.amount)>0))return UI.toast(t('quot.err_qty_positive'),'err');
+ try{PeriodLock.check(v.date)}catch(e){return UI.toast(e.message,'err')}
  BankTx.add({bankId:el.dataset.id,...v,source:'Manual'});UI.toast(t('bank.tx_saved'));Router.render();
 };
 
@@ -300,6 +304,7 @@ ACT['inv-pay']=async el=>{
  if(!v)return;
  if(!(num(v.amount)>0))return UI.toast(t('inv.err_amount_positive'),'err');
  if(num(v.amount)>out+0.5)return UI.toast(t('inv.err_amount_exceeds',{amt:rp(out)}),'err');
+ try{PeriodLock.check(v.date)}catch(e){return UI.toast(e.message,'err')}
  const before=clone(i.payments||[]),payments=[...before,{id:uid(),...v,amount:num(v.amount),by:Auth.uid(),byName:Auth.user.name,at:nowISO()}];
  DB.update('invoices',i.id,{payments},t('inv.reason_payment',{amt:rp(v.amount)}),t('inv.action_record_payment'));
  if(v.bankId)BankTx.add({bankId:v.bankId,date:v.date,type:'Masuk',amount:v.amount,desc:t('bank.desc_payment',{no:i.no}),ref:v.ref,source:'Customer Invoice'});
@@ -307,4 +312,72 @@ ACT['inv-pay']=async el=>{
  UI.toast(t('inv.payment_recorded',{status:Inv.status(upd)}));
  if(i.orderId){const o=DB.get('orders',i.orderId);if(o){Notify.user(o.salesId,t('inv.notify_payment_received',{amt:rp(v.amount),no:i.no,status:Inv.status(upd)}),'#/orders/'+o.id);Order.touch(o.id)}}
  Router.render();
+};
+
+/* ================= JURNAL UMUM (Chart of Accounts + Journal Entries) =================
+   Modul akuntansi minimal berdiri sendiri: tidak ada posting otomatis dari modul lain,
+   tanpa multi-currency, tanpa tutup buku tahunan — hanya CRUD COA (lihat schema.js) +
+   entri jurnal manual dengan validasi balance & status Draft/Posted, plus jurnal pembalik
+   untuk koreksi (entri Posted TIDAK PERNAH diedit langsung). */
+const JRN_COLS=[{k:'accountId',l:t('journal.account'),t:'ref',ref:'chart_of_accounts',w:'220px'},{k:'debit',l:t('journal.debit'),t:'number',w:'120px'},{k:'credit',l:t('journal.credit'),t:'number',w:'120px'}];
+const Journal={
+ totals(lines){return {debit:sum(lines,l=>num(l.debit)),credit:sum(lines,l=>num(l.credit))}},
+ balanced(lines){const tt=this.totals(lines);return Math.abs(tt.debit-tt.credit)<0.5&&tt.debit>0},
+ accName(id){const a=DB.get('chart_of_accounts',id);return a?`${a.code} — ${a.name}`:'-'}
+};
+PAGES.journal.render=async(v,param)=>{
+ if(param==='new'){
+  if(!can('journal','w'))return v.innerHTML=UI.empty(t('journal.no_right'));
+  v.innerHTML=UI.pghead(t('journal.new_entry'))+`<div class="card"><div id="jform"></div>
+   <div class="acts" style="margin-top:12px"><button class="btn btn-o" data-act="jrn-save">${t('common.save_draft')}</button></div></div>`;
+  const fields=[F.d('date',t('common.date'),{req:true,def:today()}),F.ta('memo',t('journal.memo'),{req:true}),{k:'lines',l:t('journal.lines'),t:'lines',cols:JRN_COLS,min:1}];
+  $('#jform').innerHTML=Form.render(fields,{});Form.hydrate($('#jform'),fields,{});
+  $('#jform').dataset.fields='new';
+  PAGES.journal._fields=fields;
+  return;
+ }
+ if(!param){
+  v.innerHTML=UI.pghead(t('nav.journal'))+`<div class="card"><div class="ch"><span>${t('nav.journal')}</span>${can('journal','w')?`<a class="btn btn-sm" href="#/journal/new">+ ${t('journal.new_entry')}</a>`:''}</div><div id="jl"></div></div>`;
+  new DT($('#jl'),{title:t('nav.journal'),rows:()=>DB.all('journal_entries').slice().reverse(),onRow:id=>Router.go('journal/'+id),
+   cols:[{k:'no',l:t('common.no_dot')},{k:'date',l:t('common.date'),text:r=>fdate(r.date),sortv:r=>r.date},{k:'memo',l:t('journal.memo')},
+    {k:'tot',l:t('journal.total'),num:true,text:r=>rp(Journal.totals(r.lines).debit)},{k:'st',l:t('common.status'),text:r=>r.status,html:r=>UI.badge(r.status==='Posted'?t('journal.posted'):t('journal.draft'))}]});
+  return;
+ }
+ const j=DB.get('journal_entries',param);if(!j)return v.innerHTML=UI.empty(t('journal.not_found'));
+ const tt=Journal.totals(j.lines),bal=Math.abs(tt.debit-tt.credit)<0.5;
+ const editable=j.status==='Draft'&&can('journal','w');
+ v.innerHTML=UI.pghead(`${j.no} — ${fdate(j.date)}`)+`<div class="card">${UI.badge(j.status==='Posted'?t('journal.posted'):t('journal.draft'))}
+  <p style="margin-top:8px">${esc(j.memo)}</p>${j.reversalOf?`<p class="mut">${t('journal.reversal_of',{no:DB.get('journal_entries',j.reversalOf)?.no||j.reversalOf})}</p>`:''}
+  <div class="tblw"><table><tr><th>${t('journal.account')}</th><th class="num">${t('journal.debit')}</th><th class="num">${t('journal.credit')}</th></tr>
+   ${j.lines.map(l=>`<tr><td>${esc(Journal.accName(l.accountId))}</td><td class="num">${rp(num(l.debit))}</td><td class="num">${rp(num(l.credit))}</td></tr>`).join('')}
+   <tr><td><b>${t('common.total')}</b></td><td class="num"><b>${rp(tt.debit)}</b></td><td class="num"><b>${rp(tt.credit)}</b></td></tr></table></div>
+  <div class="acts" style="margin-top:12px">
+   ${editable?`<button class="btn" data-act="jrn-post" data-id="${j.id}" ${bal?'':'disabled'}>${t('journal.post')}</button>${!bal?`<span class="mut" style="margin-left:8px">${t('journal.err_unbalanced')}</span>`:''}`:''}
+   ${j.status==='Posted'&&can('journal','w')?`<button class="btn btn-o" data-act="jrn-reverse" data-id="${j.id}">${t('journal.reverse')}</button>`:''}
+  </div></div>`;
+};
+ACT['jrn-save']=async()=>{
+ const fields=PAGES.journal._fields,root=$('#jform');
+ const {v,err}=Form.collect(root,fields);
+ if(err.length)return UI.toast(err[0],'err');
+ if(v.lines.some(l=>!l.accountId))return UI.toast(t('journal.err_line_account'),'err');
+ if(!Journal.balanced(v.lines))return UI.toast(t('journal.err_unbalanced'),'err');
+ try{PeriodLock.check(v.date)}catch(e){return UI.toast(e.message,'err')}
+ const j=DB.insert('journal_entries',{no:Num.next('JRN'),date:v.date,memo:v.memo,lines:v.lines,status:'Draft'});
+ UI.toast(t('journal.saved'));Router.go('journal/'+j.id);
+};
+ACT['jrn-post']=async el=>{
+ const j=DB.get('journal_entries',el.dataset.id);
+ if(!Journal.balanced(j.lines))return UI.toast(t('journal.err_unbalanced'),'err');
+ try{PeriodLock.check(j.date)}catch(e){return UI.toast(e.message,'err')}
+ DB.update('journal_entries',j.id,{status:'Posted',postedAt:nowISO(),postedBy:Auth.user.name},t('journal.reason_posted'),t('journal.post'));
+ UI.toast(t('journal.posted_toast'));Router.render();
+};
+ACT['jrn-reverse']=async el=>{
+ const j=DB.get('journal_entries',el.dataset.id);
+ if(j.status!=='Posted')return;
+ if(!(await UI.confirm({title:t('journal.reverse'),msg:t('journal.reverse_confirm_msg',{no:j.no})})))return;
+ const rev=DB.insert('journal_entries',{no:Num.next('JRN'),date:today(),memo:t('journal.reversal_memo',{no:j.no}),
+  lines:j.lines.map(l=>({accountId:l.accountId,debit:num(l.credit),credit:num(l.debit)})),status:'Draft',reversalOf:j.id});
+ UI.toast(t('journal.reversal_created',{no:rev.no}));Router.go('journal/'+rev.id);
 };

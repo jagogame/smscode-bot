@@ -64,6 +64,23 @@ const REPORTS=[
   rows:f=>DB.all('tax_docs').filter(t=>inRange(t.date,f)).slice().reverse(),
   cols:[R_COL('no',t('tax.doc_no'),r=>r.no),R_COL('t',t('common.type'),r=>r.type),R_COL('date',t('common.date'),r=>fdate(r.date),{sortv:r=>r.date}),R_COL('amt',t('common.value'),r=>rp(r.amount),{num:true,sortv:r=>r.amount})],
   sum:rows=>['Faktur Pajak','Bukti Potong PPh 21','Bukti Potong PPh 23'].map(ty=>`${ty}: <b>${rp(sum(rows.filter(r=>r.type===ty),r=>r.amount))}</b>`).join(' • ')},
+ {key:'gl',label:t('reports.gl'),f:['date','account'],
+  // Buku Besar (General Ledger) per akun: baris jurnal ter-posting saja, diurutkan tanggal, dengan saldo berjalan.
+  // Saldo berjalan mengikuti normalBalance akun (Debit: +debit -credit, Kredit: +credit -debit).
+  rows:f=>{
+   if(!f.accountId)return [];
+   const acc=DB.get('chart_of_accounts',f.accountId);if(!acc)return [];
+   const entries=DB.all('journal_entries').filter(j=>j.status==='Posted'&&inRange(j.date,f)).slice().sort((a,b)=>a.date.localeCompare(b.date)||a.no.localeCompare(b.no));
+   let bal=0;const rows=[];
+   entries.forEach(j=>{j.lines.filter(l=>l.accountId===f.accountId).forEach(l=>{
+    bal+=acc.normalBalance==='Debit'?(num(l.debit)-num(l.credit)):(num(l.credit)-num(l.debit));
+    rows.push({id:j.id+'-'+rows.length,jno:j.no,date:j.date,memo:j.memo,debit:num(l.debit),credit:num(l.credit),bal});
+   })});
+   return rows;
+  },
+  cols:[R_COL('date',t('common.date'),r=>fdate(r.date),{sortv:r=>r.date}),R_COL('no',t('reports.gl_col_journal_no'),r=>r.jno),R_COL('memo',t('journal.memo'),r=>r.memo),
+   R_COL('d',t('journal.debit'),r=>rp(r.debit),{num:true}),R_COL('c',t('journal.credit'),r=>rp(r.credit),{num:true}),R_COL('bal',t('journal.total'),r=>rp(r.bal),{num:true})],
+  sum:rows=>rows.length?t('reports.sum_gl',{n:rows.length,bal:rp(rows[rows.length-1].bal)}):t('reports.gl_pick_account')},
  {key:'aging',label:t('reports.aging'),f:['customer'],
   rows:f=>Scope.rows('invoices').filter(i=>Inv.outstanding(i)>0&&(!f.customerId||i.customerId===f.customerId)),
   cols:[R_COL('no',t('inv.no_invoice'),r=>r.no),R_COL('c',t('common.customer'),r=>custName(r.customerId)),R_COL('due',t('inv.due_date'),r=>fdate(r.dueDate),{sortv:r=>r.dueDate}),R_COL('o',t('inv.outstanding'),r=>rp(Inv.outstanding(r)),{num:true,sortv:r=>Inv.outstanding(r)}),R_COL('b',t('inv.aging'),r=>Inv.aging(r)),R_COL('st',t('common.status'),r=>Inv.status(r))],
@@ -81,6 +98,7 @@ PAGES.reports.render=async(v,param)=>{
  if(rep.f.includes('sales')&&!Auth.role.scopeOwn)fl.push(F.r('salesId',t('reports.f_pic_sales'),'users',{filter:salesUsers}));
  if(rep.f.includes('status'))fl.push(F.s('status',t('common.status'),typeof rep.st==='function'?rep.st:rep.st));
  if(rep.f.includes('branch'))fl.push(F.r('whId',t('reports.f_branch_wh'),'warehouses'));
+ if(rep.f.includes('account'))fl.push(F.r('accountId',t('journal.account'),'chart_of_accounts',{req:true}));
  v.innerHTML=UI.pghead(t('nav.reports'))+`<div class="tabs">${avail.map(r=>`<a href="#/reports/${r.key}" class="${r.key===rep.key?'on':''}">${esc(typeof r.label==='function'?r.label():r.label)}</a>`).join('')}</div>
   <div class="card"><div class="ch"><span>${esc(label)}</span>${extra}</div>${fl.length?`<div id="rf">${Form.render(fl,{})}</div><div class="acts" style="margin-top:10px"><button class="btn" data-act="rep-run">${t('reports.apply_filter')}</button></div>`:''}</div>
   <div class="card"><div id="rsum" style="margin-bottom:8px"></div><div id="rt"></div></div>`;

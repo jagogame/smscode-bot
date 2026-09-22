@@ -210,7 +210,13 @@ const userName=id=>DB.get('users',id)?.name||'-';
 const PeriodLock={
  date(){return S().periodLockDate||''},
  isLocked(docDate){const l=this.date();return !!l&&!!docDate&&docDate<=l},
- set(dateStr){S().periodLockDate=dateStr||'';saveSettings();Audit.log(t('audit.period_lock'),'settings','periodLockDate',null,{periodLockDate:dateStr||''},'')}
+ set(dateStr){S().periodLockDate=dateStr||'';saveSettings();Audit.log(t('audit.period_lock'),'settings','periodLockDate',null,{periodLockDate:dateStr||''},'')},
+ /* Cegah transaksi finansial dibuat/diubah pada tanggal yang sudah dikunci (periode ditutup).
+    Direktur & Asisten Direktur dikecualikan (boleh membuka kembali sesuai kewenangan). Lempar
+    Error agar dipakai di dalam try/catch pemanggil (pola UI.toast(e.message,'err') yang sudah ada). */
+ check(docDate){
+  if(this.isLocked(docDate)&&!isRole('director','deputy_director'))throw new Error(t('finance.period_locked_error',{date:fdate(this.date())}));
+ }
 };
 
 /* ---------- Notifikasi ---------- */
@@ -246,9 +252,16 @@ const Approval={hooks:{},
     requesterId!==u.id selalu diperiksa lebih dulu, delegasi TIDAK melewati aturan ini. */
  canDecide(a,u=Auth.user){
   const s=this.cur(a);if(!s||a.requesterId===u.id)return false;
-  if(u.roleId===s.role||u.roleId==='director')return true;
+  // Direktur selalu punya wewenang penuh, tidak dibatasi approvalLimit personal
+  if(u.roleId==='director')return true;
+  // Bila user punya batas approval personal (override) lebih rendah dari nilai pengajuan,
+  // dia tidak boleh memberi keputusan final di step ini walau rolenya cocok — harus eskalasi
+  // ke step berikutnya (biasanya sampai Direktur) yang tidak punya batas.
+  const lim=Auth.effectiveLimit(u);
+  const overLimit=lim!=null&&num(a.amount)>lim;
+  if(u.roleId===s.role)return !overLimit;
   const delegators=DB.all('users').filter(x=>x.delegateTo===u.id&&x.roleId===s.role);
-  return delegators.length>0;
+  return delegators.length>0&&!overLimit;
  },
  notifyCurrent(a){
   const s=this.cur(a);if(!s)return;
@@ -325,6 +338,7 @@ const Print={
 /* ---------- Kamus terjemahan (id / en / zh) ---------- */
 Object.assign(I18N.id,{
  'audit.create':'Buat','audit.update':'Ubah','audit.archive':'Hapus (arsip)','audit.restore':'Pulihkan','audit.login':'Login','audit.logout':'Logout','audit.period_lock':'Ubah tanggal lock periode',
+ 'finance.period_locked_error':'Periode sudah dikunci sampai {date}. Hanya Direktur/Asisten Direktur yang dapat membuka kembali transaksi pada periode ini.',
  'audit.change_password':'Ubah Password','audit.apply_approval_failed':'Gagal menerapkan approval: {msg}',
  'err.notfound':'Data tidak ditemukan','err.not_authorized_approve':'Anda tidak berwenang menyetujui pengajuan ini.','err.reject_reason_required':'Alasan penolakan wajib diisi.',
  'err.approve_apply_failed':'Disetujui, tetapi gagal diterapkan ke dokumen: {msg}. Perubahan status TIDAK dibatalkan — hubungi Admin / IT.',
@@ -340,14 +354,14 @@ Object.assign(I18N.id,{
  'nav.dashboard':'Dashboard','nav.leads':'Leads','nav.customers':'Customers','nav.followups':'Follow-up','nav.quotations':'Quotation','nav.salesorders':'Sales Order','nav.orders':'New Order Tracking',
  'nav.pr':'Purchase Request','nav.sq':'Supplier Quotation','nav.pc':'Price Comparison','nav.po':'Purchase Order','nav.suppliers':'Supplier','nav.incoming':'Incoming Shipment',
  'nav.products':'Daftar Produk','nav.stock_genset':'Stok Genset','nav.stock_parts':'Stok Spare Part','nav.gr':'Barang Masuk','nav.gi':'Barang Keluar','nav.transfer':'Transfer Lokasi','nav.opname':'Stock Opname','nav.barcode':'Barcode',
- 'nav.invoices':'Customer Invoice','nav.ar':'Account Receivable','nav.si':'Supplier Invoice','nav.ap':'Account Payable','nav.payreq':'Payment Request','nav.bank':'Bank & Cash','nav.petty':'Petty Cash','nav.tax':'Tax','nav.recon':'Bank Reconciliation',
+ 'nav.invoices':'Customer Invoice','nav.ar':'Account Receivable','nav.si':'Supplier Invoice','nav.ap':'Account Payable','nav.payreq':'Payment Request','nav.bank':'Bank & Cash','nav.petty':'Petty Cash','nav.tax':'Tax','nav.recon':'Bank Reconciliation','nav.coa':'Chart of Accounts','nav.journal':'Jurnal Umum','nav.company_docs':'Dokumen Perusahaan','nav.leave':'Cuti & Izin',
  'nav.rent_units':'Unit Rental','nav.rent_contracts':'Kontrak Rental','nav.rent_schedule':'Jadwal Rental','nav.hourmeter':'Hour Meter','nav.overtime':'Overtime','nav.deposit':'Deposit','nav.rent_return':'Pengembalian Unit',
  'nav.svc_req':'Service Request','nav.survey':'Survey','nav.wo':'Work Order','nav.tech_sched':'Jadwal Teknisi','nav.install':'Installation','nav.pm':'Preventive Maintenance','nav.warranty':'Warranty Claim','nav.svc_report':'Service Report',
  'nav.approvals_pending':'Menunggu Persetujuan','nav.approvals_done':'Disetujui','nav.approvals_rejected':'Ditolak','nav.approvals_history':'Riwayat Approval',
  'nav.reports':'Reports','nav.master':'Master Data','nav.users':'User & Access','nav.audit':'Audit Log','nav.settings':'Settings',
- 'grp.crm_sales':'CRM & Sales','grp.purchasing':'Purchasing','grp.inventory':'Inventory','grp.finance':'Finance','grp.rental':'Rental','grp.service':'Service & Aftersales','grp.approval':'Approval','grp.other':'Lainnya',
+ 'grp.crm_sales':'CRM & Sales','grp.purchasing':'Purchasing','grp.inventory':'Inventory','grp.finance':'Finance','grp.rental':'Rental','grp.service':'Service & Aftersales','grp.approval':'Approval','grp.admin':'General Admin & HR','grp.other':'Lainnya',
  'ent.users':'Pengguna','ent.roles':'Role','ent.leads':'Lead','ent.customers':'Customer','ent.suppliers':'Supplier','ent.products':'Produk','ent.categories':'Kategori Produk','ent.brands':'Brand','ent.warehouses':'Warehouse / Lokasi',
- 'ent.banks':'Rekening Bank','ent.taxes':'Pajak','ent.payterms':'Payment Terms','ent.deliveryterms':'Delivery Terms','ent.employees':'Karyawan','ent.departments':'Departemen','ent.approvalLimits':'Batas Approval','ent.numbering':'Penomoran Dokumen',
+ 'ent.banks':'Rekening Bank','ent.taxes':'Pajak','ent.payterms':'Payment Terms','ent.deliveryterms':'Delivery Terms','ent.employees':'Karyawan','ent.departments':'Departemen','ent.approvalLimits':'Batas Approval','ent.numbering':'Penomoran Dokumen','ent.chart_of_accounts':'Chart of Accounts','ent.company_documents':'Dokumen Perusahaan','ent.leave_requests':'Cuti & Izin',
  'ent.uoms':'Satuan (UoM)','ent.vehicles':'Kendaraan','ent.technicians':'Teknisi','ent.failcats':'Kategori Kerusakan','ent.servicetypes':'Jenis Service','ent.followups':'Follow-up',
  'ent.si':'Supplier Invoice','ent.rent_contracts':'Kontrak Rental','ent.payreq':'Payment Request','ent.quotations':'Quotation','ent.salesorders':'Sales Order','ent.invoices':'Customer Invoice','ent.orders':'New Order',
  'ent.rent_units':'Unit Rental','ent.pm_schedules':'Jadwal PM',
@@ -448,7 +462,7 @@ Object.assign(I18N.id,{
  'tax.record_doc':'Catat dokumen pajak','tax.output_vat':'PPN Keluaran (bulan ini)','tax.input_vat':'PPN Masukan (bulan ini)','tax.balance':'PPN kurang/lebih bayar','tax.rates':'Tarif pajak','tax.inactive':'Nonaktif',
  'tax.change_rate_hint':'Ubah tarif di','tax.docs':'Dokumen Pajak','tax.doc_no':'No. Dokumen','tax.doc_type':'Jenis dokumen','tax.doc_no_field':'Nomor dokumen','tax.value_rp':'Nilai (Rp)','tax.upload_doc':'Unggah dokumen','tax.doc_saved':'Dokumen pajak tersimpan.',
  'recon.new':'Rekonsiliasi baru','recon.period':'Periode','recon.stmt_hint':'Baris mutasi rekening koran (tempel dari statement bank: tanggal | keterangan | jumlah, satu baris per transaksi; nominal keluar tulis negatif)','recon.start_match':'Mulai cocokkan',
- 'recon.matched':'Cocok','recon.not_found':'Rekonsiliasi tidak ditemukan.','recon.statement':'Rekening koran','recon.match':'Cocok','recon.select_system_tx':'pilih transaksi sistem','recon.unmatched':'Belum cocok','recon.system_unmatched':'Sistem (belum cocok)',
+ 'journal.account':'Akun','journal.debit':'Debit','journal.credit':'Kredit','journal.memo':'Memo / Keterangan','journal.lines':'Baris Jurnal','journal.total':'Total','journal.draft':'Draft','journal.posted':'Posted','journal.new_entry':'Entri Jurnal Baru','journal.post':'Posting','journal.reverse':'Jurnal Pembalik','journal.no_right':'Anda tidak berhak membuat entri jurnal.','journal.not_found':'Entri jurnal tidak ditemukan.','journal.saved':'Draft jurnal disimpan.','journal.posted_toast':'Jurnal berhasil diposting.','journal.err_unbalanced':'Total debit dan kredit harus sama sebelum bisa diposting.','journal.err_line_account':'Setiap baris jurnal wajib memilih akun.','journal.reason_posted':'Posting jurnal','journal.reversal_of':'Jurnal pembalik dari {no}','journal.reversal_memo':'Jurnal pembalik dari {no}','journal.reversal_created':'Jurnal pembalik dibuat: {no}','journal.reverse_confirm_msg':'Buat jurnal pembalik (debit/kredit dibalik) dari {no}?','recon.matched':'Cocok','recon.not_found':'Rekonsiliasi tidak ditemukan.','recon.statement':'Rekening koran','recon.match':'Cocok','recon.select_system_tx':'pilih transaksi sistem','recon.unmatched':'Belum cocok','recon.system_unmatched':'Sistem (belum cocok)',
  'recon.all_matched':'Semua cocok','recon.save_matching':'Simpan pencocokan','recon.finish':'Selesaikan rekonsiliasi','recon.err_min_line':'Isi minimal satu baris mutasi rekening koran.','recon.auto_matched':'Pencocokan awal dibuat otomatis untuk nominal yang sama persis.',
  'recon.matching_saved':'Pencocokan disimpan.','recon.finish_confirm_msg':'Masih ada {n} baris rekening koran yang belum cocok dengan sistem. Tetap selesaikan?','recon.reason_reconciled':'Direkonsiliasi','recon.finished':'Rekonsiliasi selesai.',
  'common.late':'Terlambat',
@@ -463,7 +477,7 @@ Object.assign(I18N.id,{
  'dashboard.top_customers':'Top customer (nilai SO)','dashboard.top_products':'Top produk (nilai penjualan)','dashboard.sales_performance':'Performa sales (nilai SO)','dashboard.orders_by_stage':'New Order per tahap','dashboard.n_orders':'{n} order',
  'reports.sales':'Laporan Penjualan','reports.quoteconv':'Konversi Quotation','reports.margin':'Gross Profit & Margin','reports.salesperf':'Performa Sales','reports.followup':'Follow-up Customer',
  'reports.orderprog':'Progress New Order','reports.delivery':'Laporan Pengiriman & Instalasi','reports.stockval':'Valuasi Stok','reports.lowstock':'Stok Menipis','reports.invmove':'Mutasi Stok',
- 'reports.apaging':'Aging Hutang (AP)','reports.cashflow':'Arus Kas','reports.pettyreport':'Petty Cash','reports.taxsummary':'Ringkasan Pajak','reports.aging':'Aging Piutang (AR)',
+ 'reports.apaging':'Aging Hutang (AP)','reports.cashflow':'Arus Kas','reports.pettyreport':'Petty Cash','reports.taxsummary':'Ringkasan Pajak','reports.aging':'Aging Piutang (AR)','reports.gl':'Buku Besar (General Ledger)','reports.gl_col_journal_no':'No. Jurnal','reports.gl_pick_account':'Pilih akun untuk melihat buku besar.','reports.sum_gl':'{n} baris • Saldo akhir: {bal}',
  'reports.col_quote_count':'Jumlah quotation','reports.col_approved':'Disetujui','reports.col_won':'Diterima customer','reports.col_lost':'Ditolak','reports.col_quote_value':'Nilai quotation',
  'reports.col_won_value':'Nilai diterima','reports.col_conversion':'Konversi','reports.col_sales_dpp':'Penjualan (DPP)','reports.col_sales_value':'Nilai penjualan','reports.col_followups_done':'Follow-up selesai',
  'reports.col_next':'Berikutnya','reports.col_order_no':'No. Order','reports.col_need':'Kebutuhan','reports.col_target_delivery':'Target delivery','reports.col_days_in_stage':'Hari di tahap','reports.col_lateness':'Keterlambatan',
@@ -488,7 +502,7 @@ Object.assign(I18N.id,{
  'admin.attachment_optional':'Lampiran (opsional)','admin.qty_not_negative':'Jumlah stok tidak boleh negatif.','admin.stock_adjust_title2':'Penyesuaian stok {name}: {from} → {to}','admin.submission_sent':'Pengajuan dikirim: {no}',
  'admin.master_data':'Master Data','admin.user_access':'User & Access','admin.users_tab':'Pengguna','admin.role_access_tab':'Hak Akses Role','admin.full_name':'Nama lengkap','admin.username':'Username',
  'admin.username_hint':'Huruf kecil tanpa spasi','admin.role':'Role','admin.department':'Departemen','admin.phone':'Telepon','admin.password_new_hint':'Password baru (kosongkan bila tidak diubah)','admin.password_min_hint':'Password (min. 6 karakter)',
- 'admin.position':'Jabatan','admin.work_location':'Lokasi kerja','admin.approver':'Atasan / Approver','admin.approval_limit':'Batas nominal approval (Rp)','admin.approval_limit_hint':'0 = pakai batas default role','admin.delegate_to':'Delegasi approval ke','admin.delegate_to_hint':'Isi bila sedang cuti/berhalangan',
+ 'admin.position':'Jabatan','admin.work_location':'Lokasi kerja','admin.approver':'Atasan / Approver','admin.approval_limit':'Batas nominal approval (Rp)','admin.approval_limit_hint':'0 = pakai batas default role','admin.delegate_to':'Delegasi approval ke','admin.delegate_to_hint':'Isi bila sedang cuti/berhalangan','admin.saved_signature':'Tanda tangan tersimpan','admin.saved_signature_hint':'Dipakai sebagai isian cepat saat serah terima New Order.',
  'admin.account_status':'Status akun','admin.status_active':'Aktif','admin.status_inactive':'Nonaktif','admin.status_suspended':'Suspend','admin.login_history':'Riwayat Login','admin.login_history_title':'Riwayat login & aktivitas — {name}','admin.no_history':'Belum ada riwayat.',
  'admin.account_active':'Akun aktif','admin.new_user':'+ Pengguna baru','admin.inactive':'Nonaktif','admin.active':'Aktif','admin.edit_user':'Ubah pengguna','admin.new_user_title':'Pengguna baru',
  'admin.period_lock':'Lock Periode Keuangan','admin.period_lock_hint':'Transaksi dengan tanggal ≤ tanggal ini dianggap terkunci untuk modul finance/reporting.','admin.period_lock_date':'Terkunci sampai tanggal','admin.period_lock_saved':'Tanggal lock periode disimpan.',
@@ -516,6 +530,7 @@ Object.assign(I18N.id,{
 });
 Object.assign(I18N.en,{
  'audit.create':'Create','audit.update':'Update','audit.archive':'Delete (archive)','audit.restore':'Restore','audit.login':'Login','audit.logout':'Logout','audit.period_lock':'Change period lock date',
+ 'finance.period_locked_error':'Period is locked through {date}. Only Director/Deputy Director can reopen transactions in this period.',
  'audit.change_password':'Change Password','audit.apply_approval_failed':'Failed to apply approval: {msg}',
  'err.notfound':'Data not found','err.not_authorized_approve':'You are not authorized to approve this request.','err.reject_reason_required':'Rejection reason is required.',
  'err.approve_apply_failed':'Approved, but failed to apply to the document: {msg}. The status change was NOT rolled back — contact Admin / IT.',
@@ -531,14 +546,14 @@ Object.assign(I18N.en,{
  'nav.dashboard':'Dashboard','nav.leads':'Leads','nav.customers':'Customers','nav.followups':'Follow-up','nav.quotations':'Quotation','nav.salesorders':'Sales Order','nav.orders':'New Order Tracking',
  'nav.pr':'Purchase Request','nav.sq':'Supplier Quotation','nav.pc':'Price Comparison','nav.po':'Purchase Order','nav.suppliers':'Supplier','nav.incoming':'Incoming Shipment',
  'nav.products':'Product List','nav.stock_genset':'Genset Stock','nav.stock_parts':'Spare Part Stock','nav.gr':'Goods Receipt','nav.gi':'Goods Issue','nav.transfer':'Location Transfer','nav.opname':'Stock Opname','nav.barcode':'Barcode',
- 'nav.invoices':'Customer Invoice','nav.ar':'Account Receivable','nav.si':'Supplier Invoice','nav.ap':'Account Payable','nav.payreq':'Payment Request','nav.bank':'Bank & Cash','nav.petty':'Petty Cash','nav.tax':'Tax','nav.recon':'Bank Reconciliation',
+ 'nav.invoices':'Customer Invoice','nav.ar':'Account Receivable','nav.si':'Supplier Invoice','nav.ap':'Account Payable','nav.payreq':'Payment Request','nav.bank':'Bank & Cash','nav.petty':'Petty Cash','nav.tax':'Tax','nav.recon':'Bank Reconciliation','nav.coa':'Chart of Accounts','nav.journal':'General Journal','nav.company_docs':'Company Documents','nav.leave':'Leave & Attendance',
  'nav.rent_units':'Rental Unit','nav.rent_contracts':'Rental Contract','nav.rent_schedule':'Rental Schedule','nav.hourmeter':'Hour Meter','nav.overtime':'Overtime','nav.deposit':'Deposit','nav.rent_return':'Unit Return',
  'nav.svc_req':'Service Request','nav.survey':'Survey','nav.wo':'Work Order','nav.tech_sched':'Technician Schedule','nav.install':'Installation','nav.pm':'Preventive Maintenance','nav.warranty':'Warranty Claim','nav.svc_report':'Service Report',
  'nav.approvals_pending':'Pending Approval','nav.approvals_done':'Approved','nav.approvals_rejected':'Rejected','nav.approvals_history':'Approval History',
  'nav.reports':'Reports','nav.master':'Master Data','nav.users':'User & Access','nav.audit':'Audit Log','nav.settings':'Settings',
- 'grp.crm_sales':'CRM & Sales','grp.purchasing':'Purchasing','grp.inventory':'Inventory','grp.finance':'Finance','grp.rental':'Rental','grp.service':'Service & Aftersales','grp.approval':'Approval','grp.other':'Other',
+ 'grp.crm_sales':'CRM & Sales','grp.purchasing':'Purchasing','grp.inventory':'Inventory','grp.finance':'Finance','grp.rental':'Rental','grp.service':'Service & Aftersales','grp.approval':'Approval','grp.admin':'General Admin & HR','grp.other':'Other',
  'ent.users':'User','ent.roles':'Role','ent.leads':'Lead','ent.customers':'Customer','ent.suppliers':'Supplier','ent.products':'Product','ent.categories':'Product Category','ent.brands':'Brand','ent.warehouses':'Warehouse / Location',
- 'ent.banks':'Bank Account','ent.taxes':'Tax','ent.payterms':'Payment Terms','ent.deliveryterms':'Delivery Terms','ent.employees':'Employee','ent.departments':'Department','ent.approvalLimits':'Approval Limit','ent.numbering':'Document Numbering',
+ 'ent.banks':'Bank Account','ent.taxes':'Tax','ent.payterms':'Payment Terms','ent.deliveryterms':'Delivery Terms','ent.employees':'Employee','ent.departments':'Department','ent.approvalLimits':'Approval Limit','ent.numbering':'Document Numbering','ent.chart_of_accounts':'Chart of Accounts','ent.company_documents':'Company Document','ent.leave_requests':'Leave Request',
  'ent.uoms':'Unit of Measure','ent.vehicles':'Vehicle','ent.technicians':'Technician','ent.failcats':'Failure Category','ent.servicetypes':'Service Type','ent.followups':'Follow-up',
  'ent.si':'Supplier Invoice','ent.rent_contracts':'Rental Contract','ent.payreq':'Payment Request','ent.quotations':'Quotation','ent.salesorders':'Sales Order','ent.invoices':'Customer Invoice','ent.orders':'New Order',
  'ent.rent_units':'Rental Unit','ent.pm_schedules':'PM Schedule',
@@ -639,7 +654,7 @@ Object.assign(I18N.en,{
  'tax.record_doc':'Record tax document','tax.output_vat':'Output VAT (this month)','tax.input_vat':'Input VAT (this month)','tax.balance':'VAT payable/receivable','tax.rates':'Tax rates','tax.inactive':'Inactive',
  'tax.change_rate_hint':'Change the rate under','tax.docs':'Tax Documents','tax.doc_no':'Document No.','tax.doc_type':'Document type','tax.doc_no_field':'Document number','tax.value_rp':'Value (Rp)','tax.upload_doc':'Upload document','tax.doc_saved':'Tax document saved.',
  'recon.new':'New reconciliation','recon.period':'Period','recon.stmt_hint':'Bank statement lines (paste from your bank statement: date | description | amount, one line per transaction; outgoing amounts should be negative)','recon.start_match':'Start matching',
- 'recon.matched':'Matched','recon.not_found':'Reconciliation not found.','recon.statement':'Bank statement','recon.match':'Matched','recon.select_system_tx':'select a system transaction','recon.unmatched':'Not matched','recon.system_unmatched':'System (unmatched)',
+ 'journal.account':'Account','journal.debit':'Debit','journal.credit':'Credit','journal.memo':'Memo / Description','journal.lines':'Journal Lines','journal.total':'Total','journal.draft':'Draft','journal.posted':'Posted','journal.new_entry':'New Journal Entry','journal.post':'Post','journal.reverse':'Reversing Entry','journal.no_right':'You are not allowed to create journal entries.','journal.not_found':'Journal entry not found.','journal.saved':'Journal draft saved.','journal.posted_toast':'Journal entry posted.','journal.err_unbalanced':'Total debit and credit must be equal before posting.','journal.err_line_account':'Every journal line must select an account.','journal.reason_posted':'Post journal entry','journal.reversal_of':'Reversing entry of {no}','journal.reversal_memo':'Reversing entry of {no}','journal.reversal_created':'Reversing entry created: {no}','journal.reverse_confirm_msg':'Create a reversing entry (debit/credit swapped) of {no}?','recon.matched':'Matched','recon.not_found':'Reconciliation not found.','recon.statement':'Bank statement','recon.match':'Matched','recon.select_system_tx':'select a system transaction','recon.unmatched':'Not matched','recon.system_unmatched':'System (unmatched)',
  'recon.all_matched':'All matched','recon.save_matching':'Save matching','recon.finish':'Finish reconciliation','recon.err_min_line':'Enter at least one bank statement line.','recon.auto_matched':'Initial matching was created automatically for exact-amount matches.',
  'recon.matching_saved':'Matching saved.','recon.finish_confirm_msg':'There are still {n} bank statement line(s) not matched to the system. Finish anyway?','recon.reason_reconciled':'Reconciled','recon.finished':'Reconciliation completed.',
  'common.late':'Late',
@@ -654,7 +669,7 @@ Object.assign(I18N.en,{
  'dashboard.top_customers':'Top customers (SO value)','dashboard.top_products':'Top products (sales value)','dashboard.sales_performance':'Sales performance (SO value)','dashboard.orders_by_stage':'New Orders by stage','dashboard.n_orders':'{n} order(s)',
  'reports.sales':'Sales Report','reports.quoteconv':'Quotation Conversion','reports.margin':'Gross Profit & Margin','reports.salesperf':'Sales Performance','reports.followup':'Customer Follow-up',
  'reports.orderprog':'New Order Progress','reports.delivery':'Delivery & Installation Report','reports.stockval':'Stock Valuation','reports.lowstock':'Low Stock','reports.invmove':'Inventory Movement',
- 'reports.apaging':'AP Aging','reports.cashflow':'Cash Flow','reports.pettyreport':'Petty Cash','reports.taxsummary':'Tax Summary','reports.aging':'AR Aging',
+ 'reports.apaging':'AP Aging','reports.cashflow':'Cash Flow','reports.pettyreport':'Petty Cash','reports.taxsummary':'Tax Summary','reports.aging':'AR Aging','reports.gl':'General Ledger','reports.gl_col_journal_no':'Journal No.','reports.gl_pick_account':'Select an account to view its ledger.','reports.sum_gl':'{n} row(s) • Ending balance: {bal}',
  'reports.col_quote_count':'Quotation count','reports.col_approved':'Approved','reports.col_won':'Won by customer','reports.col_lost':'Lost','reports.col_quote_value':'Quotation value',
  'reports.col_won_value':'Won value','reports.col_conversion':'Conversion','reports.col_sales_dpp':'Sales (base amount)','reports.col_sales_value':'Sales value','reports.col_followups_done':'Follow-ups completed',
  'reports.col_next':'Next','reports.col_order_no':'Order No.','reports.col_need':'Need','reports.col_target_delivery':'Target delivery','reports.col_days_in_stage':'Days in stage','reports.col_lateness':'Lateness',
@@ -679,7 +694,7 @@ Object.assign(I18N.en,{
  'admin.attachment_optional':'Attachment (optional)','admin.qty_not_negative':'Stock quantity may not be negative.','admin.stock_adjust_title2':'Stock adjustment for {name}: {from} → {to}','admin.submission_sent':'Submitted: {no}',
  'admin.master_data':'Master Data','admin.user_access':'User & Access','admin.users_tab':'Users','admin.role_access_tab':'Role Access','admin.full_name':'Full name','admin.username':'Username',
  'admin.username_hint':'Lowercase, no spaces','admin.role':'Role','admin.department':'Department','admin.phone':'Phone','admin.password_new_hint':'New password (leave blank to keep current)','admin.password_min_hint':'Password (min. 6 characters)',
- 'admin.position':'Position','admin.work_location':'Work location','admin.approver':'Approver / Supervisor','admin.approval_limit':'Approval amount limit (Rp)','admin.approval_limit_hint':'0 = use role default limit','admin.delegate_to':'Delegate approval to','admin.delegate_to_hint':'Set when on leave/unavailable',
+ 'admin.position':'Position','admin.work_location':'Work location','admin.approver':'Approver / Supervisor','admin.approval_limit':'Approval amount limit (Rp)','admin.approval_limit_hint':'0 = use role default limit','admin.delegate_to':'Delegate approval to','admin.delegate_to_hint':'Set when on leave/unavailable','admin.saved_signature':'Saved signature','admin.saved_signature_hint':'Used as a quick default during New Order handover.',
  'admin.account_status':'Account status','admin.status_active':'Active','admin.status_inactive':'Inactive','admin.status_suspended':'Suspended','admin.login_history':'Login History','admin.login_history_title':'Login & activity history — {name}','admin.no_history':'No history yet.',
  'admin.account_active':'Account active','admin.new_user':'+ New user','admin.inactive':'Inactive','admin.active':'Active','admin.edit_user':'Edit user','admin.new_user_title':'New user',
  'admin.period_lock':'Financial Period Lock','admin.period_lock_hint':'Transactions dated on or before this date are locked for finance/reporting modules.','admin.period_lock_date':'Locked through date','admin.period_lock_saved':'Period lock date saved.',
@@ -707,6 +722,7 @@ Object.assign(I18N.en,{
 });
 Object.assign(I18N.zh,{
  'audit.create':'新建','audit.update':'修改','audit.archive':'删除（归档）','audit.restore':'恢复','audit.login':'登录','audit.logout':'登出','audit.period_lock':'修改锁定期间日期',
+ 'finance.period_locked_error':'期间已锁定至 {date}。只有总监/副总监可以重新打开此期间的交易。',
  'audit.change_password':'修改密码','audit.apply_approval_failed':'审批应用失败：{msg}',
  'err.notfound':'未找到数据','err.not_authorized_approve':'您无权审批此申请。','err.reject_reason_required':'必须填写拒绝原因。',
  'err.approve_apply_failed':'已批准，但应用到单据时失败：{msg}。状态未被回滚 — 请联系管理员/IT。',
@@ -722,14 +738,14 @@ Object.assign(I18N.zh,{
  'nav.dashboard':'仪表盘','nav.leads':'销售线索','nav.customers':'客户','nav.followups':'跟进','nav.quotations':'报价单','nav.salesorders':'销售订单','nav.orders':'新订单跟踪',
  'nav.pr':'采购申请','nav.sq':'供应商报价','nav.pc':'比价','nav.po':'采购订单','nav.suppliers':'供应商','nav.incoming':'到货跟踪',
  'nav.products':'产品清单','nav.stock_genset':'发电机库存','nav.stock_parts':'备件库存','nav.gr':'入库','nav.gi':'出库','nav.transfer':'库位调拨','nav.opname':'盘点','nav.barcode':'条码',
- 'nav.invoices':'客户发票','nav.ar':'应收账款','nav.si':'供应商发票','nav.ap':'应付账款','nav.payreq':'付款申请','nav.bank':'银行与现金','nav.petty':'备用金','nav.tax':'税务','nav.recon':'银行对账',
+ 'nav.invoices':'客户发票','nav.ar':'应收账款','nav.si':'供应商发票','nav.ap':'应付账款','nav.payreq':'付款申请','nav.bank':'银行与现金','nav.petty':'备用金','nav.tax':'税务','nav.recon':'银行对账','nav.coa':'会计科目表','nav.journal':'总账凭证','nav.company_docs':'公司文件','nav.leave':'请假与考勤',
  'nav.rent_units':'租赁设备','nav.rent_contracts':'租赁合同','nav.rent_schedule':'租赁排期','nav.hourmeter':'工时表','nav.overtime':'超时使用','nav.deposit':'押金','nav.rent_return':'设备归还',
  'nav.svc_req':'服务请求','nav.survey':'现场勘查','nav.wo':'工单','nav.tech_sched':'技术员排班','nav.install':'安装','nav.pm':'预防性维护','nav.warranty':'保修索赔','nav.svc_report':'服务报告',
  'nav.approvals_pending':'待审批','nav.approvals_done':'已批准','nav.approvals_rejected':'已拒绝','nav.approvals_history':'审批历史',
  'nav.reports':'报表','nav.master':'主数据','nav.users':'用户与权限','nav.audit':'审计日志','nav.settings':'系统设置',
- 'grp.crm_sales':'客户关系与销售','grp.purchasing':'采购','grp.inventory':'库存','grp.finance':'财务','grp.rental':'租赁','grp.service':'服务与售后','grp.approval':'审批','grp.other':'其他',
+ 'grp.crm_sales':'客户关系与销售','grp.purchasing':'采购','grp.inventory':'库存','grp.finance':'财务','grp.rental':'租赁','grp.service':'服务与售后','grp.approval':'审批','grp.admin':'行政与人事','grp.other':'其他',
  'ent.users':'用户','ent.roles':'角色','ent.leads':'销售线索','ent.customers':'客户','ent.suppliers':'供应商','ent.products':'产品','ent.categories':'产品分类','ent.brands':'品牌','ent.warehouses':'仓库/库位',
- 'ent.banks':'银行账户','ent.taxes':'税种','ent.payterms':'付款条款','ent.deliveryterms':'交货条款','ent.employees':'员工','ent.departments':'部门','ent.approvalLimits':'审批额度','ent.numbering':'单据编号规则',
+ 'ent.banks':'银行账户','ent.taxes':'税种','ent.payterms':'付款条款','ent.deliveryterms':'交货条款','ent.employees':'员工','ent.departments':'部门','ent.approvalLimits':'审批额度','ent.numbering':'单据编号规则','ent.chart_of_accounts':'会计科目表','ent.company_documents':'公司文件','ent.leave_requests':'请假申请',
  'ent.uoms':'计量单位','ent.vehicles':'车辆','ent.technicians':'技术员','ent.failcats':'故障类别','ent.servicetypes':'服务类型','ent.followups':'跟进',
  'ent.si':'供应商发票','ent.rent_contracts':'租赁合同','ent.payreq':'付款申请','ent.quotations':'报价单','ent.salesorders':'销售订单','ent.invoices':'客户发票','ent.orders':'新订单',
  'ent.rent_units':'租赁设备','ent.pm_schedules':'保养计划',
@@ -830,7 +846,7 @@ Object.assign(I18N.zh,{
  'tax.record_doc':'登记税务单据','tax.output_vat':'销项税（本月）','tax.input_vat':'进项税（本月）','tax.balance':'应补/应退税额','tax.rates':'税率','tax.inactive':'已停用',
  'tax.change_rate_hint':'在此处修改税率：','tax.docs':'税务单据','tax.doc_no':'单据号','tax.doc_type':'单据类型','tax.doc_no_field':'单据编号','tax.value_rp':'金额（Rp）','tax.upload_doc':'上传单据','tax.doc_saved':'税务单据已保存。',
  'recon.new':'新建对账','recon.period':'账期','recon.stmt_hint':'银行对账单行（从银行对账单粘贴：日期 | 说明 | 金额，每行一笔交易；支出金额请填负数）','recon.start_match':'开始匹配',
- 'recon.matched':'已匹配','recon.not_found':'未找到对账单。','recon.statement':'银行对账单','recon.match':'匹配','recon.select_system_tx':'选择系统交易','recon.unmatched':'未匹配','recon.system_unmatched':'系统记录（未匹配）',
+ 'journal.account':'科目','journal.debit':'借方','journal.credit':'贷方','journal.memo':'摘要','journal.lines':'凭证分录','journal.total':'合计','journal.draft':'草稿','journal.posted':'已过账','journal.new_entry':'新建凭证','journal.post':'过账','journal.reverse':'冲销分录','journal.no_right':'您无权创建凭证。','journal.not_found':'未找到该凭证。','journal.saved':'凭证草稿已保存。','journal.posted_toast':'凭证已过账。','journal.err_unbalanced':'借方与贷方合计必须相等才能过账。','journal.err_line_account':'每一行凭证都必须选择科目。','journal.reason_posted':'凭证过账','journal.reversal_of':'{no} 的冲销分录','journal.reversal_memo':'{no} 的冲销分录','journal.reversal_created':'已创建冲销分录：{no}','journal.reverse_confirm_msg':'为 {no} 创建冲销分录（借贷互换）？','recon.matched':'已匹配','recon.not_found':'未找到对账单。','recon.statement':'银行对账单','recon.match':'匹配','recon.select_system_tx':'选择系统交易','recon.unmatched':'未匹配','recon.system_unmatched':'系统记录（未匹配）',
  'recon.all_matched':'全部匹配','recon.save_matching':'保存匹配','recon.finish':'完成对账','recon.err_min_line':'请至少填写一行对账单记录。','recon.auto_matched':'已自动为金额完全一致的记录完成初步匹配。',
  'recon.matching_saved':'匹配已保存。','recon.finish_confirm_msg':'仍有 {n} 行对账单记录未与系统匹配。是否仍要完成？','recon.reason_reconciled':'已对账','recon.finished':'对账已完成。',
  'common.late':'逾期',
@@ -845,7 +861,7 @@ Object.assign(I18N.zh,{
  'dashboard.top_customers':'顶级客户（销售订单金额）','dashboard.top_products':'热销产品（销售金额）','dashboard.sales_performance':'销售业绩（销售订单金额）','dashboard.orders_by_stage':'各阶段新订单','dashboard.n_orders':'{n} 个订单',
  'reports.sales':'销售报表','reports.quoteconv':'报价转化率','reports.margin':'毛利与利润率','reports.salesperf':'销售业绩','reports.followup':'客户跟进',
  'reports.orderprog':'新订单进度','reports.delivery':'交付与安装报表','reports.stockval':'库存估值','reports.lowstock':'低库存','reports.invmove':'库存变动',
- 'reports.apaging':'应付账龄','reports.cashflow':'现金流','reports.pettyreport':'备用金','reports.taxsummary':'税务汇总','reports.aging':'应收账龄',
+ 'reports.apaging':'应付账龄','reports.cashflow':'现金流','reports.pettyreport':'备用金','reports.taxsummary':'税务汇总','reports.aging':'应收账龄','reports.gl':'总账','reports.gl_col_journal_no':'凭证号','reports.gl_pick_account':'请选择一个科目以查看总账。','reports.sum_gl':'{n} 行 • 期末余额：{bal}',
  'reports.col_quote_count':'报价数量','reports.col_approved':'已批准','reports.col_won':'客户接受','reports.col_lost':'已拒绝','reports.col_quote_value':'报价金额',
  'reports.col_won_value':'成交金额','reports.col_conversion':'转化率','reports.col_sales_dpp':'销售额（DPP）','reports.col_sales_value':'销售金额','reports.col_followups_done':'已完成跟进',
  'reports.col_next':'下一次','reports.col_order_no':'订单号','reports.col_need':'需求','reports.col_target_delivery':'目标交货日','reports.col_days_in_stage':'停留天数','reports.col_lateness':'延误',
@@ -870,7 +886,7 @@ Object.assign(I18N.zh,{
  'admin.attachment_optional':'附件（可选）','admin.qty_not_negative':'库存数量不能为负数。','admin.stock_adjust_title2':'{name}库存调整：{from} → {to}','admin.submission_sent':'已提交：{no}',
  'admin.master_data':'主数据','admin.user_access':'用户与权限','admin.users_tab':'用户','admin.role_access_tab':'角色权限','admin.full_name':'姓名','admin.username':'用户名',
  'admin.username_hint':'小写字母，不含空格','admin.role':'角色','admin.department':'部门','admin.phone':'电话','admin.password_new_hint':'新密码（留空则不修改）','admin.password_min_hint':'密码（最少6位）',
- 'admin.position':'职位','admin.work_location':'工作地点','admin.approver':'上级 / 审批人','admin.approval_limit':'审批额度上限（Rp）','admin.approval_limit_hint':'0 = 使用角色默认额度','admin.delegate_to':'审批委托给','admin.delegate_to_hint':'休假或无法处理时设置',
+ 'admin.position':'职位','admin.work_location':'工作地点','admin.approver':'上级 / 审批人','admin.approval_limit':'审批额度上限（Rp）','admin.approval_limit_hint':'0 = 使用角色默认额度','admin.delegate_to':'审批委托给','admin.delegate_to_hint':'休假或无法处理时设置','admin.saved_signature':'已保存的签名','admin.saved_signature_hint':'用于新订单交接时快速填充。',
  'admin.account_status':'账户状态','admin.status_active':'启用中','admin.status_inactive':'已停用','admin.status_suspended':'已暂停','admin.login_history':'登录历史','admin.login_history_title':'登录与操作历史 — {name}','admin.no_history':'暂无历史记录。',
  'admin.account_active':'账户启用','admin.new_user':'+ 新用户','admin.inactive':'已停用','admin.active':'启用中','admin.edit_user':'编辑用户','admin.new_user_title':'新用户',
  'admin.period_lock':'财务期间锁定','admin.period_lock_hint':'日期早于或等于此日期的交易将在财务/报表模块中被锁定。','admin.period_lock_date':'锁定截止日期','admin.period_lock_saved':'期间锁定日期已保存。',

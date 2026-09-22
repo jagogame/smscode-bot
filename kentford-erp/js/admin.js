@@ -100,15 +100,19 @@ ACT['crud-new']=el=>{const k=el.dataset.e;Crud.open(k,null,el.dataset.pre?JSON.p
 ACT['crud-arch']=el=>{const d=DT.inst[el.dataset.dt];d.arch=el.checked;d.draw()};
 
 /* halaman entitas generik */
-function crudPage(key,title){
+function crudPage(key,title,entKey){
+ const ek=entKey||key;
  PAGES[key].render=async(v,param)=>{
-  const e=ENT[key];
   v.innerHTML=UI.pghead(title||PAGES[key].label)+'<div class="card" id="crudbox"></div>';
-  Crud.list($('#crudbox'),key);
-  if(param)Crud.open(key,param);
+  Crud.list($('#crudbox'),ek);
+  if(param)Crud.open(ek,param);
  };
 }
 crudPage('leads');crudPage('customers');crudPage('followups');crudPage('suppliers');
+// Chart of Accounts, Dokumen Perusahaan (General Admin), Cuti & Izin (HR) — modul minimal (lihat js/schema.js ENT)
+crudPage('coa',null,'chart_of_accounts');
+crudPage('company_docs',null,'company_documents');
+crudPage('leave',null,'leave_requests');
 
 /* follow-up: status terlambat diturunkan dari tanggal */
 ENT.followups.fields.find(f=>f.k==='status').badge=true;
@@ -181,7 +185,9 @@ const Users={
    F.n('approvalLimit',t('admin.approval_limit'),{hint:t('admin.approval_limit_hint')}),
    F.r('delegateTo',t('admin.delegate_to'),'users',{filter:u=>!rec||u.id!==rec.id,hint:t('admin.delegate_to_hint')}),
    F.s('status',t('admin.account_status'),[{v:'active',l:t('admin.status_active')},{v:'inactive',l:t('admin.status_inactive')},{v:'suspended',l:t('admin.status_suspended')}],{req:true,def:'active'}),
-   {k:'password',l:rec?t('admin.password_new_hint'):t('admin.password_min_hint'),t:'password',req:!rec,auto:true}];
+   {k:'password',l:rec?t('admin.password_new_hint'):t('admin.password_min_hint'),t:'password',req:!rec,auto:true},
+   // Tanda tangan tersimpan milik user (dipakai sbg default cepat saat serah terima New Order — lihat neworder.js ord-handover)
+   {k:'savedSignature',l:t('admin.saved_signature'),t:'sig',hint:t('admin.saved_signature_hint')}];
  },
  render(el){
   const w=can('users','w');

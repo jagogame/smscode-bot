@@ -201,11 +201,19 @@ ACT['ord-install-done']=async el=>{
 };
 ACT['ord-handover']=async el=>{
  const o=DB.get('orders',el.dataset.id);
+ // Tanda tangan customer selalu digambar ulang (customer tidak punya akun/tanda tangan tersimpan).
+ // Tanda tangan pihak KENTFORD (staff yang menyerahkan) boleh memakai tanda tangan tersimpan di
+ // profil user (Auth.user.savedSignature, lihat admin.js Users.fields) sbg isian cepat — dipakai
+ // sebagai default canvas (masih bisa digambar ulang / dihapus lewat tombol "Hapus tanda tangan").
  const v=await UI.ask({title:'Serah Terima & Tanda Tangan Digital',ok:'Simpan & lanjut ke Invoice Final',
-  fields:[F.t('signerName','Nama penerima / penandatangan',{req:true}),{k:'signature',l:'Tanda tangan customer',t:'sig'}]});
+  fields:[F.t('signerName','Nama penerima / penandatangan',{req:true}),{k:'signature',l:'Tanda tangan customer',t:'sig'},
+   F.t('staffName','Nama staff KENTFORD yang menyerahkan',{req:true,def:()=>Auth.user.name}),
+   {k:'staffSignature',l:'Tanda tangan staff KENTFORD'+(Auth.user?.savedSignature?' (pakai tanda tangan tersimpan, atau gambar ulang)':''),t:'sig',def:()=>Auth.user?.savedSignature||''}]});
  if(!v)return;
- if(!v.signature)return UI.toast('Tanda tangan wajib diisi.','err');
- Order._advance(o,'invoice_final','Serah terima ditandatangani',{signature:{data:v.signature,signerName:v.signerName,at:nowISO()}});
+ if(!v.signature)return UI.toast('Tanda tangan customer wajib diisi.','err');
+ if(!v.staffSignature)return UI.toast('Tanda tangan staff KENTFORD wajib diisi.','err');
+ Order._advance(o,'invoice_final','Serah terima ditandatangani',{signature:{data:v.signature,signerName:v.signerName,at:nowISO()},
+  staffSignature:{data:v.staffSignature,staffName:v.staffName,at:nowISO()}});
  Router.render();
 };
 ACT['ord-finish']=el=>{
@@ -277,7 +285,10 @@ function renderOrderDetail(v,o){
    ${o.data?.shipping?`<div class="card"><h3>Pengiriman</h3>${UI.kv([['Jadwal',fdate(o.data.shipping.schedule)],['Kendaraan',esc(DB.get('vehicles',o.data.shipping.vehicleId)?.plate||'-')],['Driver',esc(o.data.shipping.driver||'-')],['No. SJ',esc(o.data.shipping.sjNo||'-')],['No. DO',esc(o.data.shipping.doNo||'-')]])}</div>`:''}
    ${o.data?.delivery?`<div class="card"><h3>Diterima customer</h3>${UI.kv([['Delivery report',esc(o.deliveryReportNo||'-')],['Tanggal diterima',fdate(o.data.delivery.receivedDate)],['Penerima',esc(o.data.delivery.receiver||'-')],['Catatan',esc(o.data.delivery.notes||'-')]])}</div>`:''}
    ${o.data?.install_plan||o.data?.install?`<div class="card"><h3>Instalasi & Commissioning</h3>${UI.kv([['Teknisi',esc(userName(o.data.install_plan?.technicianId)||'-')],['Jadwal',o.data.install_plan?fdate(o.data.install_plan.scheduledDate):'-'],['Hasil',esc(o.data.install?.notes||'Belum selesai')]])}</div>`:''}
-   ${o.data?.signature?`<div class="card"><h3>Tanda tangan serah terima</h3><img src="${o.data.signature.data}" style="max-width:320px;border:1px solid var(--bd)"><div class="mut">${esc(o.data.signature.signerName)} • ${fdt(o.data.signature.at)}</div></div>`:''}
+   ${o.data?.signature?`<div class="card"><h3>Tanda tangan serah terima</h3><div style="display:flex;gap:24px;flex-wrap:wrap">
+    <div><img src="${o.data.signature.data}" style="max-width:320px;border:1px solid var(--bd)"><div class="mut">${esc(o.data.signature.signerName)} (customer) • ${fdt(o.data.signature.at)}</div></div>
+    ${o.data?.staffSignature?`<div><img src="${o.data.staffSignature.data}" style="max-width:320px;border:1px solid var(--bd)"><div class="mut">${esc(o.data.staffSignature.staffName)} (KENTFORD) • ${fdt(o.data.staffSignature.at)}</div></div>`:''}
+   </div></div>`:''}
    <div class="card"><h3>Aktivitas & komentar</h3>${UI.activity('orders',o.id)}</div>
   </div><div>
    <div class="card"><h3>Riwayat tahap</h3>${(o.history||[]).slice().reverse().map(h=>`<div style="padding:5px 0;border-bottom:1px solid var(--bd)"><b>${esc(STAGES.find(s=>s.key===h.stage)?.short||h.stage)}</b>: ${esc(h.text)}<br><small class="mut">${esc(h.by)} • ${fdt(h.at)}</small></div>`).join('')||'<div class="empty">Belum ada riwayat.</div>'}</div>

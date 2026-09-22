@@ -7,7 +7,8 @@ const PAGE_GROUPS=[
  {gk:'crm_sales',pages:['leads','customers','followups','quotations','salesorders','orders']},
  {gk:'purchasing',pages:['pr','sq','pc','po','suppliers','incoming']},
  {gk:'inventory',pages:['products','stock_genset','stock_parts','gr','gi','transfer','opname','barcode']},
- {gk:'finance',pages:['invoices','ar','si','ap','payreq','bank','petty','tax','recon']},
+ {gk:'finance',pages:['invoices','ar','si','ap','payreq','bank','petty','tax','recon','coa','journal']},
+ {gk:'admin',pages:['company_docs','leave']},
  {gk:'rental',pages:['rent_units','rent_contracts','rent_schedule','hourmeter','overtime','deposit','rent_return']},
  {gk:'service',pages:['svc_req','survey','wo','tech_sched','install','pm','warranty','svc_report']},
  {gk:'approval',pages:['approvals_pending','approvals_done','approvals_rejected','approvals_history']},
@@ -17,10 +18,11 @@ PAGE_GROUPS.forEach(g=>Object.defineProperty(g,'g',{enumerable:true,get:()=>g.gk
 const PAGES={};
 ['dashboard','leads','customers','followups','quotations','salesorders','orders','pr','sq','pc','po','suppliers','incoming',
  'products','stock_genset','stock_parts','gr','gi','transfer','opname','barcode',
- 'invoices','ar','si','ap','payreq','bank','petty','tax','recon',
+ 'invoices','ar','si','ap','payreq','bank','petty','tax','recon','coa','journal',
  'rent_units','rent_contracts','rent_schedule','hourmeter','overtime','deposit','rent_return',
  'svc_req','survey','wo','tech_sched','install','pm','warranty','svc_report',
  'approvals_pending','approvals_done','approvals_rejected','approvals_history',
+ 'company_docs','leave',
  'reports','master','users','audit','settings'
 ].forEach(key=>{
  PAGES[key]={key,stage:undefined,render:null};
@@ -91,7 +93,23 @@ const ENT={
   fields:[F.r('customerId','Customer','customers',{req:true,list:true}),F.d('date','Tanggal',{req:true,list:true,def:()=>today()}),F.s('type','Jenis',['Telepon','WhatsApp','Email','Kunjungan','Meeting'],{list:true,req:true}),
    F.r('salesId','Sales PIC','users',{filter:salesUsers,req:true,list:true,def:()=>Auth.uid()}),F.s('status','Status',['Terjadwal','Selesai','Dibatalkan'],{def:'Terjadwal',req:true,list:true,badge:true}),
    F.ta('notes','Hasil / catatan',{list:true}),F.d('nextDate','Follow-up berikutnya')]},
+ // Chart of Accounts (COA) — master data akun untuk modul Jurnal Umum (lihat journal_entries & finance.js Journal).
+ chart_of_accounts:{col:'chart_of_accounts',page:'coa',title:'Chart of Accounts',label:r=>`${r.code} — ${r.name}`,wr:['finance','director'],
+  fields:[F.t('code','Kode Akun',{req:true,list:true}),F.t('name','Nama Akun',{req:true,list:true}),
+   F.s('type','Jenis Akun',['Aset','Kewajiban','Ekuitas','Pendapatan','Beban'],{req:true,list:true,badge:true}),
+   F.s('normalBalance','Saldo Normal',['Debit','Kredit'],{req:true,list:true}),F.c('active','Aktif',{def:true})]},
+ // Dokumen umum General Admin (surat masuk/keluar, kontrak, dsb — modul General Admin minimal, lihat admin.js)
+ company_documents:{col:'company_documents',page:'company_docs',title:'Dokumen Perusahaan',label:r=>r.title,wr:['admin_hr_sales','director'],
+  fields:[F.t('no','No. Dokumen',{list:true}),F.t('title','Judul Dokumen',{req:true,list:true}),
+   F.s('type','Jenis',['Surat Masuk','Surat Keluar','Kontrak','Lainnya'],{list:true}),F.d('date','Tanggal',{list:true,def:()=>today()}),
+   F.t('party','Terkait Vendor / Pihak',{list:true}),F.fl('files','Lampiran'),F.ta('notes','Catatan')]},
+ // Pengajuan cuti/izin — modul HR minimal (status diubah manual oleh atasan/HR, tidak dilewatkan lewat Approval engine — lihat catatan di finance.js/admin.js)
+ leave_requests:{col:'leave_requests',page:'leave',title:'Cuti & Izin',label:r=>`${userName(r.userId)} — ${r.type}`,wr:['admin_hr_sales','director'],
+  fields:[F.r('userId','Karyawan','users',{req:true,list:true}),F.s('type','Jenis',['Cuti Tahunan','Izin','Sakit','Lembur'],{req:true,list:true,badge:true}),
+   F.d('startDate','Tanggal Mulai',{req:true,list:true}),F.d('endDate','Tanggal Selesai',{req:true,list:true}),F.ta('reason','Alasan'),
+   F.s('status','Status',['Diajukan','Disetujui','Ditolak'],{def:'Diajukan',list:true,badge:true})]},
  // entitas khusus (halaman detail sendiri)
+ journal_entries:{col:'journal_entries',page:'journal',custom:true,label:r=>r.no},
  si:{col:'si',page:'si',custom:true,label:r=>`${r.no} — ${supName(r.supplierId)} (sisa ${rp(SInv.outstanding(r))})`},
  rent_contracts:{col:'rent_contracts',page:'rent_contracts',custom:true,label:r=>`${r.no} — ${custName(r.customerId)}`},
  payreq:{col:'payreq',page:'payreq',custom:true,label:r=>r.no},
@@ -124,20 +142,21 @@ const ALLK=Object.keys(PAGES);
 const G_CRM=['leads','customers','followups','quotations','salesorders','orders'];
 const G_PUR=['pr','sq','pc','po','suppliers','incoming'];
 const G_INV=['products','stock_genset','stock_parts','gr','gi','transfer','opname','barcode'];
-const G_FIN=['invoices','ar','si','ap','payreq','bank','petty','tax','recon'];
+const G_FIN=['invoices','ar','si','ap','payreq','bank','petty','tax','recon','coa','journal'];
+const G_ADM=['company_docs','leave'];
 const G_RENT=['rent_units','rent_contracts','rent_schedule','hourmeter','overtime','deposit','rent_return'];
 const G_SVC=['svc_req','survey','wo','tech_sched','install','pm','warranty','svc_report'];
 const G_APR=['approvals_pending','approvals_done','approvals_rejected','approvals_history'];
 const permOf=(r,w=[])=>{const o={};r.forEach(k=>o[k]='r');w.forEach(k=>o[k]='w');return o};
 const ROLE_SEED=[
  // 1. Direktur — akses penuh, approval final, kelola user/role/departemen, lock periode, tidak bisa hapus audit log (tidak ada UI hapus audit)
- {id:'director',name:'Direktur',seeCost:true,scopeOwn:false,perm:permOf(ALLK,[...G_APR,'orders','quotations','master','settings','leads','customers','followups','suppliers','invoices','salesorders','users'])},
+ {id:'director',name:'Direktur',seeCost:true,scopeOwn:false,perm:permOf(ALLK,[...G_APR,'orders','quotations','master','settings','leads','customers','followups','suppliers','invoices','salesorders','users','coa','journal',...G_ADM])},
  // 2. Asisten Direktur — luas seperti Direktur, approve sesuai limit (bukan final sign-off), kelola user/role/departemen
  {id:'deputy_director',name:'Asisten Direktur',seeCost:true,scopeOwn:false,perm:permOf(ALLK.filter(k=>!['settings'].includes(k)),[...G_APR,'orders','quotations','master','leads','customers','followups','suppliers','invoices','salesorders','users'])},
  // 3. Finance, Accounting & Tax — gabungan finance+accounting+tax, tidak bisa approve final payment
  {id:'finance',name:'Finance, Accounting & Tax',seeCost:true,scopeOwn:false,perm:permOf(['dashboard','customers','quotations','salesorders','orders','followups','suppliers','po','products','stock_genset','stock_parts','reports','master',...G_FIN,...G_APR,'rent_contracts','deposit','overtime'],[...G_FIN,'invoices'])},
  // 4. General Admin, HR & Sales Support — gabungan general admin + HR + sales support + eks-purchasing (tidak lihat cost/margin/tax/bank)
- {id:'admin_hr_sales',name:'General Admin, HR & Sales Support',seeCost:false,scopeOwn:false,perm:permOf(['dashboard',...G_CRM,...G_PUR,'products','stock_genset','stock_parts','invoices','ar','reports','master','users',...G_APR,...G_RENT,...G_SVC],['customers','followups','quotations','salesorders','orders','invoices','leads',...G_SVC,...G_PUR,'master'])},
+ {id:'admin_hr_sales',name:'General Admin, HR & Sales Support',seeCost:false,scopeOwn:false,perm:permOf(['dashboard',...G_CRM,...G_PUR,'products','stock_genset','stock_parts','invoices','ar','reports','master','users',...G_APR,...G_RENT,...G_SVC,...G_ADM],['customers','followups','quotations','salesorders','orders','invoices','leads',...G_SVC,...G_PUR,'master',...G_ADM])},
  // 5. Admin Aftersales — service request/WO/warranty/spare part/service report, tidak approve teknis/final biaya service
  {id:'admin_aftersales',name:'Admin Aftersales',seeCost:false,scopeOwn:false,perm:permOf(['dashboard','customers','products','stock_genset','stock_parts','reports',...G_SVC,...G_APR],['svc_req','survey','install','pm','svc_report'])},
  // 6. Admin Gudang — master produk/genset/spare part, barcode, stok, DO; tidak boleh ubah harga jual/beli, tidak approve stock adjust sendiri
@@ -198,7 +217,7 @@ const Seed={
   add('failcats',[{id:'f1',name:'Sistem bahan bakar'},{id:'f2',name:'Sistem pendingin'},{id:'f3',name:'Sistem kelistrikan / AVR'},{id:'f4',name:'Controller / panel'},{id:'f5',name:'Engine mekanik'}]);
   add('servicetypes',[{id:'sv1',name:'Servis berkala'},{id:'sv2',name:'Perbaikan (corrective)'},{id:'sv3',name:'Instalasi'},{id:'sv4',name:'Survey lokasi'},{id:'sv5',name:'Warranty claim'}]);
   add('numbering',[['QUO','Quotation','QUO'],['ORD','New Order','ORD'],['SO','Sales Order','SO'],['INV','Customer Invoice','INV'],['APR','Approval','APR'],['DO','Delivery Order','DO'],['SJ','Surat Jalan','SJ'],['DR','Delivery Report','DR'],['CUS','Kode Customer','C','{P}-{N4}','tidak'],['SUP','Kode Supplier','S','{P}-{N4}','tidak'],['PR','Purchase Request','PR'],['PO','Purchase Order','PO'],
-   ['SI','Supplier Invoice','SI'],['PQ','Payment Request','PQ'],['REC','Bank Reconciliation','REC'],['GR','Barang Masuk','GR'],['TR','Transfer Lokasi','TR'],['OP','Stock Opname','OP'],['RC','Kontrak Rental','RC'],['SR','Service Request','SR'],['SVR','Service Report','SVR']]
+   ['SI','Supplier Invoice','SI'],['PQ','Payment Request','PQ'],['REC','Bank Reconciliation','REC'],['GR','Barang Masuk','GR'],['TR','Transfer Lokasi','TR'],['OP','Stock Opname','OP'],['RC','Kontrak Rental','RC'],['SR','Service Request','SR'],['SVR','Service Report','SVR'],['JRN','Journal Entry','JE']]
    .map(([type,name,prefix,format,reset],i)=>({id:'n'+i,type,name,prefix,format:format||'{P}/{YYYY}/{MM}/{N4}',reset:reset||'bulanan'})));
   const AL=[['quotation',1,'sales_manager',0],['quotation',2,'director',250000000],['ship_no_payment',1,'director',0],['stock_adjust',1,'tech_manager',0],
    ['cancellation',1,'deputy_director',0],['cancellation',2,'director',50000000],['purchase_request',1,'deputy_director',0],['purchase_order',1,'deputy_director',0],['purchase_order',2,'director',50000000],
