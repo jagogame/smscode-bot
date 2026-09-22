@@ -397,10 +397,7 @@ const Login={
  show(){
   $('#root').innerHTML=`<div class="login">
    <div class="login-visual">
-    <div class="login-visual-imgs">
-     <div style="background-image:url('img/login-genset.png')"></div>
-     <div style="background-image:url('img/login-solar.png')"></div>
-    </div>
+    <canvas id="loginGL" class="login-visual-gl"></canvas>
     <div class="login-visual-overlay">
      <div class="login-logo login-logo-3d" id="loginLogo3d"><img src="img/logo-kentford.png" alt="Kentford"></div>
      <p class="login-tag">${esc(t('login.tagline'))}</p>
@@ -424,6 +421,124 @@ const Login={
   setTimeout(()=>$('#lu')?.focus(),50);
   this.mountGlassBadge();
   this.mountLogo3d();
+  this.mountScene3d();
+ },
+ /* Scene 3D "Energy Core" (Three.js) di panel visual login — inti bercahaya +
+    cincin orbit + partikel energi, bisa diputar (drag) & di-zoom (scroll).
+    Kalau CDN three.js belum sempat ke-load (script defer), dilewati diam-diam
+    dan panel tetap pakai gradient hijau polos di belakangnya (lihat CSS). */
+ mountScene3d(){
+  const canvas=$('#loginGL');if(!canvas)return;
+  let tries=0;
+  const tryInit=()=>{
+   if(typeof THREE==='undefined'){if(++tries<40)return setTimeout(tryInit,150);return}
+   if(!$('#loginGL'))return;
+   try{ this._initScene3d(canvas) }catch(e){console.warn('[login] scene3d skipped:',e.message)}
+  };
+  tryInit();
+ },
+ _initScene3d(canvas){
+  const wrap=canvas.parentElement;
+  const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  const scene=new THREE.Scene();
+  scene.fog=new THREE.FogExp2(0x0a2416,0.05);
+  const camera=new THREE.PerspectiveCamera(42,1,0.1,100);
+
+  function resize(){
+   const w=wrap.clientWidth,h=wrap.clientHeight;
+   renderer.setSize(w,h,false);
+   camera.aspect=w/h;camera.updateProjectionMatrix();
+  }
+  const amb=new THREE.AmbientLight(0xffffff,0.35);
+  const key=new THREE.PointLight(0x4ade80,4,18);key.position.set(0,0,0);
+  const rim=new THREE.DirectionalLight(0x22c55e,0.6);rim.position.set(-4,3,-2);
+  scene.add(amb,key,rim);
+
+  const group=new THREE.Group();scene.add(group);
+  const core=new THREE.Mesh(new THREE.IcosahedronGeometry(0.8,1),
+   new THREE.MeshStandardMaterial({color:0x0f3d24,emissive:0x22c55e,emissiveIntensity:0.9,metalness:0.3,roughness:0.25}));
+  group.add(core);
+  const wire=new THREE.Mesh(new THREE.IcosahedronGeometry(1.0,1),
+   new THREE.MeshBasicMaterial({color:0x4ade80,wireframe:true,transparent:true,opacity:0.5}));
+  group.add(wire);
+  const glow=new THREE.Mesh(new THREE.SphereGeometry(1.4,24,24),
+   new THREE.MeshBasicMaterial({color:0x22c55e,transparent:true,opacity:0.06}));
+  group.add(glow);
+
+  const rings=[];
+  [[1.95,0.018,0x22c55e,0.55,0.4],[2.5,0.014,0x4ade80,0.9,0.32]].forEach(cfg=>{
+   const ring=new THREE.Mesh(new THREE.TorusGeometry(cfg[0],cfg[1],10,80),
+    new THREE.MeshBasicMaterial({color:cfg[2],transparent:true,opacity:cfg[4]}));
+   ring.rotation.x=Math.PI/2+cfg[3];ring.rotation.y=cfg[3]*0.6;
+   group.add(ring);
+   rings.push({mesh:ring,speed:(0.15+Math.random()*0.2)*(Math.random()<0.5?-1:1)});
+  });
+
+  const PCOUNT=180;
+  const positions=new Float32Array(PCOUNT*3);
+  const radii=new Float32Array(PCOUNT),angles=new Float32Array(PCOUNT),
+        speeds=new Float32Array(PCOUNT),tilts=new Float32Array(PCOUNT);
+  for(let i=0;i<PCOUNT;i++){
+   radii[i]=1.8+Math.random()*1.3;
+   angles[i]=Math.random()*Math.PI*2;
+   speeds[i]=(0.15+Math.random()*0.3)*(Math.random()<0.5?-1:1);
+   tilts[i]=(Math.random()-0.5)*1.1;
+  }
+  const pGeo=new THREE.BufferGeometry();
+  pGeo.setAttribute('position',new THREE.BufferAttribute(positions,3));
+  const particles=new THREE.Points(pGeo,new THREE.PointsMaterial({color:0xbef2c9,size:0.032,
+   transparent:true,opacity:0.9,blending:THREE.AdditiveBlending,depthWrite:false}));
+  scene.add(particles);
+
+  camera.position.set(0,0.4,5.6);
+
+  let dragging=false,lastX=0,lastY=0,targetRotY=0.4,rotX=0.1,zoom=5.6;
+  const down=(x,y)=>{dragging=true;lastX=x;lastY=y};
+  const move=(x,y)=>{
+   if(!dragging)return;
+   const dx=x-lastX,dy=y-lastY;lastX=x;lastY=y;
+   targetRotY+=dx*0.006;
+   rotX=Math.max(-0.5,Math.min(0.5,rotX+dy*0.004));
+  };
+  const up=()=>{dragging=false};
+  canvas.addEventListener('mousedown',e=>down(e.clientX,e.clientY));
+  window.addEventListener('mousemove',e=>move(e.clientX,e.clientY));
+  window.addEventListener('mouseup',up);
+  canvas.addEventListener('touchstart',e=>{const t=e.touches[0];down(t.clientX,t.clientY)},{passive:true});
+  canvas.addEventListener('touchmove',e=>{const t=e.touches[0];move(t.clientX,t.clientY)},{passive:true});
+  canvas.addEventListener('touchend',up);
+  canvas.addEventListener('wheel',e=>{
+   e.preventDefault();zoom=Math.max(3.8,Math.min(8,zoom+e.deltaY*0.003));
+  },{passive:false});
+
+  let raf,t0=performance.now();
+  const animate=()=>{
+   if(!$('#loginGL')){cancelAnimationFrame(raf);return} // halaman sudah pindah
+   raf=requestAnimationFrame(animate);
+   const t=(performance.now()-t0)/1000;
+   if(!dragging)targetRotY+=0.0016;
+   group.rotation.y+=(targetRotY-group.rotation.y)*0.08;
+   group.rotation.x+=(rotX-group.rotation.x)*0.08;
+   core.scale.setScalar(1+Math.sin(t*1.6)*0.035);
+   core.material.emissiveIntensity=0.75+Math.sin(t*2.2)*0.25;
+   wire.rotation.y-=0.0018;wire.rotation.x+=0.0009;
+   rings.forEach(r=>{r.mesh.rotation.z+=r.speed*0.01});
+   const pos=pGeo.attributes.position.array;
+   for(let i=0;i<PCOUNT;i++){
+    angles[i]+=speeds[i]*0.006;
+    const r=radii[i];
+    pos[i*3]=Math.cos(angles[i])*r;
+    pos[i*3+1]=Math.sin(angles[i]*0.7)*tilts[i]*r*0.5;
+    pos[i*3+2]=Math.sin(angles[i])*r*0.75;
+   }
+   pGeo.attributes.position.needsUpdate=true;
+   camera.position.set(0,0.4,zoom);
+   camera.lookAt(0,0,0);
+   renderer.render(scene,camera);
+  };
+  resize();animate();
+  window.addEventListener('resize',resize);
  },
  /* Tilt 3D ringan (CSS transform, bukan WebGL) di logo utama panel visual —
     mengikuti posisi mouse/jari supaya terasa interaktif tanpa perlu extrude

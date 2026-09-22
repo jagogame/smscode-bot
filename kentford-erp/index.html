@@ -13,6 +13,9 @@
      window.L baru benar-benar dipakai saat halaman partners_map dibuka (lihat js/partners.js). -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+<!-- Three.js (scene 3D "Energy Core" interaktif di panel visual halaman login) — defer,
+     Login.mountScene3d() cek `typeof THREE` ada sebelum dipakai supaya aman kalau CDN lambat. -->
+<script src="https://unpkg.com/three@0.128.0/build/three.min.js" defer></script>
 <!-- Liquid Glass (badge dekoratif WebGL di panel foto halaman login) — dari dashersw/liquid-glass-js,
      MIT license (lihat js/vendor/liquid-glass/LICENSE). html2canvas dibutuhkan container.js untuk
      sampling background; keduanya defer, dan Login.show() cek window.Container ada sebelum dipakai
