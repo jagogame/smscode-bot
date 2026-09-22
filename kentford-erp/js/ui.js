@@ -433,18 +433,26 @@ const Login={
   const slot=$('#loginGlassBadge');if(!slot)return;
   let tries=0;
   const tryMount=()=>{
-   if(typeof window.Container!=='function'){if(++tries<40)return setTimeout(tryMount,150);return}
+   /* Catatan: `class Container{}` di container.js jadi binding global biasa (lexical),
+      BUKAN properti window — jadi window.Container selalu undefined walau class-nya
+      sudah termuat. Cek `typeof Container` (tanpa window.) yang benar. */
+   if(typeof Container!=='function'){if(++tries<40)return setTimeout(tryMount,150);return}
    if(!$('#loginGlassBadge'))return; // halaman sudah pindah (login sukses/berganti)
    try{
     const badge=new Container({borderRadius:999,type:'pill',tintOpacity:0.22});
     badge.element.style.padding='10px 20px';
-    badge.element.style.color='#fff';
-    badge.element.style.fontWeight='700';
-    badge.element.style.letterSpacing='.06em';
-    badge.element.style.fontSize='13px';
-    badge.element.textContent='SINGAPOWER';
+    /* PENTING: jangan set textContent langsung di badge.element — createElement() di
+       container.js sudah menaruh <canvas> WebGL sebagai anak elemen itu; set textContent
+       akan menghapus canvas-nya. Label harus jadi elemen ANAK terpisah, ditambahkan
+       setelah elemen benar-benar ada di DOM, baru panggil updateSizeFromDOM() supaya
+       canvas ikut mengukur ke ukuran pill yang benar (bukan 0x0). */
+    const label=document.createElement('span');
+    label.style.color='#fff';label.style.fontWeight='700';label.style.letterSpacing='.06em';
+    label.style.fontSize='13px';label.style.position='relative';label.style.zIndex='1';
+    label.textContent='SINGAPOWER';
+    badge.element.appendChild(label);
     slot.appendChild(badge.element);
-    badge.updateSizeFromDOM?.();
+    requestAnimationFrame(()=>badge.updateSizeFromDOM?.());
    }catch(e){console.warn('[login] glass badge skipped:',e.message)}
   };
   tryMount();

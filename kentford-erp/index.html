@@ -10,6 +10,13 @@
      window.L baru benar-benar dipakai saat halaman partners_map dibuka (lihat js/partners.js). -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+<!-- Liquid Glass (badge dekoratif WebGL di panel foto halaman login) — dari dashersw/liquid-glass-js,
+     MIT license (lihat js/vendor/liquid-glass/LICENSE). html2canvas dibutuhkan container.js untuk
+     sampling background; keduanya defer, dan Login.show() cek window.Container ada sebelum dipakai
+     supaya tetap aman kalau CDN lambat/blocked. -->
+<link rel="stylesheet" href="css/glass.css">
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
+<script src="js/vendor/liquid-glass/container.js" defer></script>
 </head>
 <body>
 <div id="root"><div class="loading">Memuat KENTFORD ERP…</div></div>
