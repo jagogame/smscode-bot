@@ -163,8 +163,11 @@ const Auth={user:null,role:null,sid:'',
     'active' selama active!==false (kompatibilitas mundur), 'inactive' bila active===false. */
  userStatus(u){return u?.status||(u?.active===false?'inactive':'active')},
  isActive(u){return this.userStatus(u)==='active'},
- async login(username,pw){
-  const u=DB.all('users').find(x=>x.username.toLowerCase()===String(username).trim().toLowerCase());
+ /* Login via email (bukan username lagi — lihat catatan keamanan di bawah). Untuk kompatibilitas
+    mundur dengan data seed lama yang mungkin belum punya email, dicoba juga cocok ke username. */
+ async login(email,pw){
+  const q=String(email).trim().toLowerCase();
+  const u=DB.all('users').find(x=>(x.email||'').toLowerCase()===q||x.username.toLowerCase()===q);
   if(!u)return {ok:false,msg:t('login.failed')};
   if(!this.isActive(u))return {ok:false,msg:t('login.account_'+this.userStatus(u))};
   if(await this.hash(pw,u.salt)!==u.pw)return {ok:false,msg:t('login.failed')};
@@ -173,6 +176,18 @@ const Auth={user:null,role:null,sid:'',
   try{localStorage.setItem('kerp_sess',JSON.stringify({id:u.id,sid:this.sid}))}catch(e){}
   Audit.log(t('audit.login'),'users',u.id,null,null,'');
   return {ok:true};
+ },
+ /* Lupa password: PENTING — app ini saat ini murni client-side (data user tersimpan per-browser di
+    IndexedDB, bukan di server bersama), jadi belum ada backend yang bisa benar-benar mengirim email.
+    Sampai backend auth terpisah di-deploy (lihat kentford-erp-auth/), fungsi ini TIDAK mengirim email
+    sungguhan — hanya mensimulasikan respons generik yang sama baik email ditemukan atau tidak (supaya
+    tidak membocorkan daftar email terdaftar), dan mencatat permintaan ke audit log untuk ditindaklanjuti
+    admin secara manual sementara ini. */
+ async requestPasswordReset(email){
+  const q=String(email).trim().toLowerCase();
+  const u=DB.all('users').find(x=>(x.email||'').toLowerCase()===q);
+  if(u)Audit.log(t('audit.password_reset_requested'),'users',u.id,null,null,'');
+  return {ok:true,msg:t('login.reset_link_sent')};
  },
  set(u){this.user=u;this.role=DB.get('roles',u.roleId)||null},
  restore(){
@@ -375,7 +390,7 @@ Object.assign(I18N.id,{
  'svcstatus.0':'Request masuk','svcstatus.1':'Dijadwalkan','svcstatus.2':'Teknisi menuju lokasi','svcstatus.3':'Sedang dikerjakan','svcstatus.4':'Menunggu spare part','svcstatus.5':'Menunggu persetujuan customer','svcstatus.6':'Selesai','svcstatus.7':'Ditutup',
  'rentstage.0':'Draft','rentstage.1':'Aktif','rentstage.2':'Proses Pengembalian','rentstage.3':'Selesai','rentstage.4':'Dibatalkan',
  'login.tagline':'Genset Industrial · Sales, Rental & Service','login.point1':'Approval & workflow New Order terkontrol','login.point2':'Rental & service genset dalam satu sistem','login.point3':'Stok, keuangan, dan laporan real-time',
- 'login.please_login':'PT KENTFORD GROUP INDONESIA. Silakan masuk.','login.username':'Username','login.password':'Password','login.button':'Masuk','login.demo_title':'Akun demo','login.demo_hint':'(password semua akun: {pw}). Klik untuk mengisi username:',
+ 'login.please_login':'PT KENTFORD GROUP INDONESIA. Silakan masuk.','login.username':'Username','login.email':'Email','login.password':'Password','login.button':'Masuk','login.forgot_password':'Lupa password?','login.send_reset_link':'Kirim tautan reset','login.reset_link_sent':'Bila email terdaftar, tautan reset password telah dikirim.','audit.password_reset_requested':'Minta reset password',
  'login.failed':'Username atau password salah, atau akun nonaktif.','login.account_inactive':'Akun tidak aktif. Hubungi Direktur/Admin.','login.account_suspended':'Akun ditangguhkan (suspend). Hubungi Direktur/Admin.','lang.label':'Bahasa',
  'common.reason':'Alasan','common.select':'pilih','common.all':'semua','common.excel':'Excel','common.print_pdf':'Cetak / PDF','common.no_data':'Belum ada data.',
  'common.data_count_suffix':'data','common.prev':'Sebelumnya','common.page':'Hal','common.next':'Berikutnya','common.data_list':'Daftar Data',
@@ -581,7 +596,7 @@ Object.assign(I18N.en,{
  'svcstatus.0':'Request received','svcstatus.1':'Scheduled','svcstatus.2':'Technician en route','svcstatus.3':'In progress','svcstatus.4':'Waiting for spare part','svcstatus.5':'Waiting for customer approval','svcstatus.6':'Completed','svcstatus.7':'Closed',
  'rentstage.0':'Draft','rentstage.1':'Active','rentstage.2':'Return in Progress','rentstage.3':'Completed','rentstage.4':'Cancelled',
  'login.tagline':'Industrial Genset · Sales, Rental & Service','login.point1':'Controlled New Order approval & workflow','login.point2':'Genset rental & service in one system','login.point3':'Real-time stock, finance, and reports',
- 'login.please_login':'PT KENTFORD GROUP INDONESIA. Please sign in.','login.username':'Username','login.password':'Password','login.button':'Sign in','login.demo_title':'Demo accounts','login.demo_hint':'(password for all accounts: {pw}). Click to fill in the username:',
+ 'login.please_login':'PT KENTFORD GROUP INDONESIA. Please sign in.','login.username':'Username','login.email':'Email','login.password':'Password','login.button':'Sign in','login.forgot_password':'Forgot password?','login.send_reset_link':'Send reset link','login.reset_link_sent':'If that email is registered, a password reset link has been sent.','audit.password_reset_requested':'Requested password reset',
  'login.failed':'Wrong username or password, or the account is inactive.','login.account_inactive':'Account is inactive. Contact Director/Admin.','login.account_suspended':'Account is suspended. Contact Director/Admin.','lang.label':'Language',
  'common.reason':'Reason','common.select':'select','common.all':'All','common.excel':'Excel','common.print_pdf':'Print / PDF','common.no_data':'No data yet.',
  'common.data_count_suffix':'records','common.prev':'Previous','common.page':'Page','common.next':'Next','common.data_list':'Data List',
@@ -787,7 +802,7 @@ Object.assign(I18N.zh,{
  'svcstatus.0':'请求已收到','svcstatus.1':'已排期','svcstatus.2':'技术员前往中','svcstatus.3':'处理中','svcstatus.4':'等待备件','svcstatus.5':'等待客户确认','svcstatus.6':'已完成','svcstatus.7':'已关闭',
  'rentstage.0':'草稿','rentstage.1':'使用中','rentstage.2':'归还处理中','rentstage.3':'已完成','rentstage.4':'已取消',
  'login.tagline':'工业发电机 · 销售、租赁与服务','login.point1':'受控的新订单审批与流程','login.point2':'发电机租赁与服务一体化管理','login.point3':'库存、财务与报表实时掌握',
- 'login.please_login':'肯特福德集团印尼有限公司。请登录。','login.username':'用户名','login.password':'密码','login.button':'登录','login.demo_title':'演示账号','login.demo_hint':'（所有账号密码均为 {pw}）。点击以填入用户名：',
+ 'login.please_login':'肯特福德集团印尼有限公司。请登录。','login.username':'用户名','login.email':'邮箱','login.password':'密码','login.button':'登录','login.forgot_password':'忘记密码？','login.send_reset_link':'发送重置链接','login.reset_link_sent':'如果该邮箱已注册，重置密码的链接已发送。','audit.password_reset_requested':'请求重置密码',
  'login.failed':'用户名或密码错误，或账号已停用。','login.account_inactive':'账号未启用，请联系管理员。','login.account_suspended':'账号已被暂停，请联系管理员。','lang.label':'语言',
  'common.reason':'原因','common.select':'请选择','common.all':'全部','common.excel':'Excel','common.print_pdf':'打印/PDF','common.no_data':'暂无数据。',
  'common.data_count_suffix':'条记录','common.prev':'上一页','common.page':'第','common.next':'下一页','common.data_list':'数据列表',

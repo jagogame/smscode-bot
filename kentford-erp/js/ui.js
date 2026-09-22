@@ -395,7 +395,6 @@ ACT['chpw']=async()=>{
 const LOGO_MARK=`<svg viewBox="0 0 48 48" width="1em" height="1em" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="46" height="46" rx="12" fill="currentColor"/><path d="M14 12h5.4v9.3L28 12h6.6l-9.8 10.6L35 36h-6.8l-6.9-9.7-2 2.2V36H14V12z" fill="#fff"/></svg>`;
 const Login={
  show(){
-  const demo=DB.all('users').filter(u=>Auth.isActive(u)).map(u=>`<button class="btn btn-o" data-act="demo" data-u="${esc(u.username)}">${esc(DB.get('roles',u.roleId)?.name||u.username)}</button>`).join('');
   $('#root').innerHTML=`<div class="login">
    <div class="login-visual">
     <div class="login-visual-imgs">
@@ -416,18 +415,23 @@ const Login={
     <div class="login-logo login-logo-sm">${LOGO_MARK}<b>KENTFORD ERP</b></div>
     <div style="margin-bottom:10px">${App.langSwitcherHtml()}</div>
     <p class="mut">${esc(t('login.please_login'))}</p>
-    <div class="fld"><label>${esc(t('login.username'))}</label><input id="lu" autocomplete="username"></div><div class="fld" style="margin-top:8px"><label>${esc(t('login.password'))}</label><input id="lp" type="password" autocomplete="current-password"></div>
+    <div class="fld"><label>${esc(t('login.email'))}</label><input id="lu" type="email" autocomplete="username"></div><div class="fld" style="margin-top:8px"><label>${esc(t('login.password'))}</label><input id="lp" type="password" autocomplete="current-password"></div>
     <button class="btn" style="width:100%;margin-top:14px" data-act="login">${esc(t('login.button'))}</button>
-    <p class="mut" style="margin-top:14px;font-size:12px"><b>${esc(t('login.demo_title'))}</b> ${esc(t('login.demo_hint',{pw:'kentford123'}))}</p><div class="demo">${demo}</div>
+    <p class="right" style="margin-top:10px"><a href="#" data-act="forgot-password" style="font-size:13px">${esc(t('login.forgot_password'))}</a></p>
    </div></div>
   </div>`;
   setTimeout(()=>$('#lu')?.focus(),50);
  }
 };
-ACT['demo']=el=>{$('#lu').value=el.dataset.u;$('#lp').value='kentford123'};
 ACT['login']=async()=>{
  const r=await Auth.login($('#lu').value,$('#lp').value);
  if(!r.ok){UI.toast(r.msg||t('login.failed'),'err');return}
  if(!location.hash||location.hash==='#/')location.hash='#/dashboard';
  App.mount();
+};
+ACT['forgot-password']=async()=>{
+ const v=await UI.ask({title:t('login.forgot_password'),fields:[{k:'email',l:t('login.email'),t:'email',req:true}],ok:t('login.send_reset_link')});
+ if(!v)return;
+ const r=await Auth.requestPasswordReset(v.email);
+ UI.toast(r.msg||t('login.reset_link_sent'));
 };
