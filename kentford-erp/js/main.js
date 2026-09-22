@@ -4,6 +4,11 @@ window.addEventListener('error',e=>{try{UI.toast('Error: '+e.message,'err')}catc
 window.addEventListener('unhandledrejection',e=>{try{UI.toast('Error: '+(e.reason&&e.reason.message||e.reason),'err')}catch(x){}});
 (async function boot(){
  try{
+  // Baca token sesi (kalau ada) SEBELUM Store.init() — Store.init() sendiri langsung menarik
+  // data dari server begitu IndexedDB lokal siap (lihat Store.pullFromServer di core.js), jadi
+  // butuh Auth.token sudah terisi lebih dulu. Auth.restore() di bawah tetap jalan seperti biasa
+  // untuk validasi penuh sesi ini ke server (isi Auth.user/role).
+  try{const s=JSON.parse(localStorage.getItem('kerp_sess')||'null');if(s?.token)Auth.token=s.token}catch(e){}
   await Store.init();
   if(Seed.needed())await Seed.run();
   Quote.expire();

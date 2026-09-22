@@ -12,7 +12,7 @@ function ensureDir() {
 function ensure() {
   ensureDir();
   if (!fs.existsSync(DB_FILE)) {
-    fs.writeFileSync(DB_FILE, JSON.stringify({ users: [], sessions: [], partners: [], partnerProspects: [], partnerEvaluations: [], partnerPayments: [], partnerCodeCounters: {} }, null, 2));
+    fs.writeFileSync(DB_FILE, JSON.stringify({ users: [], sessions: [], partners: [], partnerProspects: [], partnerEvaluations: [], partnerPayments: [], partnerCodeCounters: {}, store: {} }, null, 2));
   }
 }
 
@@ -28,11 +28,12 @@ function read() {
     if (!data.partnerEvaluations) data.partnerEvaluations = [];
     if (!data.partnerPayments) data.partnerPayments = [];
     if (!data.partnerCodeCounters) data.partnerCodeCounters = {};
+    if (!data.store) data.store = {};
     return data;
   } catch (e) {
     // corrupt file: back it up rather than silently destroying data
     fs.copyFileSync(DB_FILE, DB_FILE + '.corrupt.' + Date.now());
-    const fresh = { users: [], sessions: [], partners: [], partnerProspects: [], partnerEvaluations: [], partnerPayments: [], partnerCodeCounters: {} };
+    const fresh = { users: [], sessions: [], partners: [], partnerProspects: [], partnerEvaluations: [], partnerPayments: [], partnerCodeCounters: {}, store: {} };
     write(fresh);
     return fresh;
   }

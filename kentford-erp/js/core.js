@@ -47,8 +47,16 @@ const Lang={
 };
 const t=(k,v)=>Lang.t(k,v);
 
-/* ---------- Penyimpanan permanen: IndexedDB (fallback localStorage/memori) ---------- */
+/* ---------- Penyimpanan permanen: IndexedDB lokal (cache/offline) + server bersama (VPS) ----------
+   IndexedDB tetap dipakai sebagai cache lokal (boot instan, tetap jalan sebentar kalau offline),
+   tapi sumber kebenaran sekarang server (kentford-erp-auth /api/store) — setiap Store.put(col)
+   juga mengirim koleksi itu ke server, dan Store.init() menarik data terbaru dari server saat
+   boot. Ini yang bikin data tidak lagi "hilang-hilang" tiap storage browser di-clear.
+   Koleksi yang sudah punya API khusus sendiri (Aftersales Partner Network — lihat js/partners.js
+   PartnerAPI) dilewati di sini supaya tidak dobel-simpan. */
 const Store={mode:'idb',mem:{},db:null,
+ syncSkip:new Set(['partners','partner_prospects','partner_evaluations','partner_payments']),
+ syncQueue:{},
  init(){return new Promise(res=>{
   let done=false;const fin=()=>{if(!done){done=true;res()}};
   setTimeout(()=>{if(!done){this.fallback();fin()}},4000);
@@ -65,12 +73,48 @@ const Store={mode:'idb',mem:{},db:null,
     }catch(e){this.fallback();fin()}
    };
   }catch(e){this.fallback();fin()}
- })},
+ }).then(()=>this.pullFromServer())},
  fallback(){this.mode='mem';this.db=null;try{const s=localStorage.getItem('kerp_mem');if(s)this.mem=JSON.parse(s);this.mode='ls'}catch(e){}},
- put(col){
+ /* Hanya persist ke cache lokal (IndexedDB/localStorage), TANPA kirim ke server — dipakai saat
+    menulis data yang BARU SAJA ditarik dari server (pullFromServer), supaya tidak langsung
+    dikirim balik (ping-pong request percuma). */
+ putLocal(col){
   const v=this.mem[col];
   if(this.mode==='idb'){try{this.db.transaction('kv','readwrite').objectStore('kv').put(v,col)}catch(e){console.error(e)}}
   else if(this.mode==='ls'){try{localStorage.setItem('kerp_mem',JSON.stringify(this.mem))}catch(e){}}
+ },
+ put(col){
+  this.putLocal(col);
+  this.syncToServer(col);
+ },
+ /* Kirim satu koleksi ke server. Diantre PER-KOLEKSI (bukan langsung fetch) supaya dua save
+    beruntun ke koleksi yang sama tidak berbalapan di jaringan dan berakhir out-of-order
+    (yang lama nimpa yang baru) — request kedua baru dikirim setelah request pertama selesai. */
+ syncToServer(col){
+  if(this.syncSkip.has(col))return;
+  if(typeof Auth==='undefined'||!Auth.token)return;
+  const body=JSON.stringify(this.mem[col]||[]);
+  const prev=this.syncQueue[col]||Promise.resolve();
+  this.syncQueue[col]=prev.then(()=>Auth.apiFetch('/api/store/'+encodeURIComponent(col),{method:'PUT',body}))
+   .then(r=>{if(!r.ok)console.warn('[store] gagal simpan ke server:',col,r.msg||r.error)})
+   .catch(e=>console.warn('[store] error simpan ke server:',col,e.message));
+ },
+ /* Ditarik sekali saat boot (setelah IndexedDB lokal siap) — server jadi sumber kebenaran untuk
+    setiap koleksi yang dia punya datanya; koleksi yang belum pernah disimpan ke server (mis.
+    baru pertama kali dipakai) tetap pakai apa yang ada di cache lokal. Diam-diam dilewati kalau
+    belum login (belum ada token) atau server tidak terjangkau — app tetap jalan dari cache lokal. */
+ async pullFromServer(){
+  if(typeof Auth==='undefined'||!Auth.token)return;
+  try{
+   const r=await Auth.apiFetch('/api/store');
+   if(r.ok&&r.store){
+    for(const k in r.store){
+     if(this.syncSkip.has(k))continue;
+     this.mem[k]=r.store[k];
+     this.putLocal(k);
+    }
+   }
+  }catch(e){console.warn('[store] gagal tarik data dari server:',e.message)}
  },
  putAll(){Object.keys(this.mem).forEach(k=>this.put(k))},
  clearAll(){return new Promise(res=>{this.mem={};if(this.mode==='idb'){try{const tx=this.db.transaction(['kv','files'],'readwrite');tx.objectStore('kv').clear();tx.objectStore('files').clear();tx.oncomplete=res;tx.onerror=res}catch(e){res()}}else{try{localStorage.removeItem('kerp_mem')}catch(e){}res()}})}

@@ -20,7 +20,9 @@ const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || 'http://69.161.221.210:80
 const app = express();
 app.set('trust proxy', 'loopback'); // di belakang nginx di localhost — percaya X-Forwarded-For dari situ saja
 app.use(helmet());
-app.use(express.json({ limit: '256kb' }));
+/* 8mb (was 256kb): the generic collection store (store.js) replaces a whole collection array
+   per save — e.g. a capped 6000-row audit log — which can exceed the old auth-only limit. */
+app.use(express.json({ limit: '8mb' }));
 
 const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false });
 const forgotLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false });
@@ -315,6 +317,10 @@ app.delete('/api/admin/users/:id', authMiddleware, requireAdmin, async (req, res
 /* ---------- Aftersales Partner Network (moved from browser-local IndexedDB to shared server
    storage — see partners.js) ---------- */
 require('./partners')(app, { authMiddleware });
+
+/* ---------- Generic shared-collection store (all other business data — customers, orders,
+   stock, invoices, audit, etc. — previously only in each browser's local IndexedDB) ---------- */
+require('./store')(app, { authMiddleware });
 
 app.get('/api/health', (req, res) => res.json({ ok: true, service: 'kentford-erp-auth', smtpConfigured }));
 

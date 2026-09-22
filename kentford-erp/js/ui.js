@@ -330,7 +330,10 @@ const App={closed:new Set(),
     <div class="pop"><button class="btn btn-o btn-sm" data-act="pop" data-p="pp">${esc(Auth.user.name)}</button><div class="popm hide" id="pp"></div></div>
    </div><div id="view"></div></div></div>`;
   this.nav();this.refreshBell();this.profile();
-  if(Store.mode!=='idb')$('#view').insertAdjacentHTML('beforebegin',`<div class="warnbox" style="margin:12px 20px 0">${t('common.storage_warning',{mode:Store.mode==='ls'?t('common.storage_ls'):t('common.storage_mem')})}</div>`);
+  // Kalau sudah login (ada Auth.token), Store sinkron ke server (lihat Store.syncToServer di
+  // core.js) — data tetap permanen walau IndexedDB lokal browser ini tidak tersedia, jadi
+  // peringatan ini hanya relevan untuk pengguna yang belum/tidak login.
+  if(Store.mode!=='idb'&&!Auth.token)$('#view').insertAdjacentHTML('beforebegin',`<div class="warnbox" style="margin:12px 20px 0">${t('common.storage_warning',{mode:Store.mode==='ls'?t('common.storage_ls'):t('common.storage_mem')})}</div>`);
   Auth.watchIdle();
   Router.render();
  },
@@ -619,6 +622,13 @@ const Login={
 ACT['login']=async()=>{
  const r=await Auth.login($('#lu').value,$('#lp').value);
  if(!r.ok){UI.toast(r.msg||t('login.failed'),'err');return}
+ /* Store.init() sudah menarik data server sekali di awal boot, TAPI itu terjadi SEBELUM
+    Auth.token ada (baru login sekarang) — jadi pull pertama itu selalu kosong untuk sesi
+    login baru (beda dari sesi yang sudah tersimpan & dipulihkan lewat Auth.restore(), yang
+    tokennya sudah kebaca duluan sebelum Store.init() — lihat js/main.js). Tarik ulang di sini
+    supaya data dari device/browser lain langsung muncul begitu berhasil login, bukan cuma
+    setelah reload berikutnya. */
+ await Store.pullFromServer();
  if(!location.hash||location.hash==='#/')location.hash='#/dashboard';
  App.mount();
  if(typeof PartnerAPI!=='undefined')PartnerAPI.syncAll().catch(e=>console.warn('[partners] sync awal gagal',e));
