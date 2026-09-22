@@ -170,10 +170,17 @@ const Auth={user:null,role:null,sid:'',token:'',
   try{const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(salt+':'+pw));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
   catch(e){let h1=0xdeadbeef,h2=0x41c6ce57;for(const ch of salt+':'+pw){h1=Math.imul(h1^ch.charCodeAt(0),2654435761);h2=Math.imul(h2^ch.charCodeAt(0),1597334677)}return 'x'+(h1>>>0).toString(16)+(h2>>>0).toString(16)}
  },
+ /* Backend kentford-erp-auth selalu di-proxy same-origin lewat nginx (/api/...), baik diakses
+    dari kentford.cloud (HTTPS) maupun IP VPS langsung — jadi path relatif selalu benar. Jangan
+    kembalikan URL absolut ke IP:port lama: itu HTTP biasa dan akan diblokir browser sebagai
+    "mixed content" ketika halaman dibuka lewat HTTPS (ini pernah jadi bug nyata — lihat histori
+    git untuk detail). */
+ apiBase(){return ''},
  async apiFetch(path,opts={}){
   let res;
+  const url=path.startsWith('http')?path:(this.apiBase()+path);
   try{
-   res=await fetch(path,{...opts,headers:{'Content-Type':'application/json',...(this.token?{'Authorization':'Bearer '+this.token}:{}),...(opts.headers||{})}});
+   res=await fetch(url,{...opts,headers:{'Content-Type':'application/json',...(this.token?{'Authorization':'Bearer '+this.token}:{}),...(opts.headers||{})}});
   }catch(e){return {ok:false,networkError:true,msg:t('login.network_error')}}
   let body=null;try{body=await res.json()}catch(e){}
   if(!res.ok)return {ok:false,status:res.status,msg:body?.msg||t('login.failed'),error:body?.error};
