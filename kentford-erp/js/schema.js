@@ -128,7 +128,7 @@ const ENT={
    F.t('whatsapp','No. WhatsApp',{t:'phone',req:true,list:true}),F.t('phone','No. Telepon',{t:'phone'}),F.t('email','Email',{t:'email'}),F.ta('address','Alamat Lengkap',{req:true}),
    F.t('province','Provinsi',{req:true,list:true}),F.t('city','Kota / Kabupaten',{req:true,list:true}),F.t('district','Kecamatan'),F.t('postalCode','Kode Pos'),
    F.t('gmapsLink','Link Google Maps',{hint:'Tempel link Google Maps atau share location, lokasi otomatis dititikkan di peta'}),
-   F.n('radiusKm','Radius Layanan (km)',{list:true}),F.n('techCount','Jumlah Teknisi',{list:true}),F.ta('techNotes','Kemampuan / Catatan Teknisi'),
+   F.n('techCount','Jumlah Teknisi',{list:true}),F.ta('techNotes','Kemampuan / Catatan Teknisi'),
    F.t('brands','Merek / Jenis Mesin Ditangani',{list:true,hint:'Pisahkan dengan koma'}),F.c('hasTools','Ketersediaan Alat Kerja'),F.c('hasVehicle','Ketersediaan Kendaraan Servis'),F.c('hasSparepart','Ketersediaan Spare Part'),
    F.c('isFullService','Partner Resmi (Kemampuan Servis Lengkap)',{hint:'Menentukan marker biru pada peta'}),
    F.s('status','Status Kerjasama',PARTNER_STATUS_OPTS,{req:true,def:'Prospect',list:true,badge:true}),
