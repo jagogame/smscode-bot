@@ -3,7 +3,12 @@
 --red:#dc2626;--yel:#b45309;--blu:#1d4ed8;--side:264px;
 --sh1:0 1px 2px rgba(15,61,36,.06);--sh2:0 8px 24px rgba(15,61,36,.10);--sh3:0 20px 60px rgba(15,61,36,.20);--sh4:0 6px 20px rgba(15,61,36,.16)}
 *{box-sizing:border-box}
-html,body{margin:0;height:100%}
+/* #side (sidebar) disembunyikan di mobile pakai transform:translateX(-100%) (lihat @media
+   max-width:900px di bawah) - bukan `left`. Elemen position:fixed yang disembunyikan lewat
+   transform tetap dihitung Safari mobile sebagai bagian area scroll halaman walau visualnya
+   sudah di luar layar, jadi seluruh body jadi bisa di-scroll horizontal nunjukkin sidebar itu.
+   overflow-x:hidden di sini mengunci itu supaya body tidak pernah scroll ke samping. */
+html,body{margin:0;height:100%;overflow-x:hidden}
 body{font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--tx)}
 a{color:var(--g7)}
 h1,h2,h3{margin:0}
@@ -26,9 +31,15 @@ h1,h2,h3{margin:0}
 #side .tag{font-size:10px;background:#ffffff26;border-radius:8px;padding:1px 6px}
 .main{margin-left:var(--side);flex:1;min-width:0;display:flex;flex-direction:column}
 .top{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:12px;padding:10px 20px}
-.top .burger{display:none}
+.top .icon-btn.burger{display:none}
 .top .ttl{font-weight:700;font-size:16px;color:var(--g8);white-space:nowrap;letter-spacing:-.1px}
 .top .sp{flex:1}
+/* Semua tombol kotak di top bar (burger, bahasa, lonceng, profil) disamakan tingginya
+   supaya rapi sejajar — sebelumnya tinggi masing-masing beda-beda tergantung isinya
+   (teks vs ikon), jadi kelihatan tidak presisi kalau diperhatikan berdampingan. */
+.top .btn{height:34px;display:inline-flex;align-items:center;line-height:1;box-sizing:border-box}
+.icon-btn{width:34px;padding:0!important;justify-content:center;flex-shrink:0}
+.icon-btn svg{width:18px;height:18px;display:block;flex-shrink:0}
 .search{position:relative;flex:1;max-width:420px}
 .search input{width:100%}
 .sres{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--bd2);border-radius:8px;box-shadow:var(--sh2);max-height:60vh;overflow:auto;z-index:40}
@@ -41,7 +52,7 @@ h1,h2,h3{margin:0}
 .popm .it.un{background:var(--g1)}
 .langsw .popm{min-width:160px}
 .bell{position:relative}
-.bell .n{position:absolute;top:-6px;right:-6px;background:var(--red);color:#fff;border-radius:9px;font-size:10px;padding:1px 5px}
+.bell .n{position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;padding:0 3px;background:var(--red);color:#fff;border-radius:50%;font-size:10px;font-weight:700;line-height:16px;text-align:center;box-shadow:0 0 0 2px #fff;box-sizing:border-box}
 #view{padding:20px;max-width:1500px;width:100%}
 .pghead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
 .pghead h2{font-size:21px;font-weight:700;letter-spacing:-.2px;color:var(--g8)}
@@ -143,7 +154,7 @@ details.sec>summary{padding:10px 12px;cursor:pointer;font-weight:600;color:var(-
 details.sec>div{padding:0 12px 12px}
 
 /* login */
-.login{min-height:100vh;display:grid;grid-template-columns:1.15fr 1fr}
+.login{min-height:100vh;min-height:100dvh;display:grid;grid-template-columns:1.15fr 1fr}
 .login-visual{position:relative;overflow:hidden;background:radial-gradient(ellipse 75% 60% at 50% 42%,#123c26,var(--g9) 70%)}
 .login-glass-badge{position:absolute;top:22px;right:22px;z-index:5;display:flex}
 @media(max-width:900px){.login-glass-badge{display:none}}
@@ -176,10 +187,10 @@ details.sec>div{padding:0 12px 12px}
 .login .demo{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .login .demo button{font-size:12px;padding:3px 8px}
 @media(max-width:900px){
- .login{grid-template-columns:1fr;grid-template-rows:220px auto}
+ .login{grid-template-columns:1fr;grid-template-rows:220px auto;min-height:auto}
  .login-visual-overlay{padding:20px 22px;justify-content:center}
  .login-points{display:none}
- .login-panel{padding:20px 16px 32px}
+ .login-panel{padding:20px 16px 32px;align-items:flex-start}
  /* width:420px + max-width:100% masih bisa meluber di beberapa mesin render (100% dari
     containing block flex kadang tidak konsisten dipatuhi) — width:100% eksplisit di sini
     memastikan box tidak pernah lebih lebar dari panelnya sendiri di layar sempit. */
@@ -197,12 +208,18 @@ details.sec>div{padding:0 12px 12px}
 .pdoc table th{background:#f3f4f6;color:#111}
 .pdoc .hd{display:flex;justify-content:space-between;border-bottom:3px solid #0f3d24;padding-bottom:8px;margin-bottom:12px}
 
+.side-backdrop{display:none}
 @media(max-width:900px){
  :root{--side:264px}
  #side{transform:translateX(-100%)}
  #side.open{transform:none;box-shadow:0 0 40px rgba(11,29,20,.45)}
+ /* Sebelumnya sidebar mobile cuma nutup kalau nge-klik salah satu link menu di dalamnya
+    (lihat Router.render() yang remove class 'open') - tidak ada cara nutup dengan
+    tap di luar sidebar. Backdrop gelap ini nutupi konten di belakang sidebar waktu
+    kebuka dan bisa di-tap buat nutup (lihat data-act="toggle-side" di js/ui.js). */
+ #side.open~.side-backdrop{display:block;position:fixed;inset:0;background:rgba(11,29,20,.45);z-index:29}
  .main{margin-left:0}
- .top .burger{display:inline-block}
+ .top .icon-btn.burger{display:inline-flex}
  .g3,.g4{grid-template-columns:repeat(2,minmax(0,1fr))}
  .split{grid-template-columns:minmax(0,1fr)}
  #view{padding:14px}

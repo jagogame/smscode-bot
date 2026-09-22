@@ -304,15 +304,9 @@ const LeafletLoader={
  load(){
   if(this.ready())return Promise.resolve();
   if(this.promise)return this.promise;
-  this.promise=new Promise((resolve,reject)=>{
-   let tries=0;
-   const check=()=>{
-    if(this.ready())return resolve();
-    if(++tries>100)return reject(new Error('Leaflet gagal dimuat (periksa koneksi/CDN).'));
-    setTimeout(check,100);
-   };
-   check();
-  });
+  Loader.css('css/vendor/leaflet/leaflet.css');
+  this.promise=Loader.js('js/vendor/leaflet/leaflet.js')
+   .catch(()=>{throw new Error('Leaflet gagal dimuat (periksa koneksi).')});
   return this.promise;
  }
 };

@@ -322,13 +322,13 @@ const App={closed:new Set(),
   return `<div class="pop langsw"><button class="btn btn-o btn-sm" data-act="pop" data-p="plg">${esc(I18N_LANGS[Lang.cur()])}</button><div class="popm hide" id="plg">${Object.keys(I18N_LANGS).map(l=>`<a class="it ${l===Lang.cur()?'on':''}" href="#" data-act="lang-set" data-l="${l}">${esc(I18N_LANGS[l])}</a>`).join('')}</div></div>`;
  },
  mount(){
-  $('#root').innerHTML=`<div class="app"><aside id="side"></aside><div class="main">
-   <div class="top"><button class="btn btn-o btn-sm burger" data-act="toggle-side" aria-label="Menu">☰</button><span class="ttl" id="pgtitle"></span>
+  $('#root').innerHTML=`<div class="app"><aside id="side"></aside><div class="side-backdrop" data-act="toggle-side"></div><div class="main">
+   <div class="top"><button class="btn btn-o btn-sm icon-btn burger" data-act="toggle-side" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button><span class="ttl" id="pgtitle"></span>
     <div class="search"><input id="gsearch" type="search" placeholder="${esc(t('common.global_search'))}" autocomplete="off"><div id="sres" class="sres hide"></div></div><span style="flex:1"></span>
     ${this.langSwitcherHtml()}
-    <div class="pop"><button class="btn btn-o btn-sm bell" data-act="pop" data-p="pn">${esc(t('common.notifications'))} <span class="n hide" id="bcount"></span></button><div class="popm hide" id="pn"></div></div>
+    <div class="pop"><button class="btn btn-o btn-sm icon-btn bell" data-act="pop" data-p="pn" aria-label="${esc(t('common.notifications'))}" title="${esc(t('common.notifications'))}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="n hide" id="bcount"></span></button><div class="popm hide" id="pn"></div></div>
     <div class="pop"><button class="btn btn-o btn-sm" data-act="pop" data-p="pp">${esc(Auth.user.name)}</button><div class="popm hide" id="pp"></div></div>
-   </div><div id="view"></div></div></div>`;
+   </div><main id="view"></main></div></div>`;
   this.nav();this.refreshBell();this.profile();
   // Kalau sudah login (ada Auth.token), Store sinkron ke server (lihat Store.syncToServer di
   // core.js) — data tetap permanen walau IndexedDB lokal browser ini tidak tersedia, jadi
@@ -338,7 +338,7 @@ const App={closed:new Set(),
   Router.render();
  },
  nav(){
-  let h=`<div class="brand"><img class="brand-logo" src="img/logo-kentford.png" alt="Kentford"><small>PT Kentford Group Indonesia</small></div>`;
+  let h=`<div class="brand"><img class="brand-logo" src="img/logo-kentford.png" alt="Kentford" width="847" height="92"><small>PT Kentford Group Indonesia</small></div>`;
   for(const g of PAGE_GROUPS){
    const items=g.pages.filter(k=>PAGES[k]&&can(k));
    if(!items.length)continue;
@@ -398,11 +398,11 @@ ACT['chpw']=async()=>{
 /* ---------------- Login ---------------- */
 const Login={
  show(){
-  $('#root').innerHTML=`<div class="login">
+  $('#root').innerHTML=`<main class="login">
    <div class="login-visual">
     <canvas id="loginGL" class="login-visual-gl"></canvas>
     <div class="login-visual-overlay">
-     <div class="login-logo login-logo-3d" id="loginLogo3d"><img src="img/logo-kentford.png" alt="Kentford"></div>
+     <div class="login-logo login-logo-3d" id="loginLogo3d"><img src="img/logo-kentford.png" alt="Kentford" width="847" height="92"></div>
      <p class="login-tag">${esc(t('login.tagline'))}</p>
      <ul class="login-points">
       <li>${esc(t('login.point1'))}</li>
@@ -413,15 +413,17 @@ const Login={
     <div id="loginGlassBadge" class="login-glass-badge"></div>
    </div>
    <div class="login-panel"><div class="box" id="loginbox">
-    <div class="login-logo login-logo-sm"><img src="img/logo-kentford.png" alt="Kentford ERP"></div>
+    <div class="login-logo login-logo-sm"><img src="img/logo-kentford.png" alt="Kentford ERP" width="847" height="92"></div>
     <div style="margin-bottom:10px">${App.langSwitcherHtml()}</div>
     <p class="mut">${esc(t('login.please_login'))}</p>
-    <div class="fld"><label>${esc(t('login.email'))}</label><input id="lu" type="email" autocomplete="username"></div><div class="fld" style="margin-top:8px"><label>${esc(t('login.password'))}</label><input id="lp" type="password" autocomplete="current-password"></div>
+    <div class="fld"><label for="lu">${esc(t('login.email'))}</label><input id="lu" type="email" autocomplete="username"></div><div class="fld" style="margin-top:8px"><label for="lp">${esc(t('login.password'))}</label><input id="lp" type="password" autocomplete="current-password"></div>
     <button class="btn" style="width:100%;margin-top:14px" data-act="login">${esc(t('login.button'))}</button>
     <p class="right" style="margin-top:10px"><a href="#" data-act="forgot-password" style="font-size:13px">${esc(t('login.forgot_password'))}</a></p>
    </div></div>
-  </div>`;
+  </main>`;
   setTimeout(()=>$('#lu')?.focus(),50);
+  Loader.js('js/vendor/html2canvas/html2canvas.min.js').then(()=>Loader.js('js/vendor/liquid-glass/container.js')).catch(e=>console.warn('[login] glass badge lib gagal dimuat',e));
+  Loader.js('js/vendor/three/three.min.js').catch(e=>console.warn('[login] three.js gagal dimuat',e));
   this.mountGlassBadge();
   this.mountLogo3d();
   this.mountScene3d();
@@ -431,12 +433,18 @@ const Login={
     Kalau CDN three.js belum sempat ke-load (script defer), dilewati diam-diam
     dan panel tetap pakai gradient hijau polos di belakangnya (lihat CSS).
     Dibuat sengaja start SETELAH badge glass (juga WebGL) supaya dua-duanya
-    tidak rebutan bikin context bersamaan. Kalau context creation tetap gagal
-    ("Error creating WebGL context"), PENTING: sekali sebuah elemen <canvas>
-    gagal dapat context, elemen itu "mati" permanen — retry di canvas yang
-    sama akan gagal terus walau browser sebenarnya sanggup (dibuktikan lewat
-    devtools: canvas baru selalu berhasil). Makanya tiap retry ganti elemen
-    canvas-nya dulu (cloneNode) sebelum coba lagi. */
+    tidak rebutan bikin context bersamaan.
+
+    Catatan soal "THREE.WebGLRenderer: Error creating WebGL context." di console:
+    percobaan pertama (attempt 0) memang lazim gagal - lalu retry di bawah ganti
+    elemen canvas-nya (cloneNode) dan percobaan berikutnya BERHASIL, scene render
+    normal. Sudah diverifikasi langsung lewat screenshot (bukan cuma cek
+    `canvas.getContext('webgl')`, yang salah karena Three.js r128 sebenarnya
+    minta context 'webgl2' - mengecek tipe yang salah bikin terlihat seperti
+    gagal padahal context-nya sudah aktif). Jadi baris error itu HARMLESS,
+    bagian normal dari alur retry, bukan tanda fitur ini rusak. Dibatasi 2x
+    percobaan (bukan 5x seperti sebelumnya) karena percobaan lanjutan di luar
+    itu terbukti tidak pernah dibutuhkan. */
  mountScene3d(){
   const canvas=$('#loginGL');if(!canvas)return;
   let waitTries=0;
@@ -452,10 +460,10 @@ const Login={
   try{ this._initScene3d(canvas) }
   catch(e){
    console.warn('[login] scene3d attempt',attempt,'failed:',e.message);
-   if(attempt<5){
+   if(attempt<2){
     const fresh=canvas.cloneNode(false);
     canvas.replaceWith(fresh);
-    setTimeout(()=>this._tryInitScene3d(fresh,attempt+1),400+attempt*300);
+    setTimeout(()=>this._tryInitScene3d(fresh,attempt+1),800);
    }
   }
  },
@@ -638,17 +646,17 @@ const ResetPassword={
  token(){const m=/token=([^&]+)/.exec(location.hash||'');return m?decodeURIComponent(m[1]):''},
  show(){
   const tok=this.token();
-  $('#root').innerHTML=`<div class="login">
+  $('#root').innerHTML=`<main class="login">
    <div class="login-panel" style="margin:0 auto"><div class="box" id="loginbox">
-    <div class="login-logo login-logo-sm"><img src="img/logo-kentford.png" alt="Kentford ERP"></div>
+    <div class="login-logo login-logo-sm"><img src="img/logo-kentford.png" alt="Kentford ERP" width="847" height="92"></div>
     <p class="mut">${esc(t('reset.title'))}</p>
-    ${tok?`<div class="fld"><label>${esc(t('reset.new_password'))}</label><input id="rp1" type="password" autocomplete="new-password"></div>
-    <div class="fld" style="margin-top:8px"><label>${esc(t('reset.confirm_password'))}</label><input id="rp2" type="password" autocomplete="new-password"></div>
+    ${tok?`<div class="fld"><label for="rp1">${esc(t('reset.new_password'))}</label><input id="rp1" type="password" autocomplete="new-password"></div>
+    <div class="fld" style="margin-top:8px"><label for="rp2">${esc(t('reset.confirm_password'))}</label><input id="rp2" type="password" autocomplete="new-password"></div>
     <button class="btn" style="width:100%;margin-top:14px" data-act="reset-submit">${esc(t('reset.submit'))}</button>`
     :`<p class="err">${esc(t('reset.invalid_token'))}</p>`}
     <p class="right" style="margin-top:10px"><a href="#" data-act="reset-back">${esc(t('reset.back_to_login'))}</a></p>
    </div></div>
-  </div>`;
+  </main>`;
  }
 };
 ACT['reset-back']=()=>{location.hash='';Login.show()};

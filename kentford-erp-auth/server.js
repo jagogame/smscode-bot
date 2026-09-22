@@ -321,6 +321,7 @@ require('./partners')(app, { authMiddleware });
 /* ---------- Generic shared-collection store (all other business data — customers, orders,
    stock, invoices, audit, etc. — previously only in each browser's local IndexedDB) ---------- */
 require('./store')(app, { authMiddleware });
+require('./errorlog')(app, { authMiddleware, requireAdmin });
 
 app.get('/api/health', (req, res) => res.json({ ok: true, service: 'kentford-erp-auth', smtpConfigured }));
 

@@ -1,0 +1,12 @@
+{
+  "name": "kentford-erp",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "build": "node build.js",
+    "test": "node --test test/*.test.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.2"
+  }
+}

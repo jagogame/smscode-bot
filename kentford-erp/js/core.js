@@ -23,6 +23,28 @@ const sum=(a,f)=>a.reduce((s,x)=>s+num(f(x)),0);
 const daysBetween=(a,b)=>Math.round((pd(b)-pd(a))/864e5);
 const clone=o=>JSON.parse(JSON.stringify(o));
 
+/* ---------- Loader: lazy-load script/css sekali pakai (Three.js/Leaflet/html2canvas
+   dulunya dimuat eager di setiap halaman lewat CDN; sekarang self-hosted di js/vendor
+   dan hanya diminta saat halaman yang butuh benar-benar dibuka) ---------- */
+const Loader={
+ _done:new Set(),
+ js(src){
+  if(this._done.has(src))return Promise.resolve();
+  return new Promise((res,rej)=>{
+   const s=document.createElement('script');
+   s.src=src;s.onload=()=>{this._done.add(src);res()};s.onerror=()=>rej(new Error('gagal memuat '+src));
+   document.head.appendChild(s);
+  });
+ },
+ css(href){
+  if(this._done.has(href))return;
+  this._done.add(href);
+  const l=document.createElement('link');
+  l.rel='stylesheet';l.href=href;
+  document.head.appendChild(l);
+ }
+};
+
 /* ---------- Internasionalisasi (i18n): id / en / zh ---------- */
 const I18N_LANGS={id:'Bahasa Indonesia',en:'English',zh:'中文'};
 const I18N={id:{},en:{},zh:{}};
