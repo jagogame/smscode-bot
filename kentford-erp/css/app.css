@@ -109,6 +109,14 @@ td.num,th.num{text-align:right}
 .toast{background:var(--g8);color:#fff;padding:11px 16px;border-radius:8px;box-shadow:var(--sh4)}
 .toast.err{background:var(--red)}
 .loading{padding:40px;text-align:center;color:var(--mut)}
+.boot{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;
+ background:radial-gradient(ellipse 75% 60% at 50% 42%,#123c26,var(--g9) 70%)}
+.boot-logo{height:40px;width:auto;filter:drop-shadow(0 6px 16px rgba(0,0,0,.4));animation:bootPulse 1.8s ease-in-out infinite}
+.boot-spinner{width:26px;height:26px;border-radius:50%;border:2.5px solid rgba(255,255,255,.18);
+ border-top-color:var(--g5);animation:bootSpin .8s linear infinite}
+@keyframes bootPulse{0%,100%{opacity:1}50%{opacity:.55}}
+@keyframes bootSpin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.boot-logo{animation:none}.boot-spinner{animation:none}}
 
 /* timeline / stepper */
 .stepper{display:flex;gap:0;overflow-x:auto;padding-bottom:6px;margin-bottom:8px}
