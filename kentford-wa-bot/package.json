@@ -1,0 +1,23 @@
+{
+  "name": "kentford-wa-bot",
+  "version": "1.0.0",
+  "description": "WhatsApp sales assistant bot for PT Kentford Group Indonesia (genset & sparepart)",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "type": "commonjs",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
+    "@whiskeysockets/baileys": "^7.0.0-rc13",
+    "@hapi/boom": "^10.0.1",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "pino": "^10.3.1",
+    "qrcode": "^1.5.4",
+    "qrcode-terminal": "^0.12.0"
+  }
+}
