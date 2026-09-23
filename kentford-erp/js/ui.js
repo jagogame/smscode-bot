@@ -181,23 +181,24 @@ Files.render=function(el){
  const ro=el.dataset.ro==='1';
  el.innerHTML=`<div>${(el._files||[]).map((f,i)=>`<span class="fchip"><a href="#" data-act="file-view" data-id="${f.id}">${esc(f.name)}</a> <small>${Math.max(1,Math.round(f.size/1024))} KB</small>${ro?'':`<button type="button" class="btn-x" data-act="file-del" data-i="${i}" title="Hapus">×</button>`}</span>`).join('')||'<span class="mut">Belum ada file.</span>'}</div>${ro?'':'<input type="file" multiple data-fileinput accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.mp4">'}`;
 };
-ACT['file-del']=el=>{const w=el.closest('[data-files]');w._files.splice(+el.dataset.i,1);Files.render(w)};
-ACT['file-view']=async el=>{
+ACT['file-del']=el=>{const w=el.closest('[data-files]'),f=(w._files||[])[+el.dataset.i];w._files.splice(+el.dataset.i,1);Files.render(w);if(f?.id)ServerFiles.remove(f.id)};
+ACT['file-view']=el=>{
  const w=el.closest('[data-files]'),meta=(w._files||[]).find(f=>f.id===el.dataset.id);
- const u=await Files.url(el.dataset.id);
- if(!u)return UI.toast(t('ui.file_not_found'),'err');
+ const u=ServerFiles.url(el.dataset.id);
  const mt=meta?.type||'';
  const body=mt.startsWith('image/')?`<img src="${u}" style="max-width:100%">`:mt==='application/pdf'?`<iframe src="${u}" style="width:100%;height:70vh;border:0"></iframe>`:mt.startsWith('video/')?`<video src="${u}" controls style="max-width:100%"></video>`:`<p>${esc(t('ui.preview_unavailable'))}</p>`;
  UI.modal({title:meta?.name||t('ui.file_default_title'),wide:true,body:body+`<p><a class="btn btn-o btn-sm" href="${u}" download="${esc(meta?.name||'file')}" target="_blank">${esc(t('ui.download_open'))}</a></p>`});
 };
+// Semua attachment/foto (F.fl) disimpan langsung ke server (ServerFiles → kentford-erp-auth/files.js,
+// disk VPS) supaya bisa diakses lintas-browser/perangkat, bukan cuma tersimpan lokal di IndexedDB
+// browser yang upload (lihat catatan di core.js soal Files vs ServerFiles).
 CHANGE.fileinput=async input=>{
  const w=input.closest('[data-files]');
  for(const f of input.files){
-  if(f.size>10*1024*1024){UI.toast(t('ui.file_too_large',{name:f.name}),'err');continue}
-  try{w._files.push(await Files.put(f))}catch(e){UI.toast(t('ui.file_save_failed',{msg:e.message}),'err')}
+  if(f.size>200*1024*1024){UI.toast(t('ui.file_too_large',{name:f.name}),'err');continue}
+  try{w._files.push(await ServerFiles.put(f))}catch(e){UI.toast(t('ui.file_save_failed',{msg:e.message}),'err')}
  }
  Files.render(w);
- if(Store.mode!=='idb')UI.toast(t('ui.storage_not_permanent_warning'),'err');
 };
 
 /* ---------------- Tanda tangan digital ---------------- */

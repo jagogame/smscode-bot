@@ -1,9 +1,12 @@
 'use strict';
-/* Upload file server-side asli (bukan IndexedDB lokal-per-browser seperti attachment biasa di
-   kentford-erp/js/core.js Files object) - khusus buat Knowledge Base (poin b: internal project
-   storage & video tutorial). Beda dengan attachment biasa, file di sini WAJIB bisa diakses semua
-   user (video tutorial genset percuma kalau cuma kebaca di browser yang upload), jadi disimpan
-   sungguhan di disk VPS lewat multer, bukan blob lokal. */
+/* Upload file server-side asli (disk VPS lewat multer) - awalnya khusus Knowledge Base (video
+   tutorial dsb), sekarang juga jadi backend UMUM untuk semua attachment/foto di aplikasi (F.fl
+   di kentford-erp/js/*.js: foto produk, lampiran quotation/invoice/PR, bukti transfer, dsb -
+   lihat ServerFiles di js/core.js). Semua file yang diupload lewat web WAJIB tersimpan di server,
+   bukan cuma di IndexedDB browser yang upload, supaya bisa diakses siapa pun/perangkat mana pun
+   dan tidak hilang kalau storage browser dibersihkan. Karena sekarang dipakai lintas role
+   (sales lampirkan quotation, finance lampirkan bukti transfer, dst), siapa pun yang sudah login
+   boleh upload - MANAGE_ROLES di bawah cuma dipakai untuk hak hapus file ORANG LAIN. */
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -11,7 +14,7 @@ const multer = require('multer');
 
 const UPLOAD_DIR = path.join(__dirname, 'data', 'uploads');
 const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200MB - lihat kesepakatan ukuran video tutorial
-const UPLOAD_ROLES = new Set(['technician', 'tech_manager', 'admin_aftersales', 'deputy_director', 'director']);
+const MANAGE_ROLES = new Set(['deputy_director', 'director']);
 
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
@@ -29,7 +32,6 @@ module.exports = function mount(app, { authMiddleware }) {
   const db = require('./db');
 
   app.post('/api/files', authMiddleware, (req, res) => {
-    if (!UPLOAD_ROLES.has(req.authUser.roleId)) return res.status(403).json({ ok: false, error: 'forbidden' });
     upload.single('file')(req, res, async (err) => {
       if (err) {
         if (err.code === 'LIMIT_FILE_SIZE') return res.status(413).json({ ok: false, error: 'file_too_large', maxBytes: MAX_FILE_SIZE });
@@ -80,7 +82,7 @@ module.exports = function mount(app, { authMiddleware }) {
     const meta = (data.serverFiles || []).find(f => f.id === id);
     if (!meta) return res.status(404).json({ ok: false, error: 'not_found' });
     // Hanya yang upload, atau role admin/manajemen, yang boleh hapus filenya.
-    if (meta.uploadedBy !== req.authUser.id && !UPLOAD_ROLES.has(req.authUser.roleId)) return res.status(403).json({ ok: false, error: 'forbidden' });
+    if (meta.uploadedBy !== req.authUser.id && !MANAGE_ROLES.has(req.authUser.roleId)) return res.status(403).json({ ok: false, error: 'forbidden' });
     await db.transact((d) => { d.serverFiles = (d.serverFiles || []).filter(f => f.id !== id); });
     fs.unlink(path.join(UPLOAD_DIR, id), () => {});
     res.json({ ok: true });
