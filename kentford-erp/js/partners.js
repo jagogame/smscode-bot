@@ -359,7 +359,7 @@ function partnerPopupHtml(r){
  const st=Partners.stats(r.id);
  return `<div style="min-width:220px"><b>${esc(r.code||'-')}</b> — ${esc(r.name)}<br>
   <small>${esc(r.pic||'-')} • ${phoneOrHidden(r.whatsapp)}</small><br>
-  ${UI.badge(r.status)} ${r.isFullService?UI.badge(t('partner.full_service')):''}<br>
+  ${UI.badge(Crud.disp(ENT.partners.fields.find(f=>f.k==='status'),r.status))} ${r.isFullService?UI.badge(t('partner.full_service')):''}<br>
   <small>${esc(r.city||'')}, ${esc(r.province||'')}</small><br>
   <small>${t('partner.rating')}: ${st.avgRating||'-'} • ${t('partner.jobs')}: ${st.completedCount}</small><br>
   <a href="#/partners/${r.id}">${esc(t('partner.view_detail'))}</a></div>`;

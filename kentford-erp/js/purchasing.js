@@ -10,8 +10,16 @@ const whName=id=>DB.get('warehouses',id)?.name||'-';
 /* ================= PURCHASE REQUEST ================= */
 const PR={
  fields:()=>[F.s('source',t('pr.source'),['Manual','Sales Order','Permintaan Gudang','Permintaan Teknisi','Kebutuhan Rental','Minimum Stock'],{req:true,def:'Manual'}),
+  F.s('purpose',t('pr.purpose'),['Proyek','Customer','Pemakaian Internal'],{req:true,def:'Pemakaian Internal'}),
+  F.r('projectId',t('pr.project'),'projects',{filter:p=>p.status==='Berjalan',hint:t('pr.err_purpose_project')}),
+  F.r('customerId',t('pr.customer_purpose'),'customers'),
   F.d('neededBy',t('pr.needed_by'),{req:true,def:()=>addDays(today(),14)}),{k:'items',l:t('pr.items_requested'),t:'lines',cols:PR_ITEM_COLS,min:1},F.ta('notes',t('pr.notes_reason'))],
  amount(items){return sum(items,i=>num(i.qty)*num(DB.get('products',i.productId)?.lastCost))},
+ validatePurpose(v){
+  if(v.purpose==='Proyek'&&!v.projectId)return t('pr.err_purpose_project');
+  if(v.purpose==='Customer'&&!v.customerId)return t('pr.err_purpose_customer');
+  return null;
+ },
  async submit(rec){
   const need=DB.all('approvalLimits').some(x=>x.type==='purchase_request');
   if(!need){DB.update('pr',rec.id,{status:'Disetujui'},t('pr.reason_no_rule'),t('common.auto_approved_action'));UI.toast(t('pr.auto_approved'));return}
@@ -34,9 +42,9 @@ PAGES.pr.render=async(v,param)=>{
   }
   v.innerHTML=UI.pghead(t('nav.pr'),can('pr','w')?`<a class="btn" href="#/pr/new">+ ${t('pr.new')}</a>`:'')+'<div class="card" id="prl"></div>';
   new DT($('#prl'),{title:t('nav.pr'),rows:()=>DB.all('pr').slice().reverse(),onRow:id=>Router.go('pr/'+id),
-   filters:[{k:'s',l:t('common.status'),opts:()=>['Draft','Menunggu Approval','Disetujui','Ditolak','Selesai'],get:r=>r.status},{k:'src',l:t('pr.source'),opts:()=>['Manual','Sales Order','Permintaan Gudang','Permintaan Teknisi','Kebutuhan Rental','Minimum Stock'],get:r=>r.source}],
-   cols:[{k:'no',l:t('pr.no_pr')},{k:'src',l:t('pr.source'),text:r=>r.source},{k:'req',l:t('pr.requester'),text:r=>userName(r.requesterId)},{k:'nb',l:t('pr.needed_by'),text:r=>fdate(r.neededBy),sortv:r=>r.neededBy},
-    {k:'n',l:t('pr.item_count'),num:true,text:r=>String(r.items.length)},{k:'val',l:t('pr.est_value'),num:true,hide:()=>!seeCost(),text:r=>rp(PR.amount(r.items))},{k:'st',l:t('common.status'),text:r=>r.status,html:r=>UI.badge(r.status)}]});
+   filters:[{k:'s',l:t('common.status'),opts:stOpt(['Draft','Menunggu Approval','Disetujui','Ditolak','Selesai']),get:r=>r.status},{k:'src',l:t('pr.source'),opts:stOpt(['Manual','Sales Order','Permintaan Gudang','Permintaan Teknisi','Kebutuhan Rental','Minimum Stock']),get:r=>r.source}],
+   cols:[{k:'no',l:t('pr.no_pr')},{k:'src',l:t('pr.source'),text:r=>stLabel(r.source)},{k:'req',l:t('pr.requester'),text:r=>userName(r.requesterId)},{k:'nb',l:t('pr.needed_by'),text:r=>fdate(r.neededBy),sortv:r=>r.neededBy},
+    {k:'n',l:t('pr.item_count'),num:true,text:r=>String(r.items.length)},{k:'val',l:t('pr.est_value'),num:true,hide:()=>!seeCost(),text:r=>rp(PR.amount(r.items))},{k:'st',l:t('common.status'),text:r=>stLabel(r.status),html:r=>UI.badge(stLabel(r.status))}]});
   return;
  }
  const r=DB.get('pr',param);if(!r)return v.innerHTML=UI.empty(t('pr.not_found'));
@@ -44,10 +52,12 @@ PAGES.pr.render=async(v,param)=>{
  const acts=[`<a class="btn btn-o" href="#/pr">‹ ${t('common.back')}</a>`];
  if(can('sq','w')&&r.status==='Disetujui')acts.push(`<button class="btn btn-o" data-act="sq-new" data-pr="${r.id}">+ ${t('nav.sq')}</button>`);
  if(can('po','w')&&r.status==='Disetujui'&&!pos.length)acts.push(`<a class="btn" href="#/pc/${r.id}">${t('pr.compare_make_po')}</a>`);
- v.innerHTML=UI.pghead('PR '+r.no,acts.join(''))+`<div class="card"><div class="ch"><span>${t('pr.request_detail')}</span>${UI.badge(r.status)}</div>${UI.kv([[t('pr.source'),esc(r.source)],[t('pr.requester'),esc(userName(r.requesterId))],[t('pr.needed_by'),fdate(r.neededBy)],[t('common.notes'),esc(r.notes||'-')]])}
+ v.innerHTML=UI.pghead('PR '+r.no,acts.join(''))+`<div class="card"><div class="ch"><span>${t('pr.request_detail')}</span>${UI.badge(stLabel(r.status))}</div>${UI.kv([[t('pr.source'),esc(stLabel(r.source))],[t('pr.purpose'),esc(r.purpose||'-')],
+   [t('pr.project'),esc(r.projectId?DB.get('projects',r.projectId)?.name||'-':'-')],[t('pr.customer_purpose'),esc(r.customerId?DB.get('customers',r.customerId)?.name||'-':'-')],
+   [t('pr.requester'),esc(userName(r.requesterId))],[t('pr.needed_by'),fdate(r.neededBy)],[t('common.notes'),esc(r.notes||'-')]])}
   <div class="tblw" style="margin-top:8px"><table><tr><th>${t('common.product')}</th><th>${t('common.description')}</th><th class="num">${t('common.qty')}</th></tr>${r.items.map(i=>`<tr><td>${esc(DB.get('products',i.productId)?.name||'-')}</td><td>${esc(i.desc||'')}</td><td class="num">${nf(i.qty)}</td></tr>`).join('')}</table></div></div>
   <div class="card"><h3>${t('nav.sq')} (${sqs.length})</h3>${sqs.length?sqs.map(s=>`<div>${esc(supName(s.supplierId))} — ${rp(sum(s.items,i=>num(i.qty)*num(i.price)))} <span class="mut">(${t('quot.lead_time').toLowerCase()} ${esc(s.leadTime||'-')})</span></div>`).join(''):`<div class="empty">${t('pr.no_supplier_quote')}</div>`}</div>
-  <div class="card"><h3>${t('nav.po')} (${pos.length})</h3>${pos.length?pos.map(p=>`<div>${docLink('po',p)} — ${supName(p.supplierId)} ${UI.badge(p.status)}</div>`).join(''):`<div class="empty">${t('pr.no_po')}</div>`}</div>
+  <div class="card"><h3>${t('nav.po')} (${pos.length})</h3>${pos.length?pos.map(p=>`<div>${docLink('po',p)} — ${supName(p.supplierId)} ${UI.badge(stLabel(p.status))}</div>`).join(''):`<div class="empty">${t('pr.no_po')}</div>`}</div>
   <div class="card"><h3>${t('common.activity_comments')}</h3>${UI.activity('pr',r.id)}</div>`;
 };
 ACT['pr-save']=()=>{
@@ -58,6 +68,7 @@ ACT['pr-save']=()=>{
 ACT['pr-submit']=async()=>{
  const {fields}=PR._ctx,{v,err}=Form.collect($('#prform'),fields);
  if(err.length)return UI.toast(err[0],'err');
+ const perr=PR.validatePurpose(v);if(perr)return UI.toast(perr,'err');
  if(v.items.some(i=>!i.productId||!(num(i.qty)>0)))return UI.toast(t('pr.err_line_incomplete'),'err');
  const rec=DB.insert('pr',{...v,no:Num.next('PR'),requesterId:Auth.uid(),status:'Draft'});
  await PR.submit(rec);Router.go('pr/'+rec.id);
@@ -94,7 +105,7 @@ PAGES.pc.render=async(v,param)=>{
 };
 ACT['pc-choose']=async el=>{
  const s=DB.get('sq',el.dataset.id),pr=DB.get('pr',s.prId),sup=DB.get('suppliers',s.supplierId);
- const po=DB.insert('po',{no:Num.next('PO'),prId:pr.id,supplierId:s.supplierId,currency:sup?.currency||'IDR',kurs:1,taxPct:S().defaultTaxPct??11,
+ const po=DB.insert('po',{no:Num.next('PO'),prId:pr.id,projectId:pr.projectId||'',purpose:pr.purpose||'',customerId:pr.customerId||'',supplierId:s.supplierId,currency:sup?.currency||'IDR',kurs:1,taxPct:S().defaultTaxPct??11,
   dpPct:DB.get('payterms',sup?.paymentTermId)?.dpPct||0,incoterm:'',etaDate:'',items:s.items.map(i=>({productId:i.productId,qty:i.qty,price:i.price,received:0})),status:'Draft',trackingNotes:[]});
  DB.update('pr',pr.id,{status:'Selesai'},t('pc.po_created_reason',{no:po.no}),t('pc.po_created_action'));
  UI.toast(t('pc.po_created_toast',{no:po.no}));Router.go('po/'+po.id);
@@ -119,9 +130,9 @@ PAGES.po.render=async(v,param)=>{
  if(!param){
   v.innerHTML=UI.pghead(t('nav.po'))+'<div class="card" id="pol"></div>';
   new DT($('#pol'),{title:t('nav.po'),rows:()=>DB.all('po').slice().reverse(),onRow:id=>Router.go('po/'+id),
-   filters:[{k:'s',l:t('common.status'),opts:()=>['Draft','Menunggu Approval','Disetujui','Dikirim Supplier','Sebagian Diterima','Diterima','Ditolak','Dibatalkan'],get:r=>r.status}],
+   filters:[{k:'s',l:t('common.status'),opts:stOpt(['Draft','Menunggu Approval','Disetujui','Dikirim Supplier','Sebagian Diterima','Diterima','Ditolak','Dibatalkan']),get:r=>r.status}],
    cols:[{k:'no',l:t('po.no_po')},{k:'s',l:t('common.supplier'),text:r=>supName(r.supplierId)},{k:'cur',l:t('po.currency'),text:r=>r.currency},{k:'total',l:t('po.total_idr'),num:true,text:r=>rp(POH.calc(r).total),sortv:r=>POH.calc(r).total},
-    {k:'eta',l:'ETA',text:r=>r.etaDate?fdate(r.etaDate):'-'},{k:'st',l:t('common.status'),text:r=>r.status,html:r=>UI.badge(r.status)}]});
+    {k:'eta',l:'ETA',text:r=>r.etaDate?fdate(r.etaDate):'-'},{k:'st',l:t('common.status'),text:r=>stLabel(r.status),html:r=>UI.badge(stLabel(r.status))}]});
   return;
  }
  const po=DB.get('po',param);if(!po)return v.innerHTML=UI.empty(t('po.not_found'));
@@ -132,7 +143,7 @@ PAGES.po.render=async(v,param)=>{
  if(['Dikirim Supplier','Sebagian Diterima'].includes(po.status)&&can('gr','w'))acts.push(`<a class="btn" href="#/gr/new/${po.id}">${t('nav.gr')} (GR)</a>`);
  if(['Sebagian Diterima','Diterima'].includes(po.status)&&can('si','w'))acts.push(`<button class="btn btn-o" data-act="si-fromPO" data-id="${po.id}">${t('po.make_si')}</button>`);
  v.innerHTML=UI.pghead('PO '+po.no,acts.join(''))+`<div class="grid split"><div>
-  <div class="card"><div class="ch"><span>${t('po.info_title')}</span>${UI.badge(po.status)}</div>${UI.kv([[t('common.supplier'),esc(supName(po.supplierId))],[t('po.related_pr'),po.prId?docLink('pr',DB.get('pr',po.prId)):'-'],[t('po.currency'),esc(po.currency)+(po.currency!=='IDR'?' • '+t('po.rate')+' '+nf(po.kurs):'')],
+  <div class="card"><div class="ch"><span>${t('po.info_title')}</span>${UI.badge(stLabel(po.status))}</div>${UI.kv([[t('common.supplier'),esc(supName(po.supplierId))],[t('po.related_pr'),po.prId?docLink('pr',DB.get('pr',po.prId)):'-'],[t('po.currency'),esc(po.currency)+(po.currency!=='IDR'?' • '+t('po.rate')+' '+nf(po.kurs):'')],
    [t('po.incoterm'),esc(po.incoterm||'-')],['ETA',po.etaDate?fdate(po.etaDate):'-'],['DP',pct(po.dpPct)+' = '+rp(c.dp)]])}</div>
   <div class="card"><h3>${t('so.items')}</h3><div class="tblw"><table><tr><th>${t('common.product')}</th><th class="num">${t('common.qty')}</th><th class="num">${t('common.price')}</th><th class="num">${t('po.received')}</th></tr>${po.items.map(i=>`<tr><td>${esc(DB.get('products',i.productId)?.name||'-')}</td><td class="num">${nf(i.qty)}</td><td class="num">${rp(i.price)}</td><td class="num">${num(i.received)}/${nf(i.qty)}</td></tr>`).join('')}
    <tr><td colspan="3" class="right">${t('common.subtotal')} (${esc(po.currency)})</td><td class="num">${nf(c.sub)}</td></tr>${po.currency!=='IDR'?`<tr><td colspan="3" class="right">${t('po.in_rupiah')}</td><td class="num">${rp(c.idr)}</td></tr>`:''}<tr><td colspan="3" class="right">${t('common.ppn')} ${pct(po.taxPct)}</td><td class="num">${rp(c.tax)}</td></tr><tr><td colspan="3" class="right"><b>${t('common.total')}</b></td><td class="num"><b>${rp(c.total)}</b></td></tr></table></div></div>
@@ -163,7 +174,7 @@ PAGES.incoming.render=async v=>{
  v.innerHTML=UI.pghead(t('nav.incoming'))+'<div class="card" id="incl"></div>';
  new DT($('#incl'),{title:t('nav.incoming'),rows:()=>DB.all('po').filter(p=>['Disetujui','Dikirim Supplier','Sebagian Diterima'].includes(p.status)).slice().reverse(),onRow:id=>Router.go('po/'+id),
   cols:[{k:'no',l:t('po.no_po')},{k:'s',l:t('common.supplier'),text:r=>supName(r.supplierId)},{k:'eta',l:'ETA',text:r=>r.etaDate?fdate(r.etaDate):t('po.eta_none'),sortv:r=>r.etaDate||''},
-   {k:'n',l:t('po.last_note'),text:r=>(r.trackingNotes||[]).slice(-1)[0]?.text||'-'},{k:'st',l:t('common.status'),text:r=>r.status,html:r=>UI.badge(r.status)}]});
+   {k:'n',l:t('po.last_note'),text:r=>(r.trackingNotes||[]).slice(-1)[0]?.text||'-'},{k:'st',l:t('common.status'),text:r=>stLabel(r.status),html:r=>UI.badge(stLabel(r.status))}]});
 };
 
 /* ================= BARANG MASUK (GR) ================= */
@@ -248,12 +259,12 @@ PAGES.opname.render=async(v,param)=>{
   }
   v.innerHTML=UI.pghead(t('nav.opname'),can('opname','w')?`<a class="btn" href="#/opname/new">+ ${t('opname.new')}</a>`:'')+'<div class="card" id="opl"></div>';
   new DT($('#opl'),{title:t('nav.opname'),rows:()=>DB.all('opnames').slice().reverse(),onRow:id=>Router.go('opname/'+id),
-   cols:[{k:'no',l:t('common.no_dot')},{k:'w',l:t('common.warehouse'),text:r=>whName(r.whId)},{k:'date',l:t('common.date'),text:r=>fdate(r.date),sortv:r=>r.date},{k:'n',l:t('opname.diff_items'),num:true,text:r=>String(r.items.filter(i=>i.diff!==0).length)},{k:'st',l:t('common.status'),text:r=>r.status,html:r=>UI.badge(r.status)}]});
+   cols:[{k:'no',l:t('common.no_dot')},{k:'w',l:t('common.warehouse'),text:r=>whName(r.whId)},{k:'date',l:t('common.date'),text:r=>fdate(r.date),sortv:r=>r.date},{k:'n',l:t('opname.diff_items'),num:true,text:r=>String(r.items.filter(i=>i.diff!==0).length)},{k:'st',l:t('common.status'),text:r=>stLabel(r.status),html:r=>UI.badge(stLabel(r.status))}]});
   return;
  }
  const o=DB.get('opnames',param);if(!o)return v.innerHTML=UI.empty(t('opname.not_found'));
  const editable=o.status==='Draft'&&can('opname','w');
- v.innerHTML=UI.pghead(t('nav.opname')+' '+o.no,`<a class="btn btn-o" href="#/opname">‹ ${t('common.back')}</a>`)+`<div class="card"><div class="ch"><span>${esc(whName(o.whId))} — ${fdate(o.date)}</span>${UI.badge(o.status)}</div>
+ v.innerHTML=UI.pghead(t('nav.opname')+' '+o.no,`<a class="btn btn-o" href="#/opname">‹ ${t('common.back')}</a>`)+`<div class="card"><div class="ch"><span>${esc(whName(o.whId))} — ${fdate(o.date)}</span>${UI.badge(stLabel(o.status))}</div>
   <div class="tblw"><table><tr><th>${t('common.product')}</th><th class="num">${t('opname.system_qty')}</th><th class="num">${t('opname.counted_qty')}</th><th class="num">${t('opname.diff')}</th></tr>${o.items.map((i,idx)=>`<tr><td>${esc(DB.get('products',i.productId)?.name)}</td><td class="num">${i.systemQty}</td><td class="num">${editable?`<input type="number" data-op="${idx}" value="${i.countedQty??i.systemQty}" style="width:90px;text-align:right">`:num(i.countedQty)}</td><td class="num" data-opd="${idx}">${num(i.countedQty??i.systemQty)-i.systemQty}</td></tr>`).join('')}</table></div>
   ${editable?`<div class="acts" style="margin-top:12px"><button class="btn" data-act="opname-finish" data-id="${o.id}">${t('opname.finish')}</button></div>`:''}</div>`;
  if(editable)v.addEventListener('input',e=>{if(e.target.dataset.op===undefined)return;const idx=e.target.dataset.op;$(`[data-opd="${idx}"]`).textContent=num(e.target.value)-o.items[idx].systemQty});
@@ -328,6 +339,6 @@ ACT['bc-printsel']=()=>{
 ACT['pr-from-lowstock']=()=>{
  const low=DB.all('products').filter(p=>num(p.minStock)>0&&Stock.qty(p.id)<=num(p.minStock));
  if(!low.length)return UI.toast(t('pr.no_lowstock'));
- const rec=DB.insert('pr',{source:'Minimum Stock',neededBy:addDays(today(),14),items:low.map(p=>({productId:p.id,desc:t('pr.restock_desc',{stock:Stock.qty(p.id),min:p.minStock}),qty:Math.max(1,num(p.minStock)*2-Stock.qty(p.id))})),notes:t('pr.auto_lowstock_notes'),requesterId:Auth.uid(),status:'Draft',no:Num.next('PR')});
+ const rec=DB.insert('pr',{source:'Minimum Stock',purpose:'Pemakaian Internal',neededBy:addDays(today(),14),items:low.map(p=>({productId:p.id,desc:t('pr.restock_desc',{stock:Stock.qty(p.id),min:p.minStock}),qty:Math.max(1,num(p.minStock)*2-Stock.qty(p.id))})),notes:t('pr.auto_lowstock_notes'),requesterId:Auth.uid(),status:'Draft',no:Num.next('PR')});
  UI.toast(t('pr.draft_from_lowstock',{no:rec.no}));Router.go('pr/'+rec.id);
 };

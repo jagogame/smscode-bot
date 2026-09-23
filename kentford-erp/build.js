@@ -16,7 +16,7 @@ const DIST = path.join(ROOT, 'dist');
 
 const JS_ORDER = [
   'core.js', 'schema.js', 'ui.js', 'admin.js', 'sales.js', 'purchasing.js',
-  'finance.js', 'rental.js', 'service.js', 'partners.js', 'neworder.js',
+  'finance.js', 'rental.js', 'service.js', 'knowledge.js', 'partners.js', 'neworder.js',
   'dashboard.js', 'reports.js', 'main.js'
 ];
 

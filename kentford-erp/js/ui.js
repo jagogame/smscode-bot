@@ -185,19 +185,19 @@ ACT['file-del']=el=>{const w=el.closest('[data-files]');w._files.splice(+el.data
 ACT['file-view']=async el=>{
  const w=el.closest('[data-files]'),meta=(w._files||[]).find(f=>f.id===el.dataset.id);
  const u=await Files.url(el.dataset.id);
- if(!u)return UI.toast('File tidak ditemukan (penyimpanan tidak permanen atau data dihapus).','err');
- const t=meta?.type||'';
- const body=t.startsWith('image/')?`<img src="${u}" style="max-width:100%">`:t==='application/pdf'?`<iframe src="${u}" style="width:100%;height:70vh;border:0"></iframe>`:t.startsWith('video/')?`<video src="${u}" controls style="max-width:100%"></video>`:`<p>Pratinjau tidak tersedia untuk tipe file ini.</p>`;
- UI.modal({title:meta?.name||'File',wide:true,body:body+`<p><a class="btn btn-o btn-sm" href="${u}" download="${esc(meta?.name||'file')}" target="_blank">Unduh / buka</a></p>`});
+ if(!u)return UI.toast(t('ui.file_not_found'),'err');
+ const mt=meta?.type||'';
+ const body=mt.startsWith('image/')?`<img src="${u}" style="max-width:100%">`:mt==='application/pdf'?`<iframe src="${u}" style="width:100%;height:70vh;border:0"></iframe>`:mt.startsWith('video/')?`<video src="${u}" controls style="max-width:100%"></video>`:`<p>${esc(t('ui.preview_unavailable'))}</p>`;
+ UI.modal({title:meta?.name||t('ui.file_default_title'),wide:true,body:body+`<p><a class="btn btn-o btn-sm" href="${u}" download="${esc(meta?.name||'file')}" target="_blank">${esc(t('ui.download_open'))}</a></p>`});
 };
 CHANGE.fileinput=async input=>{
  const w=input.closest('[data-files]');
  for(const f of input.files){
-  if(f.size>10*1024*1024){UI.toast(`${f.name}: ukuran melebihi 10 MB.`,'err');continue}
-  try{w._files.push(await Files.put(f))}catch(e){UI.toast('Gagal menyimpan file: '+e.message,'err')}
+  if(f.size>10*1024*1024){UI.toast(t('ui.file_too_large',{name:f.name}),'err');continue}
+  try{w._files.push(await Files.put(f))}catch(e){UI.toast(t('ui.file_save_failed',{msg:e.message}),'err')}
  }
  Files.render(w);
- if(Store.mode!=='idb')UI.toast('Peringatan: penyimpanan permanen tidak tersedia, file hilang saat halaman ditutup.','err');
+ if(Store.mode!=='idb')UI.toast(t('ui.storage_not_permanent_warning'),'err');
 };
 
 /* ---------------- Tanda tangan digital ---------------- */
@@ -226,7 +226,11 @@ class DT{
  init(){
   const c=this.cfg;
   this.el.innerHTML=`<div class="tb" data-dt="${this.id}"><input type="search" placeholder="${esc(t('common.search'))}" data-dtq>
-   ${(c.filters||[]).map(f=>`<select data-dtf="${f.k}"><option value="">${esc(f.l)}: ${esc(t('common.all'))}</option>${[...new Set(f.opts())].map(o=>`<option value="${esc(o)}">${esc(o)}</option>`).join('')}</select>`).join('')}
+   ${(c.filters||[]).map(f=>{
+    const norm=f.opts().map(o=>(o&&typeof o==='object')?o:{v:o,l:o});
+    const seen=new Set(),uniq=norm.filter(o=>seen.has(o.v)?false:(seen.add(o.v),true));
+    return `<select data-dtf="${f.k}"><option value="">${esc(f.l)}: ${esc(t('common.all'))}</option>${uniq.map(o=>`<option value="${esc(o.v)}">${esc(o.l)}</option>`).join('')}</select>`;
+   }).join('')}
    <span style="flex:1"></span>${c.toolbar||''}
    ${c.export===false?'':`<button class="btn btn-o btn-sm" data-act="dt-xls" data-dt="${this.id}">${esc(t('common.excel'))}</button><button class="btn btn-o btn-sm" data-act="dt-print" data-dt="${this.id}">${esc(t('common.print_pdf'))}</button>`}</div>
    <div class="dt-body"></div>`;
@@ -404,6 +408,7 @@ const Login={
     <div class="login-visual-overlay">
      <div class="login-logo login-logo-3d" id="loginLogo3d"><img src="img/logo-kentford.png" alt="Kentford" width="847" height="92"></div>
      <p class="login-tag">${esc(t('login.tagline'))}</p>
+     <p class="login-slogan">${esc(t('login.slogan'))}</p>
      <ul class="login-points">
       <li>${esc(t('login.point1'))}</li>
       <li>${esc(t('login.point2'))}</li>

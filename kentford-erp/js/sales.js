@@ -5,6 +5,27 @@
 const custName=id=>DB.get('customers',id)?.name||'-';
 const docLink=(page,r)=>`<a href="#/${page}/${r.id}">${esc(r.no)}</a>`;
 
+/* ================= KUNJUNGAN SITE (sales + teknisi) SEBELUM PENAWARAN ================= */
+PAGES.site_visits.render=async(v,param)=>{
+ v.innerHTML=UI.pghead(t('nav.site_visits'),can('site_visits','w')?`<button class="btn" data-act="crud-new" data-e="site_visits">${esc(t('visit.new_btn'))}</button>`:'')+
+  `<div class="card"><h3>${esc(t('visit.ready_h'))}</h3><div id="visitReady"></div></div>
+   <div class="card" id="crudbox"></div>`;
+ const ready=Scope.rows('site_visits').filter(r=>r.status==='Selesai'&&!r.quotationId);
+ $('#visitReady').innerHTML=ready.length?ready.map(r=>{
+  const name=r.customerId?custName(r.customerId):(DB.get('leads',r.leadId)?.company||DB.get('leads',r.leadId)?.name||'-');
+  return `<div style="padding:6px 0;border-bottom:1px solid var(--bd)">${esc(name)} — ${fdate(r.visitDate)} (${t('ord.technician')}: ${esc(userName(r.technicianId))})
+   ${r.needVendorItems?`<span class="badge b-yellow">${esc(t('visit.check_vendor_price'))}</span> `:''}
+   <button class="btn btn-sm" data-act="visit-mk-quote" data-id="${r.id}" style="float:right">${esc(t('visit.make_quote_btn'))}</button></div>`;
+ }).join(''):`<div class="empty">${t('visit.none_ready')}</div>`;
+ Crud.list($('#crudbox'),'site_visits');
+ if(param)Crud.open('site_visits',param);
+};
+ACT['visit-mk-quote']=el=>{
+ const r=DB.get('site_visits',el.dataset.id);
+ if(!r.customerId)return UI.toast(t('visit.not_linked_customer'),'err');
+ Router.go('quotations/new/visit/'+r.id);
+};
+
 /* ================= QUOTATION ================= */
 const Quote={
  calc(lines,taxPct){
@@ -52,7 +73,12 @@ const Quote={
   const data={customerId:q.customerId,picName:q.picName,salesId:q.salesId,date:q.date,validUntil:q.validUntil,taxPct:q.taxPct,paymentTerms:q.paymentTerms,leadTime:q.leadTime,deliveryTerms:q.deliveryTerms,warranty:q.warranty,notes:q.notes,lines:q.lines,
    subtotal:q.subtotal,discountTotal:q.discountTotal,dpp:q.dpp,tax:q.tax,total:q.total,costTotal:q.costTotal,gp:q.gp,gpPct:q.gpPct,maxDisc:q.maxDisc};
   let r=rec;
-  if(!rec){const no=Num.next('QUO');r=DB.insert('quotations',{...data,no,baseNo:no,rev:0,status:'Draft',orderId:rec?.orderId||Quote.pre?.orderId||''});Quote.pre=null}
+  if(!rec){
+   const no=Num.next('QUO');
+   r=DB.insert('quotations',{...data,no,baseNo:no,rev:0,status:'Draft',orderId:Quote.pre?.orderId||'',visitId:Quote.pre?.visitId||''});
+   if(Quote.pre?.visitId)DB.update('site_visits',Quote.pre.visitId,{quotationId:r.id},'','Quotation dibuat');
+   Quote.pre=null;
+  }
   else DB.update('quotations',rec.id,data,'',t('quot.action_update'));
   if(!submit){UI.toast(t('common.draft_saved'));Router.go('quotations/'+r.id);return}
   const need=r.gpPct<num(S().minMarginPct)||r.maxDisc>num(S().maxDiscPct);
@@ -87,10 +113,10 @@ PAGES.quotations.render=async(v,param)=>{
   const w=can('quotations','w');
   v.innerHTML=UI.pghead(t('nav.quotations'),w?`<a class="btn" href="#/quotations/new">+ ${t('quot.new')}</a>`:'')+'<div class="card" id="ql"></div>';
   new DT($('#ql'),{title:t('nav.quotations'),size:15,rows:()=>Scope.rows('quotations').slice().reverse(),onRow:id=>Router.go('quotations/'+id),
-   filters:[{k:'s',l:t('common.status'),opts:()=>['Draft','Menunggu Approval','Disetujui','Dikirim','Direvisi','Diterima','Ditolak','Kedaluwarsa'],get:r=>r.status},{k:'c',l:t('common.customer'),opts:()=>DB.all('customers').map(c=>c.name),get:r=>custName(r.customerId)}],
+   filters:[{k:'s',l:t('common.status'),opts:stOpt(['Draft','Menunggu Approval','Disetujui','Dikirim','Direvisi','Diterima','Ditolak','Kedaluwarsa']),get:r=>r.status},{k:'c',l:t('common.customer'),opts:()=>DB.all('customers').map(c=>c.name),get:r=>custName(r.customerId)}],
    cols:[{k:'no',l:t('common.no_dot')},{k:'date',l:t('common.date'),text:r=>fdate(r.date),sortv:r=>r.date},{k:'c',l:t('common.customer'),text:r=>custName(r.customerId)},{k:'s',l:t('common.sales'),text:r=>userName(r.salesId)},
     {k:'total',l:t('common.total'),num:true,text:r=>rp(r.total),sortv:r=>r.total},{k:'gp',l:t('common.margin'),num:true,hide:()=>!seeCost(),text:r=>pct(r.gpPct),sortv:r=>r.gpPct},
-    {k:'valid',l:t('quot.valid_until'),text:r=>fdate(r.validUntil),sortv:r=>r.validUntil},{k:'st',l:t('common.status'),text:r=>r.status,html:r=>UI.badge(r.status)+(r.rev?` <small class="mut">R${r.rev}</small>`:'')}]});
+    {k:'valid',l:t('quot.valid_until'),text:r=>fdate(r.validUntil),sortv:r=>r.validUntil},{k:'st',l:t('common.status'),text:r=>stLabel(r.status),html:r=>UI.badge(stLabel(r.status))+(r.rev?` <small class="mut">R${r.rev}</small>`:'')}]});
   return;
  }
  const isNew=param==='new'||param.startsWith('new/');
@@ -98,13 +124,21 @@ PAGES.quotations.render=async(v,param)=>{
  if(!isNew&&(!rec||!Scope.ok('quotations',rec))){v.innerHTML=UI.empty(t('quot.not_found'));return}
  if(isNew){
   if(!can('quotations','w')){v.innerHTML=UI.empty(t('quot.no_right_create'));return}
-  const oid=param.split('/')[1],o=oid&&DB.get('orders',oid);
-  Quote.pre=o?{orderId:o.id}:null;
-  rec=o?{customerId:o.customerId,picName:o.pic,salesId:o.salesId,lines:o.items.map(i=>{const p=DB.get('products',i.productId);return {productId:i.productId,desc:i.desc||p?.name||'',qty:i.qty,cost:p?.lastCost||0,price:p?.price||0,discPct:0}}),notes:o.notes?('Ref. '+o.no):''}:null;
+  const parts=param.split('/');
+  if(parts[1]==='visit'){
+   const visit=DB.get('site_visits',parts[2]);
+   Quote.pre=visit?{visitId:visit.id}:null;
+   rec=visit?{customerId:visit.customerId,salesId:visit.salesId,
+    notes:'Berdasarkan kunjungan site '+fdate(visit.visitDate)+(visit.recommendation?(': '+visit.recommendation):'')+(visit.needVendorItems?' — CATATAN: cek harga vendor dulu (Purchasing > Price Comparison) sebelum kirim penawaran.':'')}:null;
+  }else{
+   const oid=parts[1],o=oid&&DB.get('orders',oid);
+   Quote.pre=o?{orderId:o.id}:null;
+   rec=o?{customerId:o.customerId,picName:o.pic,salesId:o.salesId,lines:o.items.map(i=>{const p=DB.get('products',i.productId);return {productId:i.productId,desc:i.desc||p?.name||'',qty:i.qty,cost:p?.lastCost||0,price:p?.price||0,discPct:0}}),notes:o.notes?('Ref. '+o.no):''}:null;
+  }
  }
  const editable=isNew||(rec.status==='Draft'&&can('quotations','w'));
  const fields=Quote.fields(!editable);
- const st=rec&&rec.id?rec.status:t('quot.new');
+ const st=rec&&rec.id?stLabel(rec.status):t('quot.new');
  const acts=[];
  if(rec&&rec.id){
   acts.push(`<button class="btn btn-o" data-act="q-print" data-id="${rec.id}">${t('common.print_pdf')}</button>`);
@@ -124,8 +158,8 @@ PAGES.quotations.render=async(v,param)=>{
    <div id="qform">${Form.render(fields,vals,!editable)}</div>
    ${editable?`<div class="acts" style="margin-top:12px"><button class="btn btn-o" data-act="q-save" data-id="${rec?.id||''}">${t('common.save_draft')}</button><button class="btn" data-act="q-submit" data-id="${rec?.id||''}">${t('common.save_submit')}</button></div>`:''}</div></div>
    <div><div class="card"><h3>${t('quot.value_summary')}</h3><div id="qtot"></div></div>
-   ${revs.length>1?`<div class="card"><h3>${t('quot.revisions')}</h3>${revs.map(r=>`<div><a href="#/quotations/${r.id}">${esc(r.no)}</a> — ${UI.badge(r.status)}</div>`).join('')}</div>`:''}
-   ${appr.length?`<div class="card"><h3>${t('common.approval')}</h3>${appr.map(a=>`<div><a href="#" data-act="appr-open" data-id="${a.id}">${esc(a.no)}</a> ${UI.badge(a.status)}</div>`).join('')}</div>`:''}
+   ${revs.length>1?`<div class="card"><h3>${t('quot.revisions')}</h3>${revs.map(r=>`<div><a href="#/quotations/${r.id}">${esc(r.no)}</a> — ${UI.badge(stLabel(r.status))}</div>`).join('')}</div>`:''}
+   ${appr.length?`<div class="card"><h3>${t('common.approval')}</h3>${appr.map(a=>`<div><a href="#" data-act="appr-open" data-id="${a.id}">${esc(a.no)}</a> ${UI.badge(apprStatusLabel(a.status))}</div>`).join('')}</div>`:''}
    ${rec&&rec.id?`<div class="card"><h3>${t('common.activity_comments')}</h3>${UI.activity('quotations',rec.id)}</div>`:''}</div></div>`;
  Form.hydrate($('#qform'),fields,vals);
  Quote.recalc();
@@ -157,13 +191,34 @@ const SO={
    subtotal:q.subtotal,discountTotal:q.discountTotal,dpp:q.dpp,tax:q.tax,total:q.total,costTotal:q.costTotal,gp:q.gp,gpPct:q.gpPct,paymentTerms:q.paymentTerms,deliveryTerms:q.deliveryTerms,status:'Baru'});
   if(['Disetujui','Dikirim'].includes(q.status))DB.update('quotations',q.id,{status:'Diterima'},t('so.reason_created',{no:so.no}),t('so.action_accepted'));
   if(q.orderId){const o=DB.get('orders',q.orderId);if(o)DB.update('orders',o.id,{soId:so.id,quotationId:q.id},'',t('so.action_link'))}
+  SO.deductStock(so);
   return so;
  },
- invoices(so){return DB.all('invoices').filter(i=>i.soId===so.id&&!i.cancelled)}
+ invoices(so){return DB.all('invoices').filter(i=>i.soId===so.id&&!i.cancelled)},
+ // Sales Order = pesanan pasti (bukan penawaran) → stok langsung dikurangi. Quotation tidak menyentuh stok sama sekali.
+ // Nonaktif sampai S().stockAutoDeductEnabled diaktifkan lewat Settings — sengaja ditunda sampai
+ // migrasi data lama + penyesuaian stok fisik oleh tim gudang selesai, supaya tidak mengurangi
+ // stok berdasarkan saldo yang belum diverifikasi.
+ deductStock(so){
+  if(!S().stockAutoDeductEnabled)return;
+  (so.lines||[]).forEach(l=>{
+   const p=l.productId&&DB.get('products',l.productId);
+   if(!p||['Aset rental','Jasa'].includes(p.kind)||!num(l.qty))return;
+   Stock.move(p.id,'w_ho',-num(l.qty),'Keluar - Sales Order',so.no,t('so.action_created',{no:so.no}));
+  });
+ },
+ restockCancelled(so){
+  if(!S().stockAutoDeductEnabled)return;
+  (so.lines||[]).forEach(l=>{
+   const p=l.productId&&DB.get('products',l.productId);
+   if(!p||['Aset rental','Jasa'].includes(p.kind)||!num(l.qty))return;
+   Stock.move(p.id,'w_ho',num(l.qty),'Masuk - Pembatalan SO',so.no,t('so.action_cancelled'));
+  });
+ }
 };
 Approval.hooks.cancellation={
  approved(a){
-  if(a.refCol==='salesorders'){DB.update('salesorders',a.refId,{status:'Dibatalkan',cancelReason:a.reason},a.reason,t('so.action_cancelled'))}
+  if(a.refCol==='salesorders'){DB.update('salesorders',a.refId,{status:'Dibatalkan',cancelReason:a.reason},a.reason,t('so.action_cancelled'));const so=DB.get('salesorders',a.refId);if(so)SO.restockCancelled(so)}
   if(a.refCol==='invoices'){DB.update('invoices',a.refId,{cancelled:true,cancelReason:a.reason},a.reason,t('so.action_cancelled'))}
   if(a.refCol==='orders'){DB.update('orders',a.refId,{cancelled:true,statusText:'Dibatalkan',cancelReason:a.reason},a.reason,t('so.action_cancelled'))}
  },
@@ -183,9 +238,9 @@ PAGES.salesorders.render=async(v,param)=>{
  if(!param){
   v.innerHTML=UI.pghead(t('nav.salesorders'))+'<div class="card" id="sl"></div>';
   new DT($('#sl'),{title:t('nav.salesorders'),rows:()=>Scope.rows('salesorders').slice().reverse(),onRow:id=>Router.go('salesorders/'+id),
-   filters:[{k:'s',l:t('common.status'),opts:()=>['Baru','Diproses','Dikirim','Selesai','Dibatalkan'],get:r=>r.status},{k:'c',l:t('common.customer'),opts:()=>DB.all('customers').map(c=>c.name),get:r=>custName(r.customerId)}],
+   filters:[{k:'s',l:t('common.status'),opts:stOpt(['Baru','Diproses','Dikirim','Selesai','Dibatalkan']),get:r=>r.status},{k:'c',l:t('common.customer'),opts:()=>DB.all('customers').map(c=>c.name),get:r=>custName(r.customerId)}],
    cols:[{k:'no',l:t('so.no_so')},{k:'date',l:t('common.date'),text:r=>fdate(r.date),sortv:r=>r.date},{k:'c',l:t('common.customer'),text:r=>custName(r.customerId)},{k:'s',l:t('common.sales'),text:r=>userName(r.salesId)},
-    {k:'total',l:t('common.total'),num:true,text:r=>rp(r.total),sortv:r=>r.total},{k:'gp',l:t('common.margin'),num:true,hide:()=>!seeCost(),text:r=>pct(r.gpPct),sortv:r=>r.gpPct},{k:'st',l:t('common.status'),text:r=>r.status,html:r=>UI.badge(r.status)}]});
+    {k:'total',l:t('common.total'),num:true,text:r=>rp(r.total),sortv:r=>r.total},{k:'gp',l:t('common.margin'),num:true,hide:()=>!seeCost(),text:r=>pct(r.gpPct),sortv:r=>r.gpPct},{k:'st',l:t('common.status'),text:r=>stLabel(r.status),html:r=>UI.badge(stLabel(r.status))}]});
   return;
  }
  const so=DB.get('salesorders',param);
@@ -196,12 +251,34 @@ PAGES.salesorders.render=async(v,param)=>{
  if(can('invoices','w')&&so.status!=='Dibatalkan'&&remaining>0.5)acts.push(`<button class="btn" data-act="inv-new" data-so="${so.id}">${t('so.make_invoice')}</button>`);
  if(can('salesorders','w')&&!['Dibatalkan','Selesai'].includes(so.status))acts.push(`<button class="btn btn-d" data-act="cancel-req" data-col="salesorders" data-id="${so.id}" data-l="${t('nav.salesorders')}">${t('common.request_cancellation')}</button>`);
  v.innerHTML=UI.pghead(t('nav.salesorders')+' '+so.no,acts.join(''))+`<div class="grid split"><div>
-  <div class="card"><div class="ch"><span>${t('so.order_info')}</span>${UI.badge(so.status)}</div>${UI.kv([[t('common.customer'),esc(custName(so.customerId))],[t('common.sales'),esc(userName(so.salesId))],[t('common.date'),fdate(so.date)],[t('nav.quotations'),q?docLink('quotations',q):'-'],[t('nav.orders'),o?docLink('orders',o):'-'],[t('common.payment_terms'),esc(so.paymentTerms||'-')],[t('common.delivery_terms'),esc(so.deliveryTerms||'-')]])}</div>
+  <div class="card"><div class="ch"><span>${t('so.order_info')}</span>${UI.badge(stLabel(so.status))}</div>${UI.kv([[t('common.customer'),esc(custName(so.customerId))],[t('common.sales'),esc(userName(so.salesId))],[t('common.date'),fdate(so.date)],[t('nav.quotations'),q?docLink('quotations',q):'-'],[t('nav.orders'),o?docLink('orders',o):'-'],[t('common.payment_terms'),esc(so.paymentTerms||'-')],[t('common.delivery_terms'),esc(so.deliveryTerms||'-')]])}</div>
   <div class="card"><h3>${t('so.items')}</h3><div class="tblw"><table><tr><th>${t('common.product')}</th><th class="num">${t('common.qty')}</th><th class="num">${t('common.price')}</th><th class="num">${t('common.discount')}</th><th class="num">${t('common.amount')}</th></tr>${so.lines.map(l=>{const g=num(l.qty)*num(l.price);return `<tr><td>${esc(l.desc||DB.get('products',l.productId)?.name||'')}</td><td class="num">${nf(l.qty)}</td><td class="num">${rp(l.price)}</td><td class="num">${num(l.discPct)?pct(l.discPct):'-'}</td><td class="num">${rp(g-g*num(l.discPct)/100)}</td></tr>`}).join('')}</table></div></div>
-  <div class="card"><h3>${t('nav.invoices')}</h3>${invs.length?`<div class="tblw"><table><tr><th>${t('common.no_dot')}</th><th>${t('common.type')}</th><th>${t('inv.due_date')}</th><th class="num">${t('common.total')}</th><th class="num">${t('inv.paid')}</th><th>${t('common.status')}</th></tr>${invs.map(i=>`<tr><td>${docLink('invoices',i)}</td><td>${esc(i.type)}</td><td>${fdate(i.dueDate)}</td><td class="num">${rp(i.total)}</td><td class="num">${rp(Inv.paid(i))}</td><td>${UI.badge(Inv.status(i))}</td></tr>`).join('')}</table></div>`:`<div class="empty">${t('inv.none_yet')}</div>`}</div></div>
+  <div class="card"><h3>${t('nav.invoices')}</h3>${invs.length?`<div class="tblw"><table><tr><th>${t('common.no_dot')}</th><th>${t('common.type')}</th><th>${t('inv.due_date')}</th><th class="num">${t('common.total')}</th><th class="num">${t('inv.paid')}</th><th>${t('common.status')}</th></tr>${invs.map(i=>`<tr><td>${docLink('invoices',i)}</td><td>${esc(stLabel(i.type))}</td><td>${fdate(i.dueDate)}</td><td class="num">${rp(i.total)}</td><td class="num">${rp(Inv.paid(i))}</td><td>${UI.badge(stLabel(Inv.status(i)))}</td></tr>`).join('')}</table></div>`:`<div class="empty">${t('inv.none_yet')}</div>`}</div></div>
   <div><div class="card"><h3>${t('common.value')}</h3><dl class="kv"><dt>${t('common.dpp')}</dt><dd>${rp(so.dpp)}</dd><dt>${t('common.ppn')}</dt><dd>${rp(so.tax)}</dd><dt><b>${t('common.total')}</b></dt><dd><b>${rp(so.total)}</b></dd><dt>${t('so.billed')}</dt><dd>${rp(sum(active,i=>i.total))}</dd><dt>${t('inv.paid')}</dt><dd>${rp(sum(active,i=>Inv.paid(i)))}</dd>
    ${seeCost()?`<dt>${t('quot.buy_price')}</dt><dd>${rp(so.costTotal)}</dd><dt>${t('common.gross_profit')}</dt><dd>${rp(so.gp)} (${pct(so.gpPct)})</dd>`:''}</dl></div>
   <div class="card"><h3>${t('common.activity_comments')}</h3>${UI.activity('salesorders',so.id)}</div></div></div>`;
+};
+
+/* ================= SALES LIST (Sales Order + status invoice/piutang gabungan) ================= */
+PAGES.sales_list.render=async v=>{
+ v.innerHTML=UI.pghead(t('nav.sales_list'))+'<div class="card" id="sll"></div>';
+ new DT($('#sll'),{title:t('nav.sales_list'),rows:()=>Scope.rows('salesorders').slice().reverse(),onRow:id=>Router.go('salesorders/'+id),
+  filters:[{k:'s',l:t('common.status'),opts:stOpt(['Baru','Diproses','Dikirim','Selesai','Dibatalkan']),get:r=>r.status},{k:'c',l:t('common.customer'),opts:()=>DB.all('customers').map(c=>c.name),get:r=>custName(r.customerId)}],
+  cols:[{k:'date',l:t('sl.col_date'),text:r=>fdate(r.date),sortv:r=>r.date},{k:'no',l:t('sl.col_no')},{k:'c',l:t('sl.col_customer'),text:r=>custName(r.customerId)},
+   {k:'total',l:t('sl.col_total'),num:true,text:r=>rp(r.total),sortv:r=>r.total},
+   {k:'ist',l:t('sl.col_invoice_status'),sort:false,html:r=>{
+    const invs=DB.all('invoices').filter(i=>i.soId===r.id&&!i.cancelled);
+    if(!invs.length)return `<span class="mut">${t('sl.no_invoice_yet')}</span>`;
+    const paid=sum(invs,i=>Inv.paid(i)),total=sum(invs,i=>i.total);
+    return UI.badge(paid>=total-0.5?stLabel('Lunas'):rp(paid)+' / '+rp(total));
+   }},
+   {k:'st',l:t('common.status'),text:r=>stLabel(r.status),html:r=>UI.badge(stLabel(r.status))},
+   {k:'act',l:'',sort:false,html:r=>{
+    const invs=DB.all('invoices').filter(i=>i.soId===r.id&&!i.cancelled),first=invs[0];
+    const remaining=r.dpp-sum(invs,i=>i.dpp);
+    return (first?`<button class="btn btn-o btn-sm" data-act="inv-print" data-id="${first.id}">${t('common.print_pdf')}</button> `:'')+
+     (r.status!=='Dibatalkan'&&remaining>0.5&&can('invoices','w')?`<button class="btn btn-sm" data-act="inv-new" data-so="${r.id}">${t('so.make_invoice')}</button>`:'');
+   }}]});
 };
 
 /* ================= CUSTOMER INVOICE ================= */
@@ -258,19 +335,19 @@ PAGES.invoices.render=async(v,param)=>{
  if(!param){
   v.innerHTML=UI.pghead(t('nav.invoices'))+'<div class="card" id="il"></div>';
   new DT($('#il'),{title:t('nav.invoices'),rows:()=>Scope.rows('invoices').slice().reverse(),onRow:id=>Router.go('invoices/'+id),
-   filters:[{k:'s',l:t('common.status'),opts:()=>['Belum dibayar','DP diterima','Dibayar sebagian','Lunas','Jatuh tempo','Terlambat','Dibatalkan'],get:r=>Inv.status(r)},{k:'c',l:t('common.customer'),opts:()=>DB.all('customers').map(c=>c.name),get:r=>custName(r.customerId)}],
+   filters:[{k:'s',l:t('common.status'),opts:stOpt(['Belum dibayar','DP diterima','Dibayar sebagian','Lunas','Jatuh tempo','Terlambat','Dibatalkan']),get:r=>Inv.status(r)},{k:'c',l:t('common.customer'),opts:()=>DB.all('customers').map(c=>c.name),get:r=>custName(r.customerId)}],
    cols:[{k:'no',l:t('inv.no_invoice')},{k:'date',l:t('common.date'),text:r=>fdate(r.date),sortv:r=>r.date},{k:'c',l:t('common.customer'),text:r=>custName(r.customerId)},{k:'type',l:t('common.type')},{k:'due',l:t('inv.due_date'),text:r=>fdate(r.dueDate),sortv:r=>r.dueDate},
-    {k:'total',l:t('common.total'),num:true,text:r=>rp(r.total),sortv:r=>r.total},{k:'paid',l:t('inv.paid'),num:true,text:r=>rp(Inv.paid(r)),sortv:r=>Inv.paid(r)},{k:'st',l:t('common.status'),text:r=>Inv.status(r),html:r=>UI.badge(Inv.status(r))}]});
+    {k:'total',l:t('common.total'),num:true,text:r=>rp(r.total),sortv:r=>r.total},{k:'paid',l:t('inv.paid'),num:true,text:r=>rp(Inv.paid(r)),sortv:r=>Inv.paid(r)},{k:'st',l:t('common.status'),text:r=>stLabel(Inv.status(r)),html:r=>UI.badge(stLabel(Inv.status(r)))}]});
   return;
  }
  const i=DB.get('invoices',param);
  if(!i||!Scope.ok('invoices',i)){v.innerHTML=UI.empty(t('inv.not_found'));return}
- const so=DB.get('salesorders',i.soId),st=Inv.status(i),canPay=can('invoices','w')&&isRole('finance','director','deputy_director');
+ const so=DB.get('salesorders',i.soId),st=Inv.status(i),stD=stLabel(st),canPay=can('invoices','w')&&isRole('finance','director','deputy_director');
  const acts=[`<a class="btn btn-o" href="#/invoices">‹ ${t('common.back')}</a>`,`<button class="btn btn-o" data-act="inv-print" data-id="${i.id}">${t('common.print_pdf')}</button>`];
  if(canPay&&!i.cancelled&&Inv.outstanding(i)>0)acts.push(`<button class="btn" data-act="inv-pay" data-id="${i.id}">${t('inv.record_payment')}</button>`);
  if(can('invoices','w')&&!i.cancelled&&!(i.payments||[]).length)acts.push(`<button class="btn btn-d" data-act="cancel-req" data-col="invoices" data-id="${i.id}" data-l="${t('nav.invoices')}">${t('common.request_cancellation')}</button>`);
  v.innerHTML=UI.pghead(t('nav.invoices')+' '+i.no,acts.join(''))+`<div class="grid split"><div>
-  <div class="card"><div class="ch"><span>${t('inv.info_title')}</span>${UI.badge(st)}</div>${UI.kv([[t('common.customer'),esc(custName(i.customerId))],[t('common.type'),esc(i.type)],[t('nav.salesorders'),so?docLink('salesorders',so):'-'],[t('common.date'),fdate(i.date)],[t('inv.due_date'),fdate(i.dueDate)],[t('common.description'),esc(i.desc)],[t('inv.aging'),esc(Inv.aging(i))]])}</div>
+  <div class="card"><div class="ch"><span>${t('inv.info_title')}</span>${UI.badge(stD)}</div>${UI.kv([[t('common.customer'),esc(custName(i.customerId))],[t('common.type'),esc(stLabel(i.type))],[t('nav.salesorders'),so?docLink('salesorders',so):'-'],[t('common.date'),fdate(i.date)],[t('inv.due_date'),fdate(i.dueDate)],[t('common.description'),esc(i.desc)],[t('inv.aging'),esc(stLabel(Inv.aging(i)))]])}</div>
   <div class="card"><h3>${t('inv.incoming_payments')}</h3>${(i.payments||[]).length?`<div class="tblw"><table><tr><th>${t('common.date')}</th><th>${t('common.method')}</th><th>${t('common.reference')}</th><th class="num">${t('common.amount')}</th><th>${t('inv.proof')}</th><th>${t('common.recorded_by')}</th></tr>${i.payments.map(p=>`<tr><td>${fdate(p.date)}</td><td>${esc(p.method)}</td><td>${esc(p.ref||'')}</td><td class="num">${rp(p.amount)}</td><td><div class="files" data-files="p${p.id}" data-ro="1"></div></td><td>${esc(p.byName)}</td></tr>`).join('')}</table></div>`:`<div class="empty">${t('inv.no_payments_yet')}</div>`}</div></div>
   <div><div class="card"><h3>${t('common.value')}</h3><dl class="kv"><dt>${t('common.dpp')}</dt><dd>${rp(i.dpp)}</dd><dt>${t('common.ppn')} ${pct(i.taxPct)}</dt><dd>${rp(i.tax)}</dd><dt><b>${t('common.total')}</b></dt><dd><b>${rp(i.total)}</b></dd><dt>${t('inv.paid')}</dt><dd>${rp(Inv.paid(i))}</dd><dt>${t('inv.outstanding')}</dt><dd><b>${rp(Inv.outstanding(i))}</b></dd></dl></div>
   <div class="card"><h3>${t('common.activity_comments')}</h3>${UI.activity('invoices',i.id)}</div></div></div>`;
@@ -294,7 +371,7 @@ ACT['inv-pay']=async el=>{
  const before=clone(i.payments||[]),payments=[...before,{id:uid(),...v,amount:num(v.amount),by:Auth.uid(),byName:Auth.user.name,at:nowISO()}];
  DB.update('invoices',i.id,{payments},t('inv.reason_payment',{amt:rp(v.amount)}),t('inv.action_record_payment'));
  const upd=DB.get('invoices',i.id);
- UI.toast(t('inv.payment_recorded',{status:Inv.status(upd)}));
- if(i.orderId){const o=DB.get('orders',i.orderId);if(o){Notify.user(o.salesId,t('inv.notify_payment_received',{amt:rp(v.amount),no:i.no,status:Inv.status(upd)}),'#/orders/'+o.id);Order.touch(o.id)}}
+ UI.toast(t('inv.payment_recorded',{status:stLabel(Inv.status(upd))}));
+ if(i.orderId){const o=DB.get('orders',i.orderId);if(o){Notify.user(o.salesId,t('inv.notify_payment_received',{amt:rp(v.amount),no:i.no,status:stLabel(Inv.status(upd))}),'#/orders/'+o.id);Order.touch(o.id)}}
  Router.render();
 };

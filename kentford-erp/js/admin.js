@@ -17,7 +17,7 @@ const Crud={
  },
  cols(e){
   return e.fields.filter(f=>f.list).map(f=>({k:f.k,l:f.l,num:f.t==='money'||f.t==='number'||f.t==='percent',hide:f.cost?()=>!seeCost():null,
-   text:r=>this.disp(f,r[f.k]),html:f.badge?r=>UI.badge(r[f.k]):null}));
+   text:r=>this.disp(f,r[f.k]),html:f.badge?r=>UI.badge(this.disp(f,r[f.k])):null}));
  },
  fieldsFor(e){return e.fields.filter(f=>!(f.cost&&!seeCost()))},
  list(el,k,opts={}){
@@ -28,7 +28,7 @@ const Crud={
    rows:()=>(opts.rows?opts.rows():DB.col(e.col).filter(r=>Scope.ok(k,r)&&((dt&&dt.arch)||!r.deletedAt))).slice().reverse(),
    onRow:id=>this.open(k,id),
    toolbar:(w?`<button class="btn btn-sm" data-act="crud-new" data-e="${k}">${esc(t('admin.new_btn',{name:e.title}))}</button>`:'')+(w?`<label class="chk mut" style="font-size:12px"><input type="checkbox" data-act="crud-arch" data-dt="__ID__"> ${t('admin.show_archived')}</label>`:''),
-   filters:e.status?[{k:'status',l:t('common.status'),opts:()=>Form.opts(e.fields.find(f=>f.k===e.status)).map(o=>o.v),get:r=>r[e.status]}]:[]};
+   filters:e.status?[{k:'status',l:t('common.status'),opts:()=>Form.opts(e.fields.find(f=>f.k===e.status)),get:r=>r[e.status]}]:[]};
   el.innerHTML='';
   dt=new DT(el,cfg);
   // sisipkan id DT ke checkbox arsip
@@ -49,7 +49,7 @@ const Crud={
    (rec&&rec.deletedAt&&canEnt(e)?`<button class="btn btn-o" data-x="r">${t('admin.restore')}</button>`:'')+
    (rec&&canW?`<button class="btn btn-d" data-x="d">${t('admin.delete')}</button>`:'')+
    (canW?`<button class="btn" data-x="s">${t('admin.save')}</button>`:'');
-  const m=UI.modal({title:rec?t('admin.detail',{name:e.title}):t('admin.add_new',{name:e.title}),wide:true,body:Form.render(fields,vals,!canW)+(k==='leads'&&rec?`<p style="margin-top:12px"><button class="btn btn-o btn-sm" data-x="conv">${t('admin.convert_to_customer')}</button></p>`:'')+(rec&&rec.deletedAt?`<div class="warnbox" style="margin-top:10px">${t('admin.archived_notice')}</div>`:''),foot});
+  const m=UI.modal({title:rec?t('admin.detail',{name:e.title}):t('admin.add_new',{name:e.title}),wide:true,body:Form.render(fields,vals,!canW)+(k==='leads'&&rec?`<p style="margin-top:12px"><button class="btn btn-o btn-sm" data-x="conv">${t('admin.convert_to_customer')}</button></p><div style="margin-top:16px"><div class="ch"><span>${t('lead.followup_h')}</span><button class="btn btn-o btn-sm" data-x="fu-new">${t('lead.followup_new')}</button></div><div id="leadfu">${Crud.leadFollowupsHtml(rec.id)}</div></div>`:'')+(rec&&rec.deletedAt?`<div class="warnbox" style="margin-top:10px">${t('admin.archived_notice')}</div>`:''),foot});
   Form.hydrate(m.body,fields,vals);
   m.el.addEventListener('click',async ev=>{
    const b=ev.target.closest('[data-x]');if(!b)return;const x=b.dataset.x;
@@ -57,6 +57,13 @@ const Crud={
    if(x==='h'){UI.modal({title:t('admin.history_title'),wide:true,body:Crud.history(e.col,id)});return}
    if(x==='r'){await DB.restore(e.col,id);m.close();UI.toast(t('admin.data_restored'));Crud.refresh();return}
    if(x==='conv'){m.close();Crud.convertLead(rec);return}
+   if(x==='fu-new'){
+    const fuKeys=['date','type','status','notes','nextDate'],fuFields=ENT.followups.fields.filter(f=>fuKeys.includes(f.k));
+    const v=await UI.ask({title:t('lead.followup_new'),ok:t('admin.save'),fields:fuFields});
+    if(!v)return;
+    DB.insert('followups',{...v,leadId:rec.id,salesId:rec.salesId||Auth.uid()});
+    UI.toast(t('lead.followup_saved'));$('#leadfu',m.body).innerHTML=Crud.leadFollowupsHtml(rec.id);return;
+   }
    if(x==='d'){
     const r=await UI.confirm({title:t('admin.delete_title'),msg:t('admin.delete_confirm_msg',{name:esc(e.label(rec))}),reason:true,ok:t('admin.yes_delete'),danger:true});
     if(!r)return;await DB.remove(e.col,id,r.reason);m.close();UI.toast(t('admin.data_archived'));Crud.refresh();return;
@@ -93,6 +100,12 @@ const Crud={
     }catch(er){UI.toast(er.message,'err')}
    }
   });
+ },
+ leadFollowupsHtml(leadId){
+  const rows=DB.all('followups').filter(f=>f.leadId===leadId).slice().reverse();
+  if(!rows.length)return `<div class="empty">${t('lead.followup_empty')}</div>`;
+  const fuFields=ENT.followups.fields,typeF=fuFields.find(f=>f.k==='type'),statusF=fuFields.find(f=>f.k==='status');
+  return rows.map(f=>`<div class="ev">${esc(fdate(f.date))} — <b>${esc(this.disp(typeF,f.type))}</b> ${UI.badge(this.disp(statusF,f.status))}${f.notes?'<br>'+esc(f.notes):''}${f.nextDate?`<br><small class="mut">${t('reports.col_next')}: ${fdate(f.nextDate)}</small>`:''}</div>`).join('');
  },
  refresh(){const t=Object.values(DT.inst).filter(d=>document.body.contains(d.el)).pop();if(t)t.draw();App.refreshBell()},
  history(col,id){
@@ -294,14 +307,17 @@ PAGES.settings.render=async v=>{
  const s=S(),w=can('settings','w');
  const fCo=[F.t('name',t('admin.company_name'),{req:true}),F.t('phone',t('admin.phone'),{t:'phone'}),F.t('email','Email',{t:'email'}),F.t('npwp',t('admin.npwp')),F.ta('address',t('admin.address'))];
  const fRule=[F.pc('minMarginPct',t('admin.min_margin_pct'),{hint:t('admin.min_margin_hint')}),F.pc('lowMarginDirectorPct',t('admin.low_margin_director_pct')),F.pc('maxDiscPct',t('admin.max_disc_pct')),
-  F.n('quoteValidDays',t('admin.quote_valid_days')),F.pc('defaultTaxPct',t('admin.default_tax_pct')),F.n('slaDays',t('admin.sla_days'))];
+  F.n('quoteValidDays',t('admin.quote_valid_days')),F.pc('defaultTaxPct',t('admin.default_tax_pct')),F.n('slaDays',t('admin.sla_days')),
+  F.c('stockAutoDeductEnabled','Stok otomatis berkurang saat Sales Order dibuat',{hint:'Aktifkan setelah migrasi data lama & penyesuaian stok fisik oleh gudang selesai. Sebelum ini aktif, stok tidak berubah otomatis dari transaksi penjualan.'})];
  const fRent=[F.n('minMonths',t('admin.min_months')),F.n('hoursPerMonth',t('admin.hours_per_month')),F.n('depositMonths',t('admin.deposit_months')),F.n('prepayMonths',t('admin.prepay_months'))];
  v.innerHTML=UI.pghead(t('admin.settings'))+`<div class="grid g2"><div class="card"><h3>${t('admin.company_profile')}</h3><div id="sc">${Form.render(fCo,s.company||{},!w)}</div></div>
   <div class="card"><h3>${t('admin.business_rules')}</h3><div id="sr">${Form.render(fRule,s,!w)}</div></div>
   <div class="card"><h3>${t('admin.rental_default')}</h3><div id="sn">${Form.render(fRent,s.rental||{},!w)}</div></div>
   ${isRole('director')?`<div class="card"><h3>${t('admin.period_lock')}</h3><p class="mut">${t('admin.period_lock_hint')}</p>
    <div class="fld"><label>${t('admin.period_lock_date')}</label><input type="date" id="plockdate" value="${esc(PeriodLock.date())}"></div>
-   <div class="acts" style="margin-top:8px"><button class="btn btn-o" data-act="period-lock-save">${t('common.save')}</button></div></div>`:''}
+   <div class="acts" style="margin-top:8px"><button class="btn btn-o" data-act="period-lock-save">${t('common.save')}</button></div></div>
+   <div class="card"><h3>${t('admin.wipe_dummy_btn')}</h3><p class="mut">${t('admin.wipe_dummy_confirm_msg')}</p>
+    <div class="acts"><button class="btn btn-d" data-act="wipe-dummy">${t('admin.wipe_dummy_btn')}</button></div></div>`:''}
   <div class="card"><h3>${t('admin.backup_restore')}</h3><p class="mut">${t('admin.backup_hint')}</p>
    <div class="acts"><button class="btn btn-o" data-act="backup">${t('admin.download_backup')}</button>${w?`<label class="btn btn-o">${t('admin.restore_from_file')}<input type="file" accept=".json" id="restore" style="display:none"></label><button class="btn btn-d" data-act="reset-demo">${t('admin.reset_demo')}</button>`:''}</div>
    <p class="mut" style="margin-top:8px">${t('admin.storage_label')}: <b>${Store.mode==='idb'?t('admin.storage_idb'):Store.mode==='ls'?'localStorage':t('admin.storage_mem')}</b></p></div></div>
@@ -330,6 +346,31 @@ ACT['reset-demo']=async()=>{
  const r=await UI.confirm({title:t('admin.reset_title'),msg:t('admin.reset_msg'),ok:t('admin.yes_reset'),danger:true});if(!r)return;
  await Store.clearAll();Auth.logout();location.reload();
 };
+/* Hapus HANYA data contoh/dummy (master data bisnis + transaksi contoh yang dibuat Seed.run(),
+   ditandai createdBy==='seed' - lihat js/schema.js) supaya sistem siap diisi data riil, TANPA
+   menghapus konfigurasi operasional (roles/warehouses/dsb, dibutuhkan sistem tetap jalan) ATAU
+   transaksi riil yang sudah dibuat pengguna (baris itu createdBy = id user asli, bukan 'seed'). */
+const WIPE_DUMMY_COLS=['customers','suppliers','products','stock','stock_moves','leads','followups','quotations','orders','salesorders','invoices'];
+/* q1/o1/o2 di Seed.run() (js/schema.js) sengaja diberi createdBy:'u_s1' (bukan 'seed') supaya
+   contoh riwayat aktivitas terlihat wajar (dibuat "oleh" staff sales contoh) - jadi tidak
+   tertangkap filter createdBy==='seed' di bawah. ID literalnya statis, dicatat di sini supaya
+   ikut terhapus juga sebagai data dummy. */
+const WIPE_DUMMY_EXTRA_IDS={quotations:['q1'],orders:['o1','o2']};
+ACT['wipe-dummy']=async()=>{
+ const r=await UI.confirm({title:t('admin.wipe_dummy_confirm_title'),msg:t('admin.wipe_dummy_confirm_msg'),ok:t('admin.wipe_dummy_btn'),danger:true});
+ if(!r)return;
+ let n=0;
+ WIPE_DUMMY_COLS.forEach(col=>{
+  const rows=Store.mem[col];if(!Array.isArray(rows))return;
+  const extra=WIPE_DUMMY_EXTRA_IDS[col]||[];
+  const before=rows.length;
+  Store.mem[col]=rows.filter(row=>row.createdBy!=='seed'&&!extra.includes(row.id));
+  n+=before-Store.mem[col].length;
+ });
+ Store.putAll();
+ UI.toast(n>0?t('admin.wipe_dummy_done',{n}):t('admin.wipe_dummy_none'));
+ if(n>0){Audit.log(t('admin.wipe_dummy_btn'),'settings','main',null,{deleted:n},'');Crud.refresh();}
+};
 
 /* ---------------- Approval ---------------- */
 function pendingApprovalsForMe(){return DB.all('approvals').filter(a=>Approval.canDecide(a))}
@@ -342,9 +383,9 @@ function approvalPage(key,title,filter){
  PAGES[key].render=async v=>{
   v.innerHTML=UI.pghead(title)+'<div class="card" id="ap"></div>';
   new DT($('#ap'),{title,rows:()=>DB.all('approvals').filter(approvalVisible).filter(filter).slice().reverse(),onRow:id=>Appr.open(id),
-   filters:[{k:'t',l:t('admin.type_col'),opts:()=>Object.values(APPR_TYPES),get:r=>APPR_TYPES[r.type]},{k:'s',l:t('admin.status_col'),opts:()=>['Menunggu','Disetujui','Ditolak'],get:r=>r.status}],
+   filters:[{k:'t',l:t('admin.type_col'),opts:()=>Object.values(APPR_TYPES),get:r=>APPR_TYPES[r.type]},{k:'s',l:t('admin.status_col'),opts:()=>['Menunggu','Disetujui','Ditolak'].map(apprStatusLabel),get:r=>apprStatusLabel(r.status)}],
    cols:[{k:'no',l:t('common.no_dot')},{k:'createdAt',l:t('admin.submitted_col'),text:r=>fdate(r.createdAt),sortv:r=>r.createdAt},{k:'t',l:t('admin.type_col'),text:r=>APPR_TYPES[r.type]},{k:'title',l:t('admin.subject_col')},{k:'amount',l:t('admin.nominal_col'),num:true,text:r=>r.amount?rp(r.amount):'-',sortv:r=>r.amount},
-    {k:'requesterName',l:t('admin.requester_col')},{k:'st',l:t('admin.status_col'),text:r=>r.status,html:r=>UI.badge(r.status)+(Approval.cur(r)?`<br><small class="mut">→ ${esc(DB.get('roles',Approval.cur(r).role)?.name||'')}</small>`:'')}]});
+    {k:'requesterName',l:t('admin.requester_col')},{k:'st',l:t('admin.status_col'),text:r=>apprStatusLabel(r.status),html:r=>UI.badge(apprStatusLabel(r.status))+(Approval.cur(r)?`<br><small class="mut">→ ${esc(DB.get('roles',Approval.cur(r).role)?.name||'')}</small>`:'')}]});
  };
 }
 approvalPage('approvals_pending',t('admin.approvals_pending'),a=>a.status==='Menunggu');
@@ -356,8 +397,8 @@ const Appr={
   const a=DB.get('approvals',id),canD=Approval.canDecide(a);
   const link=a.refCol&&a.refId&&APPR_LINK[a.refCol]?`<a href="#/${APPR_LINK[a.refCol]}/${a.refId}" data-x="go">${t('admin.related_doc')}</a>`:'';
   const m=UI.modal({title:`${a.no} — ${APPR_TYPES[a.type]||a.type}`,wide:true,body:
-   UI.kv([[t('admin.subject_col'),esc(a.title)],[t('admin.requester_col'),esc(a.requesterName)],[t('admin.submitted_col'),fdt(a.createdAt)],[t('admin.nominal_col'),a.amount?rp(a.amount):'-'],[t('common.reason'),esc(a.reason||'-')],[t('admin.status_col'),UI.badge(a.status)],['—',link||'-'],[t('common.attachment'),'<div class="files" data-files="f" data-ro="1"></div>']])+
-   `<h3 style="margin:14px 0 6px">${t('admin.approval_flow')}</h3><div class="tblw"><table><tr><th>#</th><th>${t('admin.approver_role')}</th><th>${t('admin.decision')}</th><th>${t('admin.by_col')}</th><th>${t('admin.date_col')}</th><th>${t('admin.note_col')}</th></tr>${a.steps.map((s,i)=>`<tr><td>${i+1}</td><td>${esc(DB.get('roles',s.role)?.name||s.role)}</td><td>${UI.badge(a.status==='Menunggu'&&i===a.idx?t('admin.waiting'):s.status)}</td><td>${esc(s.byName||'-')}</td><td>${s.at?fdt(s.at):'-'}</td><td>${esc(s.note||'')}</td></tr>`).join('')||`<tr><td colspan="6" class="empty">${t('admin.auto_approved_no_step')}</td></tr>`}</table></div>`,
+   UI.kv([[t('admin.subject_col'),esc(a.title)],[t('admin.requester_col'),esc(a.requesterName)],[t('admin.submitted_col'),fdt(a.createdAt)],[t('admin.nominal_col'),a.amount?rp(a.amount):'-'],[t('common.reason'),esc(a.reason||'-')],[t('admin.status_col'),UI.badge(apprStatusLabel(a.status))],['—',link||'-'],[t('common.attachment'),'<div class="files" data-files="f" data-ro="1"></div>']])+
+   `<h3 style="margin:14px 0 6px">${t('admin.approval_flow')}</h3><div class="tblw"><table><tr><th>#</th><th>${t('admin.approver_role')}</th><th>${t('admin.decision')}</th><th>${t('admin.by_col')}</th><th>${t('admin.date_col')}</th><th>${t('admin.note_col')}</th></tr>${a.steps.map((s,i)=>`<tr><td>${i+1}</td><td>${esc(DB.get('roles',s.role)?.name||s.role)}</td><td>${UI.badge(a.status==='Menunggu'&&i===a.idx?t('admin.waiting'):apprStatusLabel(s.status))}</td><td>${esc(s.byName||'-')}</td><td>${s.at?fdt(s.at):'-'}</td><td>${esc(s.note||'')}</td></tr>`).join('')||`<tr><td colspan="6" class="empty">${t('admin.auto_approved_no_step')}</td></tr>`}</table></div>`,
    foot:`<button class="btn btn-o" data-x="c">${t('admin.close')}</button>${canD?`<button class="btn btn-d" data-x="no">${t('admin.reject_btn')}</button><button class="btn" data-x="ok">${t('admin.approve_btn')}</button>`:''}`});
   const fw=$('[data-files="f"]',m.body);fw._files=a.files||[];Files.render(fw);
   m.el.addEventListener('click',async e=>{
@@ -379,5 +420,5 @@ PAGES.ar.render=async v=>{
   cols:[{k:'no',l:t('inv.no_invoice')},{k:'c',l:t('common.customer'),text:r=>DB.get('customers',r.customerId)?.name},{k:'dueDate',l:t('inv.due_date'),text:r=>fdate(r.dueDate),sortv:r=>r.dueDate},
    {k:'total',l:t('common.total'),num:true,text:r=>rp(r.total),sortv:r=>r.total},{k:'out',l:t('inv.outstanding'),num:true,text:r=>rp(Inv.outstanding(r)),sortv:r=>Inv.outstanding(r)},
    {k:'age',l:t('admin.ar_age'),num:true,text:r=>String(Math.max(0,daysBetween(r.dueDate,today()))),sortv:r=>daysBetween(r.dueDate,today())},
-   {k:'b',l:t('inv.aging'),text:r=>Inv.aging(r)},{k:'st',l:t('common.status'),text:r=>Inv.status(r),html:r=>UI.badge(Inv.status(r))}]});
+   {k:'b',l:t('inv.aging'),text:r=>stLabel(Inv.aging(r))},{k:'st',l:t('common.status'),text:r=>stLabel(Inv.status(r)),html:r=>UI.badge(stLabel(Inv.status(r)))}]});
 };

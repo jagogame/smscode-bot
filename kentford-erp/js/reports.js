@@ -20,6 +20,20 @@ const REPORTS=[
   cols:[R_COL('no',t('so.no_so'),r=>r.no),R_COL('c',t('common.customer'),r=>custName(r.customerId)),R_COL('s',t('common.sales'),r=>userName(r.salesId)),R_COL('dpp',t('reports.col_sales_dpp'),r=>rp(r.dpp),{num:true,sortv:r=>r.dpp}),
    R_COL('cost',t('quot.buy_price'),r=>rp(r.costTotal),{num:true}),R_COL('gp',t('common.gross_profit'),r=>rp(r.gp),{num:true,sortv:r=>r.gp}),R_COL('m',t('common.margin'),r=>pct(r.gpPct),{num:true,sortv:r=>r.gpPct})],
   sum:rows=>t('reports.sum_margin',{dpp:rp(sum(rows,r=>r.dpp)),gp:rp(sum(rows,r=>r.gp)),m:pct(sum(rows,r=>r.dpp)?sum(rows,r=>r.gp)/sum(rows,r=>r.dpp)*100:0)})},
+ // Biaya proyek: kumpulkan biaya dari PR/PO/SI yang di-tag projectId (lihat js/purchasing.js PR
+ // purpose='Proyek' & js/finance.js SInv.fromPO) lalu bandingkan dgn target pendapatan proyek/total
+ // SO terkait (ent.projects, js/schema.js) supaya biaya proyek tercatat & terlihat otomatis di Accounting.
+ {key:'projectcost',label:t('reports.project_cost'),need:()=>seeCost(),f:['status'],st:['Berjalan','Selesai','Dibatalkan'],
+  rows:f=>Scope.rows('projects').filter(p=>!f.status||p.status===f.status).map(p=>{
+   const pos=DB.all('po').filter(o=>o.projectId===p.id),sis=DB.all('si').filter(s=>s.projectId===p.id&&!s.cancelled);
+   const cost=sum(sis,s=>s.dpp)||sum(pos,o=>POH.calc(o).sub);
+   const revenue=p.salesOrderId?(DB.get('salesorders',p.salesOrderId)?.dpp||0):num(p.revenueTarget);
+   return {id:p.id,name:p.name,status:p.status,customer:custName(p.customerId),poCount:pos.length,cost,revenue,margin:revenue-cost};
+  }),
+  cols:[R_COL('name',t('reports.col_project'),r=>r.name),R_COL('c',t('common.customer'),r=>r.customer||'-'),R_COL('st',t('common.status'),r=>r.status),
+   R_COL('po',t('nav.po'),r=>String(r.poCount),{num:true}),R_COL('cost',t('reports.col_actual_cost'),r=>rp(r.cost),{num:true,sortv:r=>r.cost}),
+   R_COL('rev',t('reports.col_revenue_target'),r=>rp(r.revenue),{num:true,sortv:r=>r.revenue}),R_COL('m',t('reports.col_margin'),r=>rp(r.margin),{num:true,sortv:r=>r.margin})],
+  sum:rows=>t('reports.sum_margin',{dpp:rp(sum(rows,r=>r.revenue)),gp:rp(sum(rows,r=>r.margin)),m:pct(sum(rows,r=>r.revenue)?sum(rows,r=>r.margin)/sum(rows,r=>r.revenue)*100:0)})},
  {key:'salesperf',label:t('reports.salesperf'),f:['date'],
   rows:f=>{const u=DB.all('users').filter(x=>x.roleId==='sales'&&(!Auth.role.scopeOwn||x.id===Auth.uid()));
    return u.map(x=>{const so=DB.all('salesorders').filter(s=>s.salesId===x.id&&s.status!=='Dibatalkan'&&inRange(s.date,f));
@@ -30,9 +44,9 @@ const REPORTS=[
   rows:f=>Scope.rows('followups').filter(x=>inRange(x.date,f)&&(!f.customerId||x.customerId===f.customerId)&&(!f.salesId||x.salesId===f.salesId)&&(!f.status||x.status===f.status)),
   cols:[R_COL('d',t('common.date'),r=>fdate(r.date),{sortv:r=>r.date}),R_COL('c',t('common.customer'),r=>custName(r.customerId)),R_COL('t',t('common.type'),r=>r.type),R_COL('s',t('common.sales'),r=>userName(r.salesId)),
    R_COL('st',t('common.status'),r=>r.status==='Terjadwal'&&r.date<today()?t('common.late'):r.status),R_COL('n',t('common.notes'),r=>r.notes||''),R_COL('nx',t('reports.col_next'),r=>fdate(r.nextDate))]},
- {key:'orderprog',label:t('reports.orderprog'),f:['date','customer','sales','status'],st:()=>[...STAGES.map(s=>s.status),'Perlu Revisi Sales','Dibatalkan'],
-  rows:f=>Scope.rows('orders').filter(o=>inRange((o.createdAt||'').slice(0,10),f)&&(!f.customerId||o.customerId===f.customerId)&&(!f.salesId||o.salesId===f.salesId)&&(!f.status||(o.cancelled?'Dibatalkan':o.statusText)===f.status)),
-  cols:[R_COL('no',t('reports.col_order_no'),r=>r.no),R_COL('c',t('common.customer'),r=>custName(r.customerId)),R_COL('n',t('reports.col_need'),r=>r.needType),R_COL('s',t('common.sales'),r=>userName(r.salesId)),R_COL('st',t('common.status'),r=>r.cancelled?'Dibatalkan':r.statusText),
+ {key:'orderprog',label:t('reports.orderprog'),f:['date','customer','sales','status'],st:()=>[...STAGES.map(s=>s.status),t('ord.status.revision_needed'),t('common.cancelled')],
+  rows:f=>Scope.rows('orders').filter(o=>inRange((o.createdAt||'').slice(0,10),f)&&(!f.customerId||o.customerId===f.customerId)&&(!f.salesId||o.salesId===f.salesId)&&(!f.status||Order.statusLabel(o)===f.status)),
+  cols:[R_COL('no',t('reports.col_order_no'),r=>r.no),R_COL('c',t('common.customer'),r=>custName(r.customerId)),R_COL('n',t('reports.col_need'),r=>r.needType),R_COL('s',t('common.sales'),r=>userName(r.salesId)),R_COL('st',t('common.status'),r=>Order.statusLabel(r)),
    R_COL('td',t('reports.col_target_delivery'),r=>fdate(r.targetDelivery),{sortv:r=>r.targetDelivery}),R_COL('age',t('reports.col_days_in_stage'),r=>r.stage==='done'?'-':String(daysBetween((r.stageAt||r.createdAt).slice(0,10),today())),{num:true}),R_COL('l',t('reports.col_lateness'),r=>Order.late(r)?t('common.late'):'-')]},
  {key:'delivery',label:t('reports.delivery'),f:['date','customer'],
   rows:f=>Scope.rows('orders').filter(o=>o.data?.delivery&&inRange(o.data.delivery.receivedDate,f)&&(!f.customerId||o.customerId===f.customerId)),
@@ -50,8 +64,8 @@ const REPORTS=[
   cols:[R_COL('at',t('reports.col_time'),r=>fdt(r.at),{sortv:r=>r.at}),R_COL('p',t('common.product'),r=>DB.get('products',r.productId)?.name||''),R_COL('w',t('common.location_'),r=>DB.get('warehouses',r.whId)?.name||''),R_COL('t',t('common.type'),r=>r.type),R_COL('d',t('reports.col_change'),r=>(r.delta>0?'+':'')+r.delta,{num:true}),R_COL('r',t('common.reference'),r=>r.ref||''),R_COL('by',t('reports.col_by'),r=>r.byName)]},
  {key:'apaging',label:t('reports.apaging'),f:['supplier'],
   rows:f=>DB.all('si').filter(i=>SInv.outstanding(i)>0&&(!f.supplierId||i.supplierId===f.supplierId)),
-  cols:[R_COL('no',t('common.no_dot')+' '+t('nav.si'),r=>r.no),R_COL('s',t('common.supplier'),r=>supName(r.supplierId)),R_COL('due',t('inv.due_date'),r=>fdate(r.dueDate),{sortv:r=>r.dueDate}),R_COL('o',t('inv.outstanding'),r=>rp(SInv.outstanding(r)),{num:true,sortv:r=>SInv.outstanding(r)}),R_COL('b',t('inv.aging'),r=>SInv.aging(r)),R_COL('st',t('common.status'),r=>SInv.status(r))],
-  sum:rows=>['Belum jatuh tempo','1–30 hari','31–60 hari','61–90 hari','> 90 hari'].map(b=>`${b}: <b>${rp(sum(rows.filter(r=>SInv.aging(r)===b),r=>SInv.outstanding(r)))}</b>`).join(' • ')},
+  cols:[R_COL('no',t('common.no_dot')+' '+t('nav.si'),r=>r.no),R_COL('s',t('common.supplier'),r=>supName(r.supplierId)),R_COL('due',t('inv.due_date'),r=>fdate(r.dueDate),{sortv:r=>r.dueDate}),R_COL('o',t('inv.outstanding'),r=>rp(SInv.outstanding(r)),{num:true,sortv:r=>SInv.outstanding(r)}),R_COL('b',t('inv.aging'),r=>stLabel(SInv.aging(r))),R_COL('st',t('common.status'),r=>stLabel(SInv.status(r)))],
+  sum:rows=>['Belum jatuh tempo','1–30 hari','31–60 hari','61–90 hari','> 90 hari'].map(b=>`${stLabel(b)}: <b>${rp(sum(rows.filter(r=>SInv.aging(r)===b),r=>SInv.outstanding(r)))}</b>`).join(' • ')},
  {key:'cashflow',label:t('reports.cashflow'),f:['date'],
   rows:f=>DB.all('bank_tx').filter(t=>inRange(t.date,f)).slice().reverse(),
   cols:[R_COL('date',t('common.date'),r=>fdate(r.date),{sortv:r=>r.date}),R_COL('b',t('common.account'),r=>bankName(r.bankId)),R_COL('t',t('common.type'),r=>r.type),R_COL('amt',t('common.amount'),r=>rp(r.amount),{num:true,sortv:r=>r.amount}),R_COL('desc',t('common.description'),r=>r.desc),R_COL('src',t('reports.col_source'),r=>r.source)],
@@ -131,8 +145,8 @@ const REPORTS=[
    R_COL('d',t('partner.col_nearest'),r=>r.nearestName?r.nearestName+' ('+r.distKm+' km)':'-')]},
  {key:'aging',label:t('reports.aging'),f:['customer'],
   rows:f=>Scope.rows('invoices').filter(i=>Inv.outstanding(i)>0&&(!f.customerId||i.customerId===f.customerId)),
-  cols:[R_COL('no',t('inv.no_invoice'),r=>r.no),R_COL('c',t('common.customer'),r=>custName(r.customerId)),R_COL('due',t('inv.due_date'),r=>fdate(r.dueDate),{sortv:r=>r.dueDate}),R_COL('o',t('inv.outstanding'),r=>rp(Inv.outstanding(r)),{num:true,sortv:r=>Inv.outstanding(r)}),R_COL('b',t('inv.aging'),r=>Inv.aging(r)),R_COL('st',t('common.status'),r=>Inv.status(r))],
-  sum:rows=>['Belum jatuh tempo','1–30 hari','31–60 hari','61–90 hari','> 90 hari'].map(b=>`${b}: <b>${rp(sum(rows.filter(r=>Inv.aging(r)===b),r=>Inv.outstanding(r)))}</b>`).join(' • ')}
+  cols:[R_COL('no',t('inv.no_invoice'),r=>r.no),R_COL('c',t('common.customer'),r=>custName(r.customerId)),R_COL('due',t('inv.due_date'),r=>fdate(r.dueDate),{sortv:r=>r.dueDate}),R_COL('o',t('inv.outstanding'),r=>rp(Inv.outstanding(r)),{num:true,sortv:r=>Inv.outstanding(r)}),R_COL('b',t('inv.aging'),r=>stLabel(Inv.aging(r))),R_COL('st',t('common.status'),r=>stLabel(Inv.status(r)))],
+  sum:rows=>['Belum jatuh tempo','1–30 hari','31–60 hari','61–90 hari','> 90 hari'].map(b=>`${stLabel(b)}: <b>${rp(sum(rows.filter(r=>Inv.aging(r)===b),r=>Inv.outstanding(r)))}</b>`).join(' • ')}
 ];
 PAGES.reports.render=async(v,param)=>{
  const avail=REPORTS.filter(r=>!r.need||r.need());

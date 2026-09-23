@@ -53,4 +53,12 @@ function roleById(id) {
   return ROLE_SEED.find(r => r.id === id) || null;
 }
 
-module.exports = { ROLE_SEED, ADMIN_ROLE_IDS, roleById };
+// Per-user override (u.fullAccess === true): grants write access to every page regardless
+// of the user's actual roleId/role label. Used sparingly for individuals who need to act
+// across all departments without reassigning their formal role.
+function fullAccessRole(baseRoleId) {
+  const base = roleById(baseRoleId);
+  return { id: base ? base.id : baseRoleId, name: base ? base.name : baseRoleId, seeCost: true, scopeOwn: false, perm: permOf(ALLK, ALLK) };
+}
+
+module.exports = { ROLE_SEED, ADMIN_ROLE_IDS, roleById, fullAccessRole };

@@ -8,7 +8,7 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const bcrypt = require('bcryptjs');
 const nodemailer = require('nodemailer');
-const { ROLE_SEED, ADMIN_ROLE_IDS, roleById } = require('./roles');
+const { ROLE_SEED, ADMIN_ROLE_IDS, roleById, fullAccessRole } = require('./roles');
 const db = require('./db');
 
 const PORT = process.env.PORT || 8091;
@@ -40,7 +40,8 @@ function publicUser(u) {
   return rest;
 }
 
-function shapeRole(roleId) {
+function shapeRole(roleId, fullAccess) {
+  if (fullAccess) return fullAccessRole(roleId);
   const r = roleById(roleId);
   if (!r) return null;
   return { id: r.id, name: r.name, seeCost: r.seeCost, scopeOwn: r.scopeOwn, perm: r.perm };
@@ -141,7 +142,7 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
   const session = { token, userId: u.id, createdAt: nowISO(), expiresAt: now() + SESSION_TTL_MS };
   await db.transact(data2 => { data2.sessions.push(session); });
 
-  const role = shapeRole(u.roleId);
+  const role = shapeRole(u.roleId, u.fullAccess);
   return res.json({ ok: true, token, user: publicUser(u), role });
 });
 
@@ -153,7 +154,7 @@ app.post('/api/auth/logout', authMiddleware, async (req, res) => {
 });
 
 app.get('/api/auth/session', authMiddleware, (req, res) => {
-  const role = shapeRole(req.authUser.roleId);
+  const role = shapeRole(req.authUser.roleId, req.authUser.fullAccess);
   res.json({ ok: true, user: publicUser(req.authUser), role });
 });
 
@@ -271,7 +272,7 @@ app.put('/api/admin/users/:id', authMiddleware, requireAdmin, async (req, res) =
     if (other && other.id !== u.id) return res.status(409).json({ ok: false, error: 'email_taken' });
   }
   if (b.roleId && !roleById(b.roleId)) return res.status(400).json({ ok: false, error: 'invalid_role' });
-  const editable = ['name', 'email', 'roleId', 'position', 'jabatan', 'phone', 'deptId', 'location', 'approverId', 'approvalLimit', 'delegateTo', 'status', 'savedSignature'];
+  const editable = ['name', 'email', 'roleId', 'position', 'jabatan', 'phone', 'deptId', 'location', 'approverId', 'approvalLimit', 'delegateTo', 'status', 'savedSignature', 'fullAccess'];
   await db.transact(data2 => {
     const uu = data2.users.find(x => x.id === u.id);
     editable.forEach(k => { if (b[k] !== undefined) uu[k] = k === 'email' ? String(b[k]).trim().toLowerCase() : b[k]; });
@@ -322,6 +323,7 @@ require('./partners')(app, { authMiddleware });
    stock, invoices, audit, etc. — previously only in each browser's local IndexedDB) ---------- */
 require('./store')(app, { authMiddleware });
 require('./errorlog')(app, { authMiddleware, requireAdmin });
+require('./files')(app, { authMiddleware });
 
 app.get('/api/health', (req, res) => res.json({ ok: true, service: 'kentford-erp-auth', smtpConfigured }));
 

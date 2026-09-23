@@ -43,7 +43,7 @@ const SInv={
   if(type==='Penuh'&&used>0)throw new Error(t('inv.err_full_only_if_none'));
   if(dpp<=0.5||dpp>dppPO-used+0.5)throw new Error(t('si.err_exceeds_remaining',{amt:rp(dppPO-used)}));
   const tax=dpp*num(po.taxPct)/100;
-  return DB.insert('si',{no:Num.next('SI'),poId:po.id,supplierId:po.supplierId,type,date,dueDate:addDays(date,num(terms)),dpp,taxPct:po.taxPct,tax,total:dpp+tax,
+  return DB.insert('si',{no:Num.next('SI'),poId:po.id,projectId:po.projectId||'',supplierId:po.supplierId,type,date,dueDate:addDays(date,num(terms)),dpp,taxPct:po.taxPct,tax,total:dpp+tax,
    desc:note||(type==='DP'?`Down payment ${pct}%`:type==='Pelunasan'?t('inv.type_settlement'):t('inv.type_full'))+' — '+po.no,payments:[],cancelled:false});
  },
  manual(v){
@@ -55,17 +55,17 @@ PAGES.si.render=async(v,param)=>{
  if(!param){
   v.innerHTML=UI.pghead(t('nav.si'),can('si','w')?`<button class="btn" data-act="si-new">+ ${t('si.manual_invoice')}</button>`:'')+'<div class="card" id="sil"></div>';
   new DT($('#sil'),{title:t('nav.si'),rows:()=>DB.all('si').slice().reverse(),onRow:id=>Router.go('si/'+id),
-   filters:[{k:'s',l:t('common.status'),opts:()=>['Belum dibayar','DP diterima','Dibayar sebagian','Lunas','Jatuh tempo','Terlambat','Dibatalkan'],get:r=>SInv.status(r)},{k:'sp',l:t('common.supplier'),opts:()=>DB.all('suppliers').map(s=>s.name),get:r=>supName(r.supplierId)}],
+   filters:[{k:'s',l:t('common.status'),opts:stOpt(['Belum dibayar','DP diterima','Dibayar sebagian','Lunas','Jatuh tempo','Terlambat','Dibatalkan']),get:r=>SInv.status(r)},{k:'sp',l:t('common.supplier'),opts:()=>DB.all('suppliers').map(s=>s.name),get:r=>supName(r.supplierId)}],
    cols:[{k:'no',l:t('inv.no_invoice')},{k:'date',l:t('common.date'),text:r=>fdate(r.date),sortv:r=>r.date},{k:'sp',l:t('common.supplier'),text:r=>supName(r.supplierId)},{k:'po',l:'PO',text:r=>r.poId?DB.get('po',r.poId)?.no:'-'},
-    {k:'due',l:t('inv.due_date'),text:r=>fdate(r.dueDate),sortv:r=>r.dueDate},{k:'total',l:t('common.total'),num:true,text:r=>rp(r.total),sortv:r=>r.total},{k:'paid',l:t('inv.paid'),num:true,text:r=>rp(SInv.paid(r))},{k:'st',l:t('common.status'),text:r=>SInv.status(r),html:r=>UI.badge(SInv.status(r))}]});
+    {k:'due',l:t('inv.due_date'),text:r=>fdate(r.dueDate),sortv:r=>r.dueDate},{k:'total',l:t('common.total'),num:true,text:r=>rp(r.total),sortv:r=>r.total},{k:'paid',l:t('inv.paid'),num:true,text:r=>rp(SInv.paid(r))},{k:'st',l:t('common.status'),text:r=>stLabel(SInv.status(r)),html:r=>UI.badge(stLabel(SInv.status(r)))}]});
   return;
  }
  const i=DB.get('si',param);if(!i)return v.innerHTML=UI.empty(t('si.not_found'));
- const st=SInv.status(i),hasPR=DB.all('payreq').some(p=>p.refCol==='si'&&p.refId===i.id&&!['Ditolak','Dibatalkan'].includes(p.status));
+ const st=SInv.status(i),stD=stLabel(st),hasPR=DB.all('payreq').some(p=>p.refCol==='si'&&p.refId===i.id&&!['Ditolak','Dibatalkan'].includes(p.status));
  const acts=[`<a class="btn btn-o" href="#/si">‹ ${t('common.back')}</a>`];
  if(can('payreq','w')&&!i.cancelled&&SInv.outstanding(i)>0&&!hasPR)acts.push(`<button class="btn" data-act="payreq-from-si" data-id="${i.id}">${t('si.request_payreq')}</button>`);
  v.innerHTML=UI.pghead(t('nav.si')+' '+i.no,acts.join(''))+`<div class="grid split"><div>
-  <div class="card"><div class="ch"><span>${t('inv.info_title')}</span>${UI.badge(st)}</div>${UI.kv([[t('common.supplier'),esc(supName(i.supplierId))],[t('po.related_pr').replace('PR','PO'),i.poId?docLink('po',DB.get('po',i.poId)):'-'],[t('common.type'),esc(i.type)],[t('common.date'),fdate(i.date)],[t('inv.due_date'),fdate(i.dueDate)],[t('common.description'),esc(i.desc)],[t('inv.aging'),esc(SInv.aging(i))]])}</div>
+  <div class="card"><div class="ch"><span>${t('inv.info_title')}</span>${UI.badge(stD)}</div>${UI.kv([[t('common.supplier'),esc(supName(i.supplierId))],[t('po.related_pr').replace('PR','PO'),i.poId?docLink('po',DB.get('po',i.poId)):'-'],[t('common.type'),esc(stLabel(i.type))],[t('common.date'),fdate(i.date)],[t('inv.due_date'),fdate(i.dueDate)],[t('common.description'),esc(i.desc)],[t('inv.aging'),esc(stLabel(SInv.aging(i)))]])}</div>
   <div class="card"><h3>${t('si.outgoing_payments')}</h3>${(i.payments||[]).length?`<div class="tblw"><table><tr><th>${t('common.date')}</th><th>${t('common.account')}</th><th class="num">${t('common.amount')}</th><th>${t('nav.payreq')}</th></tr>${i.payments.map(p=>`<tr><td>${fdate(p.date)}</td><td>${esc(bankName(p.bankId))}</td><td class="num">${rp(p.amount)}</td><td>${p.prNo?docLink('payreq',DB.get('payreq',p.prId)):'-'}</td></tr>`).join('')}</table></div>`:`<div class="empty">${t('inv.no_payments_yet')}</div>`}</div></div>
   <div><div class="card"><h3>${t('common.value')}</h3><dl class="kv"><dt>${t('common.dpp')}</dt><dd>${rp(i.dpp)}</dd><dt>${t('common.ppn')}</dt><dd>${rp(i.tax)}</dd><dt><b>${t('common.total')}</b></dt><dd><b>${rp(i.total)}</b></dd><dt>${t('inv.paid')}</dt><dd>${rp(SInv.paid(i))}</dd><dt>${t('inv.outstanding')}</dt><dd><b>${rp(SInv.outstanding(i))}</b></dd></dl></div>
   <div class="card"><h3>${t('common.activity_comments')}</h3>${UI.activity('si',i.id)}</div></div></div>`;
@@ -91,7 +91,7 @@ PAGES.ap.render=async v=>{
  new DT($('#apb'),{title:t('nav.ap'),rows,onRow:id=>Router.go('si/'+id),size:20,
   filters:[{k:'sp',l:t('common.supplier'),opts:()=>DB.all('suppliers').map(s=>s.name),get:r=>supName(r.supplierId)}],
   cols:[{k:'no',l:t('common.no_dot')},{k:'sp',l:t('common.supplier'),text:r=>supName(r.supplierId)},{k:'due',l:t('inv.due_date'),text:r=>fdate(r.dueDate),sortv:r=>r.dueDate},
-   {k:'total',l:t('common.total'),num:true,text:r=>rp(r.total),sortv:r=>r.total},{k:'out',l:t('inv.outstanding'),num:true,text:r=>rp(SInv.outstanding(r)),sortv:r=>SInv.outstanding(r)},{k:'b',l:t('inv.aging'),text:r=>SInv.aging(r)},{k:'st',l:t('common.status'),text:r=>SInv.status(r),html:r=>UI.badge(SInv.status(r))}]});
+   {k:'total',l:t('common.total'),num:true,text:r=>rp(r.total),sortv:r=>r.total},{k:'out',l:t('inv.outstanding'),num:true,text:r=>rp(SInv.outstanding(r)),sortv:r=>SInv.outstanding(r)},{k:'b',l:t('inv.aging'),text:r=>stLabel(SInv.aging(r))},{k:'st',l:t('common.status'),text:r=>stLabel(SInv.status(r)),html:r=>UI.badge(stLabel(SInv.status(r)))}]});
 };
 
 /* ================= PAYMENT REQUEST ================= */
@@ -129,13 +129,13 @@ PAGES.payreq.render=async(v,param)=>{
   v.innerHTML=UI.pghead(t('nav.payreq'),can('payreq','w')?`<a class="btn" href="#/payreq/new">+ ${t('nav.payreq')}</a>`:'')+'<div class="card" id="pql"></div>';
   new DT($('#pql'),{title:t('nav.payreq'),rows:()=>DB.all('payreq').slice().reverse(),onRow:id=>Router.go('payreq/'+id),
    filters:[{k:'s',l:t('common.status'),opts:()=>['Draft','Menunggu Approval','Disetujui','Dibayar','Ditolak'],get:r=>r.status},{k:'c',l:t('common.category'),opts:()=>PayReq.categories,get:r=>r.category}],
-   cols:[{k:'no',l:t('common.no_dot')},{k:'cat',l:t('common.category'),text:r=>r.category},{k:'p',l:t('payreq.purpose'),text:r=>r.purpose},{k:'amt',l:t('payreq.nominal'),num:true,text:r=>rp(r.amount),sortv:r=>r.amount},{k:'req',l:t('pr.requester'),text:r=>userName(r.requesterId||r.createdBy)},{k:'st',l:t('common.status'),text:r=>r.status,html:r=>UI.badge(r.status)}]});
+   cols:[{k:'no',l:t('common.no_dot')},{k:'cat',l:t('common.category'),text:r=>r.category},{k:'p',l:t('payreq.purpose'),text:r=>r.purpose},{k:'amt',l:t('payreq.nominal'),num:true,text:r=>rp(r.amount),sortv:r=>r.amount},{k:'req',l:t('pr.requester'),text:r=>userName(r.requesterId||r.createdBy)},{k:'st',l:t('common.status'),text:r=>stLabel(r.status),html:r=>UI.badge(stLabel(r.status))}]});
   return;
  }
  const r=DB.get('payreq',param);if(!r)return v.innerHTML=UI.empty(t('payreq.not_found'));
  const acts=[`<a class="btn btn-o" href="#/payreq">‹ ${t('common.back')}</a>`];
  if(r.status==='Disetujui'&&can('payreq','w')&&isRole('finance','director'))acts.push(`<button class="btn" data-act="payreq-pay" data-id="${r.id}">${t('payreq.mark_paid')}</button>`);
- v.innerHTML=UI.pghead(t('nav.payreq')+' '+r.no,acts.join(''))+`<div class="card"><div class="ch"><span>${t('payreq.detail')}</span>${UI.badge(r.status)}</div>${UI.kv([[t('common.category'),esc(r.category)],[t('payreq.purpose'),esc(r.purpose)],[t('payreq.nominal'),rp(r.amount)],[t('common.reference'),r.refCol==='si'?docLink('si',DB.get('si',r.refId)):'-'],
+ v.innerHTML=UI.pghead(t('nav.payreq')+' '+r.no,acts.join(''))+`<div class="card"><div class="ch"><span>${t('payreq.detail')}</span>${UI.badge(stLabel(r.status))}</div>${UI.kv([[t('common.category'),esc(r.category)],[t('payreq.purpose'),esc(r.purpose)],[t('payreq.nominal'),rp(r.amount)],[t('common.reference'),r.refCol==='si'?docLink('si',DB.get('si',r.refId)):'-'],
   [t('payreq.requested_account'),esc(bankName(r.bankId))],[t('pr.requester'),esc(userName(r.requesterId||r.createdBy))],[t('payreq.paid_via'),r.paidVia?esc(bankName(r.paidVia))+' • '+t('common.reference').toLowerCase()+' '+esc(r.paidRef||'-'):'-']])}
   <div class="files" data-files="pqf" data-ro="1"></div></div>
   <div class="card"><h3>${t('common.activity_comments')}</h3>${UI.activity('payreq',r.id)}</div>`;
@@ -259,13 +259,13 @@ PAGES.recon.render=async(v,param)=>{
   }
   v.innerHTML=UI.pghead(t('nav.recon'),can('recon','w')?`<a class="btn" href="#/recon/new">+ ${t('recon.new')}</a>`:'')+'<div class="card" id="rcl"></div>';
   new DT($('#rcl'),{title:t('nav.recon'),rows:()=>DB.all('recons').slice().reverse(),onRow:id=>Router.go('recon/'+id),
-   cols:[{k:'no',l:t('common.no_dot')},{k:'b',l:t('common.account'),text:r=>bankName(r.bankId)},{k:'p',l:t('recon.period'),text:r=>r.period},{k:'match',l:t('recon.matched'),num:true,text:r=>r.lines.filter(l=>l.matchedId).length+'/'+r.lines.length},{k:'st',l:t('common.status'),text:r=>r.status,html:r=>UI.badge(r.status)}]});
+   cols:[{k:'no',l:t('common.no_dot')},{k:'b',l:t('common.account'),text:r=>bankName(r.bankId)},{k:'p',l:t('recon.period'),text:r=>r.period},{k:'match',l:t('recon.matched'),num:true,text:r=>r.lines.filter(l=>l.matchedId).length+'/'+r.lines.length},{k:'st',l:t('common.status'),text:r=>stLabel(r.status),html:r=>UI.badge(stLabel(r.status))}]});
   return;
  }
  const rc=DB.get('recons',param);if(!rc)return v.innerHTML=UI.empty(t('recon.not_found'));
  const sysTx=DB.all('bank_tx').filter(t=>t.bankId===rc.bankId&&t.date.startsWith(rc.period));
  const matchedSys=new Set(rc.lines.filter(l=>l.matchedId).map(l=>l.matchedId));
- v.innerHTML=UI.pghead(t('nav.recon')+' '+rc.no,`<a class="btn btn-o" href="#/recon">‹ ${t('common.back')}</a>`)+`<div class="card"><div class="ch"><span>${esc(bankName(rc.bankId))} — ${esc(rc.period)}</span>${UI.badge(rc.status)}</div>
+ v.innerHTML=UI.pghead(t('nav.recon')+' '+rc.no,`<a class="btn btn-o" href="#/recon">‹ ${t('common.back')}</a>`)+`<div class="card"><div class="ch"><span>${esc(bankName(rc.bankId))} — ${esc(rc.period)}</span>${UI.badge(stLabel(rc.status))}</div>
   <div class="grid g2"><div><h3 class="mut">${t('recon.statement')}</h3><div class="tblw"><table><tr><th>${t('common.date')}</th><th>${t('common.description')}</th><th class="num">${t('common.amount')}</th><th>${t('common.status')}</th></tr>${rc.lines.map((l,idx)=>`<tr><td>${fdate(l.date)}</td><td>${esc(l.desc)}</td><td class="num">${rp(l.amount)}</td><td>${l.matchedId?UI.badge(t('recon.match')):(rc.status==='Draft'?`<select data-rcmatch="${idx}"><option value="">— ${t('recon.select_system_tx')} —</option>${sysTx.filter(t=>!matchedSys.has(t.id)||t.id===l.matchedId).map(t=>`<option value="${t.id}" ${Math.abs((t.type==='Masuk'?t.amount:-t.amount)-l.amount)<1?'selected':''}>${fdate(t.date)} ${esc(t.desc)} (${t.type==='Masuk'?'':'-'}${rp(t.amount)})</option>`).join('')}</select>`:UI.badge(t('recon.unmatched')))}</td></tr>`).join('')}</table></div></div>
   <div><h3 class="mut">${t('recon.system_unmatched')}</h3><div class="tblw"><table><tr><th>${t('common.date')}</th><th>${t('common.description')}</th><th class="num">${t('common.amount')}</th></tr>${sysTx.filter(t=>!matchedSys.has(t.id)).map(t=>`<tr><td>${fdate(t.date)}</td><td>${esc(t.desc)}</td><td class="num">${t.type==='Masuk'?'':'-'}${rp(t.amount)}</td></tr>`).join('')||`<tr><td colspan=3 class="empty">${t('recon.all_matched')}</td></tr>`}</table></div></div></div>
   ${rc.status==='Draft'&&can('recon','w')?`<div class="acts" style="margin-top:12px"><button class="btn btn-o" data-act="recon-apply" data-id="${rc.id}">${t('recon.save_matching')}</button><button class="btn" data-act="recon-finish" data-id="${rc.id}">${t('recon.finish')}</button></div>`:''}</div>`;
@@ -309,8 +309,8 @@ ACT['inv-pay']=async el=>{
  DB.update('invoices',i.id,{payments},t('inv.reason_payment',{amt:rp(v.amount)}),t('inv.action_record_payment'));
  if(v.bankId)BankTx.add({bankId:v.bankId,date:v.date,type:'Masuk',amount:v.amount,desc:t('bank.desc_payment',{no:i.no}),ref:v.ref,source:'Customer Invoice'});
  const upd=DB.get('invoices',i.id);
- UI.toast(t('inv.payment_recorded',{status:Inv.status(upd)}));
- if(i.orderId){const o=DB.get('orders',i.orderId);if(o){Notify.user(o.salesId,t('inv.notify_payment_received',{amt:rp(v.amount),no:i.no,status:Inv.status(upd)}),'#/orders/'+o.id);Order.touch(o.id)}}
+ UI.toast(t('inv.payment_recorded',{status:stLabel(Inv.status(upd))}));
+ if(i.orderId){const o=DB.get('orders',i.orderId);if(o){Notify.user(o.salesId,t('inv.notify_payment_received',{amt:rp(v.amount),no:i.no,status:stLabel(Inv.status(upd))}),'#/orders/'+o.id);Order.touch(o.id)}}
  Router.render();
 };
 
