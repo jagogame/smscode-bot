@@ -8,6 +8,8 @@ const { generateDesk } = require('./desk-generator');
  * @param {string} gameId - ID Game MLBB
  * @returns {Promise<{posterPath: string, descriptionText: string}>}
  */
+const SKINS_TIMEOUT_MS = 60000;
+
 async function checkSkin(gameId) {
   const statePath = path.join(__dirname, 'state.json');
   if (!fs.existsSync(statePath)) {
@@ -23,38 +25,63 @@ async function checkSkin(gameId) {
 
   let skinsData = null;
   let playerName = 'Unknown';
+  // Catat semua response /skins (bukan cuma 200) supaya error-nya jelas:
+  // 401/403 = sesi state.json kadaluarsa, 429 = kena rate limit, 5xx = server CekSkin.
+  const skinsResponses = [];
 
-  page.on('response', async (response) => {
+  page.on('response', (response) => {
     const url = response.url();
-    if (url.includes('/api/players/') && url.endsWith('/skins') && response.status() === 200) {
-      try {
-        skinsData = await response.json();
-      } catch (err) {}
+    if (url.includes('/api/players/') && url.includes('/skins')) {
+      skinsResponses.push({ status: response.status(), url });
     }
   });
 
   try {
-    await page.goto('https://cekskin.com', { waitUntil: 'networkidle' });
+    await page.goto('https://cekskin.com', { waitUntil: 'domcontentloaded', timeout: 45000 });
 
     const inputLocator = page.getByPlaceholder(/ID/i).first();
     await inputLocator.fill(gameId.toString());
+
+    // Pasang penunggu SEBELUM klik biar response yang cepat nggak kelewat.
+    const skinsPromise = page.waitForResponse(
+      (res) => res.url().includes('/api/players/') && res.url().includes('/skins') && res.request().method() !== 'OPTIONS',
+      { timeout: SKINS_TIMEOUT_MS }
+    ).catch(() => null);
 
     const btnCari = page.getByRole('button', { name: /Cari Skin/i }).first();
     await btnCari.click();
 
     const btnOke = page.getByRole('button', { name: /Oke/i }).first();
-    await btnOke.click();
+    await btnOke.click({ timeout: 10000 }).catch(() => {});
+
+    const skinsRes = await skinsPromise;
+
+    if (!skinsRes) {
+      const seen = skinsResponses.map((r) => r.status).join(', ') || 'tidak ada';
+      throw new Error(`CekSkin tidak merespon data skins dalam ${SKINS_TIMEOUT_MS / 1000} detik (response /skins: ${seen}). Coba lagi beberapa saat.`);
+    }
+
+    const status = skinsRes.status();
+    if (status === 401 || status === 403) {
+      throw new Error(`Sesi CekSkin kadaluarsa (HTTP ${status}). Jalankan ulang login.js buat perbarui state.json.`);
+    }
+    if (status === 429) {
+      throw new Error('CekSkin membatasi request (HTTP 429). Tunggu beberapa menit lalu coba lagi.');
+    }
+    if (status === 404) {
+      throw new Error(`ID ${gameId} tidak ditemukan di CekSkin (HTTP 404).`);
+    }
+    if (status !== 200) {
+      throw new Error(`CekSkin error HTTP ${status} saat ambil data skins.`);
+    }
+
+    try {
+      skinsData = await skinsRes.json();
+    } catch (err) {
+      throw new Error('Response skins dari CekSkin bukan JSON valid.');
+    }
 
     await page.waitForURL('**/gallery?q=**', { timeout: 30000 });
-    
-    for(let i = 0; i < 15; i++) {
-      if(skinsData) break;
-      await page.waitForTimeout(1000);
-    }
-
-    if (!skinsData) {
-      throw new Error('Gagal mendapatkan data skins dari CekSkin.');
-    }
 
     try {
       const headerText = await page.locator('h1, h2, h3').first().innerText();
