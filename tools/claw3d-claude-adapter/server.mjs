@@ -52,6 +52,8 @@ function runClaude(systemPrompt, transcript) {
       "-p",
       "--output-format", "text",
       "--append-system-prompt", systemPrompt,
+      // abaikan konektor MCP dari konfigurasi user (bikin balasan agen nyasar)
+      "--strict-mcp-config",
       // hanya teks: matikan semua tool yang bisa menyentuh mesin
       "--disallowedTools", "Bash,Edit,Write,MultiEdit,NotebookEdit,WebFetch,WebSearch,Read,Glob,Grep,Task",
     ];
